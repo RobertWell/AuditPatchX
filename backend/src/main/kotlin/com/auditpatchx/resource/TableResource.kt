@@ -55,10 +55,10 @@ class TableResource(
     }
 
     /**
-     * POST /api/tables/get - Get single row by PK
+     * POST /api/record/get - Get single row by PK
      */
     @POST
-    @Path("/get")
+    @Path("/record/get")
     fun getByPk(request: GetByPkRequest): Response {
         return try {
             val result = databaseService.getByPk(request)
@@ -81,10 +81,10 @@ class TableResource(
     }
 
     /**
-     * POST /api/tables/validate-patch - Validate patch before applying
+     * POST /api/record/validate-patch - Validate patch before applying
      */
     @POST
-    @Path("/validate-patch")
+    @Path("/record/validate-patch")
     fun validatePatch(request: ValidatePatchRequest): Response {
         val result = databaseService.validatePatch(request)
         return if (result.ok) {
@@ -95,10 +95,10 @@ class TableResource(
     }
 
     /**
-     * POST /api/tables/update - Apply update (patch)
+     * POST /api/record/update - Apply update (patch)
      */
     @POST
-    @Path("/update")
+    @Path("/record/update")
     fun update(request: UpdateRequest): Response {
         return try {
             // Validate reason is provided
@@ -124,10 +124,10 @@ class TableResource(
     }
 
     /**
-     * GET /api/tables/{schema}/{table}/metadata - Get table metadata
+     * GET /api/db/tables/{schema}/{table} - Get table metadata
      */
     @GET
-    @Path("/{schema}/{table}/metadata")
+    @Path("/db/tables/{schema}/{table}")
     fun getMetadata(
         @PathParam("schema") schema: String,
         @PathParam("table") table: String

@@ -10,7 +10,8 @@ import javax.sql.DataSource
 @ApplicationScoped
 class DatabaseService(
     dataSource: DataSource,
-    private val securityService: SecurityValidationService
+    private val securityService: SecurityValidationService,
+    private val allowlistService: com.auditpatchx.config.AllowlistService
 ) {
     private val logger = LoggerFactory.getLogger(DatabaseService::class.java)
     private val jdbi: Jdbi = Jdbi.create(dataSource).installPlugin(KotlinPlugin())
@@ -173,15 +174,10 @@ class DatabaseService(
         // Validate table access
         securityService.validateAndGetColumns(schema, table)
 
-        val tableConfig = com.auditpatchx.config.AllowlistService::class.java
-            .getDeclaredConstructor().newInstance()
-
         val columns = securityService.getDetailedColumnMetadata(schema, table)
 
-        // Get PK columns from config
-        val pkColumns = tableConfig.getAllowedTables()
-            .find { it.schema.equals(schema, ignoreCase = true) && it.table.equals(table, ignoreCase = true) }
-            ?.pkColumns ?: emptyList()
+        // Get PK columns from config via the injected allowlistService
+        val pkColumns = allowlistService.getTableConfig(schema, table)?.pkColumns ?: emptyList()
 
         return TableMetadataResponse(
             pkColumns = pkColumns,

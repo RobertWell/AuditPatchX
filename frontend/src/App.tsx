@@ -5,6 +5,7 @@ import { DataGrid } from './components/DataGrid';
 import { DiffView } from './components/DiffView';
 import apiClient from './services/api';
 import { getChangedFields } from './services/diffUtils';
+import { TableMetadataResponse } from './types/api';
 
 const { Header, Content } = Layout;
 const { Title } = Typography;
@@ -15,6 +16,7 @@ function App() {
   const [currentTable, setCurrentTable] = useState<string>('');
   const [currentPk, setCurrentPk] = useState<Record<string, any>>({});
   const [pkColumns, setPkColumns] = useState<string[]>([]);
+  const [metadata, setMetadata] = useState<TableMetadataResponse | null>(null);
 
   // Grid state
   const [gridData, setGridData] = useState<Record<string, any>[]>([]);
@@ -34,9 +36,10 @@ function App() {
       setCurrentTable(table);
       setCurrentPk(pkValues);
 
-      // Get table metadata to know PK columns
-      const metadata = await apiClient.getTableMetadata(schema, table);
-      setPkColumns(metadata.pkColumns);
+      // Get table metadata to know PK columns and diff policy
+      const metadataResp = await apiClient.getTableMetadata(schema, table);
+      setPkColumns(metadataResp.pkColumns);
+      setMetadata(metadataResp);
 
       // Query by PK
       const response = await apiClient.getByPk({
@@ -205,6 +208,7 @@ function App() {
                     onApprove={handleApprove}
                     onReject={handleReject}
                     pkColumns={pkColumns}
+                    metadata={metadata}
                   />
                 </div>
               )}
