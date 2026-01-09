@@ -1,0 +1,36 @@
+quarkus:
+  datasource:
+    jdbc:
+      url: ${DB_URL:jdbc:oracle:thin:@localhost:1521:ORCL}
+    username: ${DB_USER:admin}
+    password: ${DB_PASSWORD:password}
+    driver: oracle.jdbc.OracleDriver
+  http:
+    port: ${PORT:8080}
+    cors:
+      ~: true
+      origins: "*"
+      methods: "GET,POST,PUT,DELETE,OPTIONS"
+      headers: "*"
+  log:
+    level: INFO
+    category:
+      "com.auditpatchx":
+        level: DEBUG
+
+# Table allowlist configuration
+allowlist:
+  tables:
+    - schema: HR
+      table: EMPLOYEE
+      pkColumns:
+        - EMP_ID
+    - schema: HR
+      table: DEPARTMENT
+      pkColumns:
+        - DEPT_ID
+    - schema: HR
+      table: JOB_HISTORY
+      pkColumns:
+        - EMPLOYEE_ID
+        - START_DATE
