@@ -1,7 +1,8 @@
 import React from 'react';
-import { Card, Badge, Tabs, Form, Input, Button, Space, Modal } from 'antd';
+import { Card, Badge, Tabs, Form, Input, Button, Space, Drawer } from 'antd';
 import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
 import { computeDiff, formatValue, type FieldDiff } from '../services/diffUtils';
+import { TableMetadataResponse } from '../types/api';
 
 interface DiffViewProps {
   before: Record<string, any>;
@@ -10,6 +11,7 @@ interface DiffViewProps {
   onApprove: () => void;
   onReject: () => void;
   pkColumns: string[];
+  metadata: TableMetadataResponse | null;
 }
 
 export const DiffView: React.FC<DiffViewProps> = ({
@@ -19,12 +21,12 @@ export const DiffView: React.FC<DiffViewProps> = ({
   onApprove,
   onReject,
   pkColumns,
+  metadata,
 }) => {
   const [viewMode, setViewMode] = React.useState<'side-by-side' | 'unified' | 'summary'>('side-by-side');
   const [editMode, setEditMode] = React.useState(false);
   const [editValues, setEditValues] = React.useState<Record<string, any>>(after);
-
-  const diffs = computeDiff(before, after);
+  const diffs = computeDiff(before, after, metadata || undefined);
   const changedDiffs = diffs.filter((d) => d.changed);
   const unchangedDiffs = diffs.filter((d) => !d.changed);
 
@@ -142,14 +144,21 @@ export const DiffView: React.FC<DiffViewProps> = ({
   );
 
   const renderEditForm = () => (
-    <Modal
+    <Drawer
       title="Edit Proposed Values"
       open={editMode}
-      onOk={handleSaveEdit}
-      onCancel={handleCancelEdit}
-      width={600}
+      onClose={handleCancelEdit}
+      width={400}
+      extra={
+        <Space>
+          <Button onClick={handleCancelEdit}>Cancel</Button>
+          <Button onClick={handleSaveEdit} type="primary">
+            Save
+          </Button>
+        </Space>
+      }
     >
-      <Form layout="vertical" className="max-h-96 overflow-auto">
+      <Form layout="vertical">
         {Object.keys(after)
           .filter((key) => !pkColumns.includes(key))
           .map((key) => (
@@ -162,7 +171,7 @@ export const DiffView: React.FC<DiffViewProps> = ({
             </Form.Item>
           ))}
       </Form>
-    </Modal>
+    </Drawer>
   );
 
   return (

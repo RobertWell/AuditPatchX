@@ -13,12 +13,41 @@ export interface FieldDiff {
  */
 export function computeDiff(
   before: Record<string, any>,
-  after: Record<string, any>
+  after: Record<string, any>,
+  metadata?: {
+    columns: { name: string; type: string }[];
+    diffPolicy?: {
+      excludeTypes?: string[];
+      excludeColumns?: string[];
+      includeColumns?: string[];
+    };
+  }
 ): FieldDiff[] {
   const allKeys = new Set([...Object.keys(before), ...Object.keys(after)]);
   const diffs: FieldDiff[] = [];
 
   for (const key of allKeys) {
+    // Apply diffPolicy rules
+    if (metadata?.diffPolicy) {
+      const { excludeTypes, excludeColumns, includeColumns } = metadata.diffPolicy;
+      const column = metadata.columns.find((c) => c.name.toUpperCase() === key.toUpperCase());
+
+      // 1. Check includeColumns
+      if (includeColumns && !includeColumns.map((c) => c.toUpperCase()).includes(key.toUpperCase())) {
+        continue;
+      }
+
+      // 2. Check excludeColumns
+      if (excludeColumns && excludeColumns.map((c) => c.toUpperCase()).includes(key.toUpperCase())) {
+        continue;
+      }
+
+      // 3. Check excludeTypes
+      if (column && excludeTypes && excludeTypes.includes(column.type.toUpperCase())) {
+        continue;
+      }
+    }
+
     const beforeValue = before[key];
     const afterValue = after[key];
     const changed = !isEqual(beforeValue, afterValue);

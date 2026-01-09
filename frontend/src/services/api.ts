@@ -44,7 +44,7 @@ class ApiClient {
    * Get single row by primary key
    */
   async getByPk(request: GetByPkRequest): Promise<GetByPkResponse> {
-    const response = await this.client.post<GetByPkResponse>('/tables/get', request);
+    const response = await this.client.post<GetByPkResponse>('/record/get', request);
     return response.data;
   }
 
@@ -53,7 +53,7 @@ class ApiClient {
    */
   async validatePatch(request: ValidatePatchRequest): Promise<ValidatePatchResponse> {
     const response = await this.client.post<ValidatePatchResponse>(
-      '/tables/validate-patch',
+      '/record/validate-patch',
       request
     );
     return response.data;
@@ -63,7 +63,7 @@ class ApiClient {
    * Apply update (patch)
    */
   async update(request: UpdateRequest): Promise<UpdateResponse> {
-    const response = await this.client.post<UpdateResponse>('/tables/update', request);
+    const response = await this.client.post<UpdateResponse>('/record/update', request);
     return response.data;
   }
 
@@ -72,7 +72,7 @@ class ApiClient {
    */
   async getTableMetadata(schema: string, table: string): Promise<TableMetadataResponse> {
     const response = await this.client.get<TableMetadataResponse>(
-      `/tables/${schema}/${table}/metadata`
+      `/db/tables/${schema}/${table}`
     );
     return response.data;
   }
