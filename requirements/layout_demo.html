@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Streamlined IDE Diff Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#3078c1",
+              "background-light": "#f3f3f3",
+              "background-dark": "#1e1e1e",
+              "pane-light": "#ffffff",
+              "pane-dark": "#252526",
+              "border-light": "#cccccc",
+              "border-dark": "#3c3c3c",
+              "text-light": "#333333",
+              "text-dark": "#cccccc"
+            },
+            fontFamily: {
+              display: ["Inter", "Segoe UI", "sans-serif"],
+              mono: ["JetBrains Mono", "Cascadia Code", "monospace"]
+            },
+            borderRadius: {
+              DEFAULT: "2px",
+            },
+          },
+        },
+      };
+    </script>
+<style type="text/tailwindcss">
+        body { font-family: 'Inter', sans-serif; }
+        .grid-header { background-color: #e1eef7; }
+        .dark .grid-header { background-color: #2d3d4d; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+        .dense-table td, .dense-table th { padding: 2px 8px; font-size: 11px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; }
+        .row-pending { background-color: #fee2e2 !important; }
+        .dark .row-pending { background-color: #450a0a !important; }
+        .row-selected { background-color: #3078c122 !important; border-left: 3px solid #3078c1 !important; }
+        .tree-item:hover { background-color: #e5e7eb; }
+        .dark .tree-item:hover { background-color: #37373d; }
+        .diff-line-number { width: 30px; border-right: 1px solid #444; color: #666; text-align: right; padding-right: 8px; user-select: none; }
+        .diff-added { background-color: rgba(34, 197, 94, 0.2); }
+        .diff-removed { background-color: rgba(239, 68, 68, 0.2); text-decoration: line-through; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark h-screen flex flex-col overflow-hidden text-xs">
+<header class="h-8 bg-[#f3f3f3] dark:bg-[#323233] border-b border-border-light dark:border-border-dark flex items-center px-2 space-x-4 select-none shrink-0">
+<div class="flex items-center space-x-1">
+<span class="material-symbols-outlined text-lg text-primary">settings_input_component</span>
+<span class="font-bold tracking-tight">ConfigPatch IDE</span>
+</div>
+<nav class="flex space-x-3 text-[11px]">
+<span class="hover:bg-gray-200 dark:hover:bg-gray-700 px-1 cursor-default">File</span>
+<span class="hover:bg-gray-200 dark:hover:bg-gray-700 px-1 cursor-default">Edit</span>
+<span class="hover:bg-gray-200 dark:hover:bg-gray-700 px-1 cursor-default">Navigate</span>
+<span class="hover:bg-gray-200 dark:hover:bg-gray-700 px-1 cursor-default">Project</span>
+<span class="hover:bg-gray-200 dark:hover:bg-gray-700 px-1 cursor-default">Database</span>
+<span class="hover:bg-gray-200 dark:hover:bg-gray-700 px-1 cursor-default">Help</span>
+</nav>
+<div class="flex-1"></div>
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-base cursor-pointer hover:text-primary" onclick="document.documentElement.classList.toggle('dark')">contrast</span>
+<div class="bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark px-1 flex items-center">
+<input class="bg-transparent border-none focus:ring-0 text-[10px] h-5 w-40 py-0" placeholder="Search Actions (Ctrl+Shift+A)" type="text"/>
+<span class="material-symbols-outlined text-xs opacity-50">search</span>
+</div>
+</div>
+</header>
+<main class="flex flex-1 overflow-hidden">
+<aside class="w-64 border-r border-border-light dark:border-border-dark bg-pane-light dark:bg-pane-dark flex flex-col shrink-0">
+<div class="flex items-center justify-between px-2 py-1 bg-gray-100 dark:bg-[#2d2d2d] border-b border-border-light dark:border-border-dark">
+<span class="font-semibold uppercase text-[10px] opacity-70">Database Explorer</span>
+<div class="flex space-x-1 text-gray-500">
+<span class="material-symbols-outlined text-sm cursor-pointer hover:text-primary">sync</span>
+<span class="material-symbols-outlined text-sm cursor-pointer hover:text-primary">filter_alt</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar py-1">
+<div class="flex items-center px-2 py-0.5 tree-item cursor-pointer">
+<span class="material-symbols-outlined text-sm mr-1">expand_more</span>
+<span class="material-symbols-outlined text-sm mr-1 text-blue-500">database</span>
+<span>ConfigDB</span>
+</div>
+<div class="ml-4">
+<div class="flex items-center px-2 py-0.5 tree-item cursor-pointer">
+<span class="material-symbols-outlined text-sm mr-1">expand_more</span>
+<span class="material-symbols-outlined text-sm mr-1 text-yellow-600">folder</span>
+<span>HR Schema</span>
+</div>
+<div class="ml-4">
+<div class="flex items-center px-2 py-0.5 tree-item cursor-pointer">
+<span class="material-symbols-outlined text-sm mr-1 text-blue-400">table_chart</span>
+<span>HR.DEPARTMENT</span>
+</div>
+<div class="flex items-center px-2 py-0.5 tree-item cursor-pointer bg-blue-100/50 dark:bg-blue-900/30">
+<span class="material-symbols-outlined text-sm mr-1 text-blue-400">table_chart</span>
+<span class="font-semibold text-primary">HR.EMPLOYEE</span>
+</div>
+<div class="flex items-center px-2 py-0.5 tree-item cursor-pointer">
+<span class="material-symbols-outlined text-sm mr-1 text-blue-400">table_chart</span>
+<span>HR.JOB_HISTORY</span>
+</div>
+</div>
+</div>
+</div>
+<div class="h-32 border-t border-border-light dark:border-border-dark flex flex-col bg-gray-50 dark:bg-[#1e1e1e]">
+<div class="px-2 py-1 bg-gray-100 dark:bg-[#2d2d2d] flex justify-between">
+<span class="font-semibold uppercase text-[10px] opacity-70">Workspace</span>
+</div>
+<div class="p-2 space-y-1 opacity-80">
+<div class="flex items-center space-x-1"><span class="material-symbols-outlined text-sm">bookmark</span><span>Pending Reviews</span></div>
+<div class="flex items-center space-x-1"><span class="material-symbols-outlined text-sm">history</span><span>Change History</span></div>
+<div class="flex items-center space-x-1"><span class="material-symbols-outlined text-sm">commit</span><span>Local Patches</span></div>
+</div>
+</div>
+</aside>
+<div class="flex-1 flex flex-col overflow-hidden bg-pane-light dark:bg-pane-dark">
+<div class="flex items-center h-8 bg-gray-100 dark:bg-[#2d2d2d] border-b border-border-light dark:border-border-dark overflow-x-auto no-scrollbar shrink-0">
+<div class="h-full px-3 flex items-center border-r border-border-light dark:border-border-dark bg-white dark:bg-pane-dark border-t-2 border-t-primary relative">
+<span class="material-symbols-outlined text-sm mr-1 text-blue-400">table_chart</span>
+<span class="font-medium">HR.EMPLOYEE</span>
+<span class="material-symbols-outlined text-[12px] ml-2 opacity-50 hover:opacity-100 cursor-pointer">close</span>
+</div>
+<div class="h-full px-3 flex items-center border-r border-border-light dark:border-border-dark opacity-60 hover:bg-white dark:hover:bg-gray-800 cursor-pointer">
+<span class="material-symbols-outlined text-sm mr-1 text-blue-400">table_chart</span>
+<span>HR.DEPARTMENT</span>
+<span class="material-symbols-outlined text-[12px] ml-2 opacity-50">close</span>
+</div>
+</div>
+<div class="p-1 border-b border-border-light dark:border-border-dark flex items-center space-x-4 bg-gray-50 dark:bg-[#252526] shrink-0">
+<div class="flex items-center space-x-1 border-r border-border-light dark:border-border-dark pr-2">
+<button class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-green-600"><span class="material-symbols-outlined text-lg leading-none">play_arrow</span></button>
+<button class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-blue-500"><span class="material-symbols-outlined text-lg leading-none">save</span></button>
+<button class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"><span class="material-symbols-outlined text-lg leading-none">refresh</span></button>
+</div>
+<div class="flex items-center space-x-2">
+<span class="text-[10px] font-bold text-gray-500">PK FILTER:</span>
+<div class="flex items-center bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded px-1">
+<span class="text-[9px] uppercase font-mono mr-1 opacity-70">EMP_ID</span>
+<input class="bg-transparent border-none focus:ring-0 text-xs w-16 p-0 h-5 font-mono" type="text" value="10045"/>
+</div>
+<div class="flex items-center bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded px-1">
+<span class="text-[9px] uppercase font-mono mr-1 opacity-70">ORG_ID</span>
+<input class="bg-transparent border-none focus:ring-0 text-xs w-16 p-0 h-5 font-mono" type="text" value="GLOBAL"/>
+</div>
+<button class="bg-primary hover:bg-blue-700 text-white px-3 py-0.5 rounded text-[10px] font-bold">FETCH</button>
+</div>
+<div class="flex-1"></div>
+<div class="flex items-center space-x-2 pr-2">
+<span class="material-symbols-outlined text-sm opacity-50">filter_list</span>
+<input class="bg-transparent border-none focus:ring-0 text-[11px] h-5 w-40 italic py-0" placeholder="Filter current view..." type="text"/>
+</div>
+</div>
+<div class="flex-1 flex flex-col overflow-hidden">
+<div class="h-1/2 overflow-auto custom-scrollbar border-b border-border-light dark:border-border-dark">
+<table class="w-full border-collapse dense-table border-border-light dark:border-border-dark text-left">
+<thead class="sticky top-0 z-10 grid-header border-b border-primary/30 text-gray-700 dark:text-gray-200 font-semibold select-none">
+<tr>
+<th class="w-8 text-center bg-gray-200 dark:bg-gray-800">#</th>
+<th>First Name <span class="material-symbols-outlined text-[10px] align-middle">arrow_downward</span></th>
+<th>Last Name</th>
+<th>Job Title</th>
+<th>Department</th>
+<th>Email Address</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody class="font-mono text-[11px] divide-y divide-border-light dark:divide-border-dark">
+<tr class="hover:bg-blue-50 dark:hover:bg-blue-900/10 cursor-pointer">
+<td class="text-center bg-gray-50 dark:bg-[#1e1e1e] border-r border-border-light dark:border-border-dark opacity-50 italic">1</td>
+<td class="text-blue-600 dark:text-blue-400">Andrew</td>
+<td>Adams</td>
+<td>General Manager</td>
+<td>Operations</td>
+<td>andrew@example.com</td>
+<td>Active</td>
+</tr>
+<tr class="row-selected row-pending cursor-pointer">
+<td class="text-center bg-gray-50 dark:bg-[#1e1e1e] opacity-50 italic">2</td>
+<td>Nancy</td>
+<td>Edwards</td>
+<td>Sales Manager</td>
+<td>Sales</td>
+<td>nancy_updated@example.com</td>
+<td><span class="flex items-center text-red-500 font-bold"><span class="material-symbols-outlined text-xs mr-1">pending</span> PENDING</span></td>
+</tr>
+<tr class="hover:bg-blue-50 dark:hover:bg-blue-900/10 cursor-pointer">
+<td class="text-center bg-gray-50 dark:bg-[#1e1e1e] opacity-50 italic">3</td>
+<td>Jane</td>
+<td>Peacock</td>
+<td>Sales Support</td>
+<td>Support</td>
+<td>jane@example.com</td>
+<td>Active</td>
+</tr>
+<tr class="hover:bg-blue-50 dark:hover:bg-blue-900/10 cursor-pointer">
+<td class="text-center bg-gray-50 dark:bg-[#1e1e1e] opacity-50 italic">4</td>
+<td>Michael</td>
+<td>Mitchell</td>
+<td>IT Manager</td>
+<td>IT</td>
+<td>michael@example.com</td>
+<td>Active</td>
+</tr>
+<script>
+                            for(let i=5; i<15; i++) {
+                                document.write(`
+                                <tr class="hover:bg-blue-50 dark:hover:bg-blue-900/10 h-6">
+                                    <td class="text-center bg-gray-50 dark:bg-[#1e1e1e] opacity-50 italic">${i}</td>
+                                    <td></td><td></td><td></td><td></td><td></td><td></td>
+                                </tr>`);
+                            }
+                        </script>
+</tbody>
+</table>
+</div>
+<div class="h-1/2 flex flex-col bg-pane-light dark:bg-pane-dark">
+<div class="h-8 border-b border-border-light dark:border-border-dark bg-gray-50 dark:bg-[#2d2d2d] flex items-center px-2 justify-between shrink-0">
+<div class="flex items-center space-x-4">
+<span class="font-bold text-[10px] uppercase opacity-70 flex items-center">
+<span class="material-symbols-outlined text-sm mr-1">difference</span>
+                            Diff Focus Mode: Row #2 (EMP_ID: 10045)
+                        </span>
+<div class="flex bg-gray-200 dark:bg-gray-700 rounded p-0.5">
+<button class="px-2 py-0.5 text-[10px] font-semibold bg-white dark:bg-gray-600 rounded shadow-sm">Side-by-side</button>
+<button class="px-2 py-0.5 text-[10px] opacity-60 hover:opacity-100">Unified</button>
+<button class="px-2 py-0.5 text-[10px] opacity-60 hover:opacity-100">Summary</button>
+</div>
+</div>
+<div class="flex items-center space-x-2">
+<div class="flex items-center bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark px-1 rounded">
+<input class="bg-transparent border-none focus:ring-0 text-[10px] h-5 w-32 py-0" placeholder="Find in diff..." type="text"/>
+<span class="material-symbols-outlined text-[14px] opacity-50">search</span>
+</div>
+<span class="material-symbols-outlined text-sm cursor-pointer opacity-60 hover:opacity-100">settings</span>
+</div>
+</div>
+<div class="flex-1 flex overflow-hidden font-mono text-[11px]">
+<div class="flex-1 border-r border-border-light dark:border-border-dark flex flex-col overflow-hidden bg-[#1e1e1e] text-[#cccccc]">
+<div class="px-2 py-1 bg-gray-800/50 border-b border-white/5 text-[9px] font-bold uppercase tracking-wider opacity-60">
+                            Before (Current Data)
+                        </div>
+<div class="flex-1 overflow-auto custom-scrollbar p-1">
+<div class="flex">
+<div class="diff-line-number">1</div>
+<div class="pl-2">"EMP_ID": 10045,</div>
+</div>
+<div class="flex">
+<div class="diff-line-number">2</div>
+<div class="pl-2">"FIRST_NAME": "Nancy",</div>
+</div>
+<div class="flex">
+<div class="diff-line-number">3</div>
+<div class="pl-2">"LAST_NAME": "Edwards",</div>
+</div>
+<div class="flex diff-removed">
+<div class="diff-line-number">4</div>
+<div class="pl-2">"EMAIL": "nancy@example.com",</div>
+</div>
+<div class="flex">
+<div class="diff-line-number">5</div>
+<div class="pl-2">"JOB_TITLE": "Sales Manager",</div>
+</div>
+<div class="flex">
+<div class="diff-line-number">6</div>
+<div class="pl-2">"DEPT": "Sales"</div>
+</div>
+</div>
+</div>
+<div class="flex-1 flex flex-col overflow-hidden bg-[#1e1e1e] text-[#cccccc]">
+<div class="px-2 py-1 bg-gray-800/50 border-b border-white/5 text-[9px] font-bold uppercase tracking-wider opacity-60 flex justify-between">
+<span>After (Proposed Changes)</span>
+<span class="text-green-500">+1 Add, -1 Del</span>
+</div>
+<div class="flex-1 overflow-auto custom-scrollbar p-1">
+<div class="flex">
+<div class="diff-line-number">1</div>
+<div class="pl-2">"EMP_ID": 10045,</div>
+</div>
+<div class="flex">
+<div class="diff-line-number">2</div>
+<div class="pl-2">"FIRST_NAME": "Nancy",</div>
+</div>
+<div class="flex">
+<div class="diff-line-number">3</div>
+<div class="pl-2">"LAST_NAME": "Edwards",</div>
+</div>
+<div class="flex diff-added">
+<div class="diff-line-number">4</div>
+<div class="pl-2">"EMAIL": "nancy_updated@example.com",</div>
+</div>
+<div class="flex">
+<div class="diff-line-number">5</div>
+<div class="pl-2">"JOB_TITLE": "Sales Manager",</div>
+</div>
+<div class="flex">
+<div class="diff-line-number">6</div>
+<div class="pl-2">"DEPT": "Sales"</div>
+</div>
+</div>
+</div>
+</div>
+<div class="h-8 bg-gray-100 dark:bg-[#2d2d2d] border-t border-border-light dark:border-border-dark flex items-center px-2 space-x-3 shrink-0">
+<button class="bg-primary hover:bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold flex items-center">
+<span class="material-symbols-outlined text-xs mr-1">check</span> Approve Change
+                    </button>
+<button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-[10px] font-bold flex items-center">
+<span class="material-symbols-outlined text-xs mr-1">close</span> Reject
+                    </button>
+<div class="w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
+<button class="flex items-center text-[10px] opacity-70 hover:opacity-100"><span class="material-symbols-outlined text-xs mr-1">edit</span> Edit Proposed</button>
+<div class="flex-1"></div>
+<div class="flex items-center space-x-2 text-[10px] opacity-70">
+<span class="material-symbols-outlined text-sm">keyboard_arrow_up</span>
+<span>Previous Change</span>
+<span class="material-symbols-outlined text-sm">keyboard_arrow_down</span>
+<span>Next Change</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="h-6 bg-primary text-white flex items-center px-2 text-[10px] select-none justify-between shrink-0">
+<div class="flex items-center space-x-3">
+<div class="flex items-center">
+<span class="material-symbols-outlined text-[14px] mr-1">verified_user</span>
+<span>PostgreSQL @ production-db-east</span>
+</div>
+<div class="flex items-center opacity-80">
+<span class="material-symbols-outlined text-[14px] mr-1">history</span>
+<span>Last synced: 2 min ago</span>
+</div>
+</div>
+<div class="flex items-center space-x-4">
+<div class="flex items-center">
+<span>Encoding: UTF-8</span>
+</div>
+<div class="flex items-center bg-white/20 px-2 rounded h-4">
+<span>Ln 4, Col 21</span>
+</div>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-[14px] cursor-pointer">notifications</span>
+</div>
+</div>
+</footer>
+
+</body></html>
