@@ -14,6 +14,12 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/backend-tests.yml'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'Manual test run'
 
 permissions:
   contents: read
@@ -101,9 +107,37 @@ jobs:
           path: backend/target/surefire-reports/**/*
           retention-days: 30
 
+      - name: Find PR number
+        uses: actions/github-script@v7
+        if: always() && steps.check_tests.outputs.tests_exist == 'true'
+        id: find_pr
+        with:
+          script: |
+            let prNumber = null;
+
+            if (context.eventName === 'pull_request') {
+              prNumber = context.issue.number;
+            } else if (context.eventName === 'push') {
+              // Find PR associated with this branch/commit
+              const { data: prs } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`
+              });
+
+              if (prs.length > 0) {
+                prNumber = prs[0].number;
+              }
+            }
+
+            core.setOutput('number', prNumber);
+            console.log(`Found PR number: ${prNumber}`);
+            return prNumber;
+
       - name: Comment PR with test results
         uses: actions/github-script@v7
-        if: always() && steps.check_tests.outputs.tests_exist == 'true' && github.event_name == 'pull_request'
+        if: always() && steps.check_tests.outputs.tests_exist == 'true' && steps.find_pr.outputs.number != 'null'
         with:
           script: |
             const total = '${{ steps.test_summary.outputs.total }}';
@@ -111,6 +145,7 @@ jobs:
             const failed = '${{ steps.test_summary.outputs.failed }}';
             const skipped = '${{ steps.test_summary.outputs.skipped }}';
             const status = '${{ steps.test_summary.outputs.status }}';
+            const prNumber = '${{ steps.find_pr.outputs.number }}';
 
             const body = `## 🧪 Backend Test Results
 
@@ -140,13 +175,14 @@ jobs:
 
             ---
             *Commit: ${{ github.sha }}*
+            *Triggered by: ${{ github.event_name }}*
             `;
 
             // Find existing comment
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: parseInt(prNumber),
             });
 
             const botComment = comments.find(comment =>
@@ -162,14 +198,16 @@ jobs:
                 comment_id: botComment.id,
                 body: body
               });
+              console.log(`Updated comment ${botComment.id} on PR #${prNumber}`);
             } else {
               // Create new comment
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.issue.number,
+                issue_number: parseInt(prNumber),
                 body: body
               });
+              console.log(`Created new comment on PR #${prNumber}`);
             }
 
       - name: Publish test summary
