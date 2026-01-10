@@ -45,7 +45,7 @@ class DatabaseService(
                 query = query.bind("value$index", filter.value)
             }
 
-            val rows = query.mapToMap().list()
+            val rows = query.mapToMap().list().map { it.toUppercaseKeys() }
 
             QueryResponse(
                 columns = if (rows.isNotEmpty()) rows[0].keys.toList() else emptyList(),
@@ -84,6 +84,7 @@ class DatabaseService(
             }
 
             val row = query.mapToMap().findOne().orElse(null)
+                ?.toUppercaseKeys()
                 ?: throw NotFoundException("Row not found")
 
             GetByPkResponse(row = row)
@@ -291,6 +292,14 @@ class DatabaseService(
         }
 
         return value
+    }
+
+    /**
+     * Convert map keys to uppercase for Oracle compatibility.
+     * Oracle JDBC returns column names in lowercase by default, but we want uppercase.
+     */
+    private fun Map<String, Any?>.toUppercaseKeys(): Map<String, Any?> {
+        return this.entries.associate { (key, value) -> key.uppercase() to value }
     }
 }
 
