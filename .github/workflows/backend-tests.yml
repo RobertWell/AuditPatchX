@@ -216,7 +216,7 @@ jobs:
         with:
           files: backend/target/surefire-reports/TEST-*.xml
           check_name: Test Results
-          comment_mode: update last
+          comment_mode: off
           compare_to_earlier_commit: true
           report_individual_runs: true
           deduplicate_classes_by_file_name: false
