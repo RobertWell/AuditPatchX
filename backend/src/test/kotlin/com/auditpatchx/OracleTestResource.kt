@@ -32,6 +32,7 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
 
         // Return configuration for Quarkus
         return mapOf(
+            "quarkus.datasource.db-kind" to "oracle",
             "quarkus.datasource.jdbc.url" to container!!.jdbcUrl,
             "quarkus.datasource.username" to container!!.username,
             "quarkus.datasource.password" to container!!.password
