@@ -36,7 +36,7 @@ jobs:
           cache: 'maven'
 
       - name: Cache Maven packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -57,7 +57,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: backend/target/surefire-reports/
@@ -74,7 +74,7 @@ jobs:
 
       - name: Upload coverage to Codecov (optional)
         if: false  # Enable if using Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: backend/target/site/jacoco/jacoco.xml
           flags: backend
