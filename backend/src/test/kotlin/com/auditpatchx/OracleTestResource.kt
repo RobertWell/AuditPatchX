@@ -20,7 +20,6 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
     override fun start(): Map<String, String> {
         // Start Oracle container
         container = OracleContainer(ORACLE_IMAGE)
-            .withDatabaseName("XEPDB1")
             .withUsername("test")
             .withPassword("test")
             .withReuse(false)
