@@ -177,7 +177,7 @@ class DatabaseService(
         val columns = securityService.getDetailedColumnMetadata(schema, table)
 
         // Get PK columns from config via the injected allowlistService
-        val pkColumns = allowlistService.getTableConfig(schema, table)?.pkColumns ?: emptyList()
+        val pkColumns = allowlistService.getTableConfig(schema, table)?.pkColumns() ?: emptyList()
 
         return TableMetadataResponse(
             pkColumns = pkColumns,

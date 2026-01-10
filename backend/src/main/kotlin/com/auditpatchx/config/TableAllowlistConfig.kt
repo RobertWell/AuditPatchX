@@ -11,18 +11,18 @@ interface TableAllowlistConfig {
 }
 
 @RegisterForReflection
-data class TableConfig(
-    val schema: String,
-    val table: String,
-    val pkColumns: List<String>
-)
+interface TableConfig {
+    fun schema(): String
+    fun table(): String
+    fun pkColumns(): List<String>
+}
 
 @ApplicationScoped
 class AllowlistService(
     private val config: TableAllowlistConfig
 ) {
     private val allowedTables: Map<String, TableConfig> by lazy {
-        config.tables().associateBy { "${it.schema}.${it.table}".uppercase() }
+        config.tables().associateBy { "${it.schema()}.${it.table()}".uppercase() }
     }
 
     fun getAllowedTables(): List<TableConfig> = config.tables()

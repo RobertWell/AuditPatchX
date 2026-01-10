@@ -33,12 +33,12 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
         // Initialize test schema and data
         initializeDatabase()
 
-        // Return configuration for Quarkus
+        // Return configuration for Quarkus - connect as TESTUSER
         return mapOf(
             "quarkus.datasource.db-kind" to "oracle",
             "quarkus.datasource.jdbc.url" to container!!.jdbcUrl,
-            "quarkus.datasource.username" to container!!.username,
-            "quarkus.datasource.password" to container!!.password
+            "quarkus.datasource.username" to "TESTUSER",
+            "quarkus.datasource.password" to "testpass"
         )
     }
 
@@ -60,7 +60,16 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
             executeStatement(conn, "CREATE USER TESTUSER IDENTIFIED BY testpass")
             executeStatement(conn, "GRANT CONNECT, RESOURCE, DBA TO TESTUSER")
             executeStatement(conn, "GRANT UNLIMITED TABLESPACE TO TESTUSER")
+        }
 
+        // Connect as TESTUSER to create tables
+        val testUserConnection = DriverManager.getConnection(
+            container!!.jdbcUrl,
+            "TESTUSER",
+            "testpass"
+        )
+
+        testUserConnection.use { conn ->
             // Read and execute the schema initialization script
             val schemaScript = this::class.java.getResourceAsStream("/test-schema.sql")
                 ?.bufferedReader()?.readText()
