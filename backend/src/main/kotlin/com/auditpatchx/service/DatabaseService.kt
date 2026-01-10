@@ -59,7 +59,7 @@ class DatabaseService(
      */
     fun getByPk(request: GetByPkRequest): GetByPkResponse {
         // Validate table access
-        val allowedColumns = securityService.validateAndGetColumns(request.schema, request.table)
+        securityService.validateAndGetColumns(request.schema, request.table)
 
         // Validate PK columns
         securityService.validatePkColumns(request.schema, request.table, request.pk.keys)
@@ -119,7 +119,7 @@ class DatabaseService(
      */
     fun update(request: UpdateRequest): UpdateResponse {
         // Validate table access
-        val allowedColumns = securityService.validateAndGetColumns(request.schema, request.table)
+        securityService.validateAndGetColumns(request.schema, request.table)
 
         // Validate PK columns
         securityService.validatePkColumns(request.schema, request.table, request.pk.keys)
