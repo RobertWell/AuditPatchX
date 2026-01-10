@@ -15,6 +15,7 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
 
     companion object {
         private val ORACLE_IMAGE = DockerImageName.parse("gvenzl/oracle-free:23-slim-faststart")
+            .asCompatibleSubstituteFor("gvenzl/oracle-xe")
         private var container: OracleContainer? = null
     }
 
@@ -51,7 +52,7 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
         val systemConnection = DriverManager.getConnection(
             container!!.jdbcUrl,
             "system",
-            "oracle"
+            container!!.password
         )
 
         systemConnection.use { conn ->
