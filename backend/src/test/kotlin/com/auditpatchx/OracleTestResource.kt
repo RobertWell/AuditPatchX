@@ -14,7 +14,7 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
 
     companion object {
         private val ORACLE_IMAGE = DockerImageName.parse("gvenzl/oracle-xe:21-slim-faststart")
-        private lateinit var container: OracleContainer
+        private var container: OracleContainer? = null
     }
 
     override fun start(): Map<String, String> {
@@ -25,30 +25,29 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
             .withPassword("test")
             .withReuse(false)
 
-        container.start()
+        container!!.start()
 
         // Initialize test schema and data
         initializeDatabase()
 
         // Return configuration for Quarkus
         return mapOf(
-            "quarkus.datasource.jdbc.url" to container.jdbcUrl,
-            "quarkus.datasource.username" to container.username,
-            "quarkus.datasource.password" to container.password
+            "quarkus.datasource.jdbc.url" to container!!.jdbcUrl,
+            "quarkus.datasource.username" to container!!.username,
+            "quarkus.datasource.password" to container!!.password
         )
     }
 
     override fun stop() {
-        if (::container.isInitialized) {
-            container.stop()
-        }
+        container?.stop()
+        container = null
     }
 
     private fun initializeDatabase() {
         val connection = DriverManager.getConnection(
-            container.jdbcUrl,
-            container.username,
-            container.password
+            container!!.jdbcUrl,
+            container!!.username,
+            container!!.password
         )
 
         connection.use { conn ->
