@@ -119,7 +119,7 @@ class DatabaseService(
      */
     fun update(request: UpdateRequest): UpdateResponse {
         // Validate table access
-        securityService.validateAndGetColumns(request.schema, request.table)
+        val allowedColumns = securityService.validateAndGetColumns(request.schema, request.table)
 
         // Validate PK columns
         securityService.validatePkColumns(request.schema, request.table, request.pk.keys)
