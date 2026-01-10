@@ -5,6 +5,7 @@ import org.testcontainers.containers.OracleContainer
 import org.testcontainers.utility.DockerImageName
 import java.sql.Connection
 import java.sql.DriverManager
+import java.time.Duration
 
 /**
  * Test resource that manages the Oracle database container lifecycle for integration tests.
@@ -23,6 +24,7 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
             .withUsername("test")
             .withPassword("test")
             .withReuse(false)
+            .withStartupTimeout(Duration.ofMinutes(10))
 
         container!!.start()
 
