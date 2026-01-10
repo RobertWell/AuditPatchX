@@ -64,6 +64,10 @@ class DatabaseService(
         // Validate PK columns
         securityService.validatePkColumns(request.schema, request.table, request.pk.keys)
 
+        // Get column metadata to properly handle type conversions
+        val columnMetadata = securityService.getDetailedColumnMetadata(request.schema, request.table)
+        val columnTypeMap = columnMetadata.associate { it.name.uppercase() to it.type }
+
         // Build SQL
         val sql = buildGetByPkSql(request.schema, request.table, request.pk.keys)
 
@@ -72,9 +76,11 @@ class DatabaseService(
         return jdbi.withHandle<GetByPkResponse, Exception> { handle ->
             var query = handle.createQuery(sql)
 
-            // Bind PK values
+            // Bind PK values with proper type conversion
             request.pk.forEach { (key, value) ->
-                query = query.bind(key, value)
+                val columnType = columnTypeMap[key.uppercase()]
+                val convertedValue = convertValueForBinding(value, columnType)
+                query = query.bind(key, convertedValue)
             }
 
             val row = query.mapToMap().findOne().orElse(null)
@@ -262,6 +268,29 @@ class DatabaseService(
         if (op !in validOperators) {
             throw IllegalArgumentException("Invalid operator: $op. Allowed: ${validOperators.joinToString()}")
         }
+    }
+
+    /**
+     * Convert value for JDBC binding based on column type.
+     * Handles special case for Oracle DATE columns which need java.sql.Date.
+     */
+    private fun convertValueForBinding(value: Any, columnType: String?): Any {
+        if (columnType == null) {
+            return value
+        }
+
+        // Handle DATE type columns
+        if (columnType.equals("DATE", ignoreCase = true) && value is String) {
+            return try {
+                // Parse ISO date format (YYYY-MM-DD) to java.sql.Date
+                java.sql.Date.valueOf(value)
+            } catch (e: Exception) {
+                logger.warn("Failed to parse date value: $value, using as-is", e)
+                value
+            }
+        }
+
+        return value
     }
 }
 
