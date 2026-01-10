@@ -14,13 +14,14 @@ import java.time.Duration
 class OracleTestResource : QuarkusTestResourceLifecycleManager {
 
     companion object {
-        private val ORACLE_IMAGE = DockerImageName.parse("gvenzl/oracle-xe:21-slim-faststart")
+        private val ORACLE_IMAGE = DockerImageName.parse("gvenzl/oracle-free:23-slim-faststart")
         private var container: OracleContainer? = null
     }
 
     override fun start(): Map<String, String> {
         // Start Oracle container
         container = OracleContainer(ORACLE_IMAGE)
+            .withDatabaseName("testdb")
             .withUsername("test")
             .withPassword("test")
             .withReuse(false)

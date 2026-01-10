@@ -47,7 +47,7 @@ class TableResourceTest {
     }
 
     @Nested
-    @DisplayName("POST /api/tables/query - Query Table")
+    @DisplayName("POST /api/query/pk - Query Table")
     inner class QueryTests {
 
         @Test
@@ -415,7 +415,7 @@ class TableResourceTest {
     }
 
     @Nested
-    @DisplayName("GET /api/tables/db/tables/{schema}/{table} - Get Metadata")
+    @DisplayName("GET /api/db/tables/{schema}/{table} - Get Metadata")
     inner class GetMetadataTests {
 
         @Test
