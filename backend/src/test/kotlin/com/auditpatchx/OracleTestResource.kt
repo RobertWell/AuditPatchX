@@ -44,13 +44,14 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
     }
 
     private fun initializeDatabase() {
-        val connection = DriverManager.getConnection(
+        // Connect as SYSTEM user to create TESTUSER
+        val systemConnection = DriverManager.getConnection(
             container!!.jdbcUrl,
-            container!!.username,
-            container!!.password
+            "system",
+            "oracle"
         )
 
-        connection.use { conn ->
+        systemConnection.use { conn ->
             // Create TESTUSER schema
             executeStatement(conn, "CREATE USER TESTUSER IDENTIFIED BY testpass")
             executeStatement(conn, "GRANT CONNECT, RESOURCE, DBA TO TESTUSER")
