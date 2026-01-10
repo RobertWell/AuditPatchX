@@ -1,5 +1,7 @@
 # AuditPatchX
 
+![Backend Tests](https://github.com/RobertWell/AuditPatchX/workflows/Backend%20Tests/badge.svg)
+
 **AuditPatchX** (also known as ConfigPatch) is a Git-like diff + confirm + update tool for Oracle database tables, designed for controlled configuration and critical data changes.
 
 ## Overview
@@ -248,6 +250,38 @@ Configure via environment variables or `.env` file:
 7. **Review changes** in side-by-side, unified, or summary diff mode
 8. **Click "Approve Change"** and provide a reason
 9. **Confirm** to apply the update
+
+## Testing
+
+### Backend Tests
+
+The backend includes comprehensive integration tests using Oracle DB with Test Containers:
+
+- **100+ tests** covering all API endpoints and services
+- **Real Oracle DB** testing (not mocks) using Test Containers
+- **Security validation** tests for SQL injection prevention
+- **API integration** tests using REST Assured
+
+**Run tests:**
+```bash
+cd backend
+mvn test
+```
+
+**Test Coverage:**
+- DatabaseService: Query, GetByPk, Update, Validate operations
+- SecurityValidationService: Allowlist, column validation, PK protection
+- TableResource: All REST API endpoints
+
+See [Backend Test Documentation](backend/src/test/README.md) for details.
+
+### CI/CD
+
+GitHub Actions automatically runs all tests on:
+- Push to `main` or `claude/**` branches
+- Pull requests to `main`
+
+See [CI/CD Documentation](.github/CI-CD.md) for details.
 
 ## Development
 

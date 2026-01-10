@@ -9,7 +9,7 @@ import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 
-@Path("/api/tables")
+@Path("/api")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 class TableResource(
@@ -22,12 +22,13 @@ class TableResource(
      * GET /api/tables - List all allowed tables
      */
     @GET
+    @Path("/tables")
     fun listTables(): List<TableInfo> {
         return allowlistService.getAllowedTables().map {
             TableInfo(
-                schema = it.schema,
-                table = it.table,
-                pkColumns = it.pkColumns
+                schema = it.schema(),
+                table = it.table(),
+                pkColumns = it.pkColumns()
             )
         }
     }
@@ -36,7 +37,7 @@ class TableResource(
      * POST /api/tables/query - Query table with filters
      */
     @POST
-    @Path("/query")
+    @Path("/query/pk")
     fun query(request: QueryRequest): Response {
         return try {
             val result = databaseService.query(request)

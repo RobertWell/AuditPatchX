@@ -60,7 +60,7 @@ class SecurityValidationService(
         val tableConfig = allowlistService.getTableConfig(schema, table)
             ?: throw SecurityException("Table configuration not found")
 
-        val expectedPk = tableConfig.pkColumns.map { it.uppercase() }.toSet()
+        val expectedPk = tableConfig.pkColumns().map { it.uppercase() }.toSet()
         val providedPk = pkKeys.map { it.uppercase() }.toSet()
 
         if (expectedPk != providedPk) {
@@ -77,12 +77,12 @@ class SecurityValidationService(
         val tableConfig = allowlistService.getTableConfig(schema, table)
             ?: throw SecurityException("Table configuration not found")
 
-        val pkColumnsUpper = tableConfig.pkColumns.map { it.uppercase() }.toSet()
+        val pkColumnsUpper = tableConfig.pkColumns().map { it.uppercase() }.toSet()
         val setColumnsUpper = setKeys.map { it.uppercase() }
 
         val pkInSet = setColumnsUpper.filter { it in pkColumnsUpper }
         if (pkInSet.isNotEmpty()) {
-            throw SecurityException("Cannot update PK columns: ${pkInSet.joinToString()}")
+            throw SecurityException("Cannot update PK columns (primary key): ${pkInSet.joinToString()}")
         }
     }
 
