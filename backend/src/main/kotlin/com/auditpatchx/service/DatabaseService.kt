@@ -29,6 +29,10 @@ class DatabaseService(
             validateOperator(filter.op)
         }
 
+        // Get column metadata for type conversions
+        val columnMetadata = securityService.getDetailedColumnMetadata(request.schema, request.table)
+        val columnTypeMap = columnMetadata.associate { it.name.uppercase() to it.type }
+
         // Enforce limit constraint
         val limit = request.limit.coerceIn(1, 200)
 
@@ -40,9 +44,11 @@ class DatabaseService(
         return jdbi.withHandle<QueryResponse, Exception> { handle ->
             var query = handle.createQuery(sql)
 
-            // Bind filter values using named parameters
+            // Bind filter values using named parameters with type conversion
             request.filters?.forEachIndexed { index, filter ->
-                query = query.bind("value$index", filter.value)
+                val columnType = columnTypeMap[filter.col.uppercase()]
+                val convertedValue = convertValueForBinding(filter.value, columnType)
+                query = query.bind("value$index", convertedValue)
             }
 
             val rows = query.mapToMap().list().map { it.toUppercaseKeys() }
@@ -137,6 +143,10 @@ class DatabaseService(
         // Ensure set doesn't contain PK columns
         securityService.validateSetColumnsNotPk(request.schema, request.table, request.set.keys)
 
+        // Get column metadata for type conversions
+        val columnMetadata = securityService.getDetailedColumnMetadata(request.schema, request.table)
+        val columnTypeMap = columnMetadata.associate { it.name.uppercase() to it.type }
+
         // Build UPDATE SQL
         val sql = buildUpdateSql(request.schema, request.table, request.set.keys, request.pk.keys)
 
@@ -148,14 +158,18 @@ class DatabaseService(
         return jdbi.inTransaction<UpdateResponse, Exception> { handle ->
             var update = handle.createUpdate(sql)
 
-            // Bind SET values
+            // Bind SET values with type conversion
             request.set.forEach { (key, value) ->
-                update = update.bind("set_$key", value)
+                val columnType = columnTypeMap[key.uppercase()]
+                val convertedValue = convertValueForBinding(value, columnType)
+                update = update.bind("set_$key", convertedValue)
             }
 
-            // Bind PK values
+            // Bind PK values with type conversion
             request.pk.forEach { (key, value) ->
-                update = update.bind("pk_$key", value)
+                val columnType = columnTypeMap[key.uppercase()]
+                val convertedValue = convertValueForBinding(value, columnType)
+                update = update.bind("pk_$key", convertedValue)
             }
 
             val updated = update.execute()
@@ -165,10 +179,12 @@ class DatabaseService(
             var query = handle.createQuery(fetchSql)
 
             request.pk.forEach { (key, value) ->
-                query = query.bind(key, value)
+                val columnType = columnTypeMap[key.uppercase()]
+                val convertedValue = convertValueForBinding(value, columnType)
+                query = query.bind(key, convertedValue)
             }
 
-            val row = query.mapToMap().findOne().orElse(emptyMap())
+            val row = query.mapToMap().findOne().orElse(emptyMap()).toUppercaseKeys()
 
             UpdateResponse(updated = updated, row = row)
         }
@@ -275,8 +291,8 @@ class DatabaseService(
      * Convert value for JDBC binding based on column type.
      * Handles special case for Oracle DATE columns which need java.sql.Date.
      */
-    private fun convertValueForBinding(value: Any, columnType: String?): Any {
-        if (columnType == null) {
+    private fun convertValueForBinding(value: Any?, columnType: String?): Any? {
+        if (value == null || columnType == null) {
             return value
         }
 

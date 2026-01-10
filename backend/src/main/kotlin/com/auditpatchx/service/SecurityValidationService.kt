@@ -82,7 +82,7 @@ class SecurityValidationService(
 
         val pkInSet = setColumnsUpper.filter { it in pkColumnsUpper }
         if (pkInSet.isNotEmpty()) {
-            throw SecurityException("Cannot update PK columns: ${pkInSet.joinToString()}")
+            throw SecurityException("Cannot update primary key columns: ${pkInSet.joinToString()}")
         }
     }
 
