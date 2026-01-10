@@ -15,6 +15,11 @@ on:
       - 'backend/**'
       - '.github/workflows/backend-tests.yml'
 
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 jobs:
   test:
     name: Backend Integration Tests
@@ -65,6 +70,29 @@ jobs:
             echo "No test reports found"
           fi
 
+      - name: Parse test results
+        if: always() && steps.check_tests.outputs.tests_exist == 'true'
+        id: test_summary
+        run: |
+          # Parse XML test results
+          TOTAL_TESTS=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h 'testsuite' {} \; | grep -oP 'tests="\K[0-9]+' | awk '{s+=$1} END {print s}')
+          FAILURES=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h 'testsuite' {} \; | grep -oP 'failures="\K[0-9]+' | awk '{s+=$1} END {print s}')
+          ERRORS=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h 'testsuite' {} \; | grep -oP 'errors="\K[0-9]+' | awk '{s+=$1} END {print s}')
+          SKIPPED=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h 'testsuite' {} \; | grep -oP 'skipped="\K[0-9]+' | awk '{s+=$1} END {print s}')
+
+          PASSED=$((TOTAL_TESTS - FAILURES - ERRORS - SKIPPED))
+
+          echo "total=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$((FAILURES + ERRORS))" >> $GITHUB_OUTPUT
+          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+
+          if [ $((FAILURES + ERRORS)) -eq 0 ]; then
+            echo "status=✅ All tests passed!" >> $GITHUB_OUTPUT
+          else
+            echo "status=❌ Some tests failed" >> $GITHUB_OUTPUT
+          fi
+
       - name: Upload test results
         if: always() && steps.check_tests.outputs.tests_exist == 'true'
         uses: actions/upload-artifact@v4
@@ -73,13 +101,87 @@ jobs:
           path: backend/target/surefire-reports/**/*
           retention-days: 30
 
+      - name: Comment PR with test results
+        uses: actions/github-script@v7
+        if: always() && steps.check_tests.outputs.tests_exist == 'true' && github.event_name == 'pull_request'
+        with:
+          script: |
+            const total = '${{ steps.test_summary.outputs.total }}';
+            const passed = '${{ steps.test_summary.outputs.passed }}';
+            const failed = '${{ steps.test_summary.outputs.failed }}';
+            const skipped = '${{ steps.test_summary.outputs.skipped }}';
+            const status = '${{ steps.test_summary.outputs.status }}';
+
+            const body = `## 🧪 Backend Test Results
+
+            ${status}
+
+            | Metric | Count |
+            |--------|-------|
+            | ✅ **Passed** | ${passed} |
+            | ❌ **Failed** | ${failed} |
+            | ⏭️ **Skipped** | ${skipped} |
+            | 📊 **Total** | ${total} |
+
+            ### Test Coverage
+            - **DatabaseService**: Query, GetByPk, Update, Validate operations
+            - **SecurityValidationService**: Allowlist, column validation, PK protection
+            - **TableResource**: All REST API endpoints
+
+            ### Database
+            - **Oracle XE** (via Test Containers)
+            - Real database integration testing
+
+            <details>
+            <summary>📎 Test Artifacts</summary>
+
+            Download detailed test reports from the [workflow artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+            </details>
+
+            ---
+            *Commit: ${{ github.sha }}*
+            `;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('🧪 Backend Test Results')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
       - name: Publish test summary
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always() && steps.check_tests.outputs.tests_exist == 'true'
         with:
           files: backend/target/surefire-reports/TEST-*.xml
           check_name: Test Results
-          comment_mode: off
+          comment_mode: update last
+          compare_to_earlier_commit: true
+          report_individual_runs: true
+          deduplicate_classes_by_file_name: false
 
       - name: Upload coverage to Codecov (optional)
         if: false  # Enable if using Codecov
