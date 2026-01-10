@@ -36,7 +36,7 @@ class ApiClient {
    * Query table with filters
    */
   async query(request: QueryRequest): Promise<QueryResponse> {
-    const response = await this.client.post<QueryResponse>('/tables/query', request);
+    const response = await this.client.post<QueryResponse>('/query/pk', request);
     return response.data;
   }
 
