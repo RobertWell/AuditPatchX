@@ -181,12 +181,10 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
-                    <includes>
-                        <include>**/*Test.kt</include>
-                        <include>**/*Test.java</include>
-                    </includes>
-                    <reportFormat>xml</reportFormat>
-                    <useFile>true</useFile>
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <maven.home>${maven.home}</maven.home>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>
