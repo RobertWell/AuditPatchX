@@ -113,7 +113,7 @@ class DatabaseServiceTest {
 
             val response = databaseService.query(request)
 
-            assertThat(response.rows).hasSize(3) // Employees with salary > 70000
+            assertThat(response.rows).hasSize(2) // Employees with salary > 70000 (John: 85000, Jane: 75000)
             response.rows.forEach { row ->
                 val salary = (row["SALARY"] as BigDecimal).toDouble()
                 assertThat(salary).isGreaterThan(70000.0)
