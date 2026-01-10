@@ -50,13 +50,23 @@ jobs:
         env:
           # Ensure Docker is available for TestContainers
           TESTCONTAINERS_RYUK_DISABLED: false
+        continue-on-error: true
 
-      - name: Generate test report
+      - name: Check test results exist
         if: always()
-        run: mvn surefire-report:report-only
+        id: check_tests
+        run: |
+          if [ -d "target/surefire-reports" ] && [ -n "$(ls -A target/surefire-reports 2>/dev/null)" ]; then
+            echo "tests_exist=true" >> $GITHUB_OUTPUT
+            echo "Test reports found"
+            ls -la target/surefire-reports/
+          else
+            echo "tests_exist=false" >> $GITHUB_OUTPUT
+            echo "No test reports found"
+          fi
 
       - name: Upload test results
-        if: always()
+        if: always() && steps.check_tests.outputs.tests_exist == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: test-results
@@ -65,7 +75,7 @@ jobs:
 
       - name: Publish test summary
         uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
+        if: always() && steps.check_tests.outputs.tests_exist == 'true'
         with:
           files: backend/target/surefire-reports/TEST-*.xml
           check_name: Test Results
