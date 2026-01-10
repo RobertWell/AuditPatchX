@@ -75,18 +75,17 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
                 ?.bufferedReader()?.readText()
                 ?: throw IllegalStateException("test-schema.sql not found")
 
-            // Split by semicolon and execute each statement
-            schemaScript.split(";")
-                .map { it.trim() }
-                .filter { it.isNotEmpty() && !it.startsWith("--") }
-                .forEach { statement ->
-                    try {
-                        executeStatement(conn, statement)
-                    } catch (e: Exception) {
-                        println("Warning: Failed to execute statement: ${statement.take(100)}")
-                        println("Error: ${e.message}")
-                    }
+            // Parse SQL statements properly, handling multi-line statements and comments
+            val statements = parseOracleSqlScript(schemaScript)
+
+            statements.forEach { statement ->
+                try {
+                    executeStatement(conn, statement)
+                } catch (e: Exception) {
+                    println("Warning: Failed to execute statement: ${statement.take(100)}")
+                    println("Error: ${e.message}")
                 }
+            }
         }
     }
 
@@ -94,5 +93,59 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
         connection.createStatement().use { statement ->
             statement.execute(sql)
         }
+    }
+
+    /**
+     * Parses Oracle SQL script, properly handling multi-line statements and comments.
+     * Statements are delimited by semicolons, but we need to handle:
+     * - Multi-line statements (CREATE TABLE with constraints)
+     * - Single-line comments starting with --
+     * - Empty lines
+     */
+    private fun parseOracleSqlScript(script: String): List<String> {
+        val statements = mutableListOf<String>()
+        val currentStatement = StringBuilder()
+
+        script.lines().forEach { line ->
+            val trimmedLine = line.trim()
+
+            // Skip empty lines and comment-only lines
+            if (trimmedLine.isEmpty() || trimmedLine.startsWith("--")) {
+                return@forEach
+            }
+
+            // Remove inline comments
+            val lineWithoutComment = if (trimmedLine.contains("--")) {
+                trimmedLine.substring(0, trimmedLine.indexOf("--")).trim()
+            } else {
+                trimmedLine
+            }
+
+            // Add line to current statement
+            if (currentStatement.isNotEmpty()) {
+                currentStatement.append(" ")
+            }
+            currentStatement.append(lineWithoutComment)
+
+            // Check if statement is complete (ends with semicolon)
+            if (lineWithoutComment.endsWith(";")) {
+                // Remove the semicolon and add the statement
+                val statement = currentStatement.toString().dropLast(1).trim()
+                if (statement.isNotEmpty()) {
+                    statements.add(statement)
+                }
+                currentStatement.clear()
+            }
+        }
+
+        // Handle any remaining statement without semicolon
+        if (currentStatement.isNotEmpty()) {
+            val statement = currentStatement.toString().trim()
+            if (statement.isNotEmpty()) {
+                statements.add(statement)
+            }
+        }
+
+        return statements
     }
 }
