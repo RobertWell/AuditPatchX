@@ -23,14 +23,14 @@ allowlist:
   tables:
     - schema: HR
       table: EMPLOYEE
-      pkColumns:
+      pk-columns:
         - EMP_ID
     - schema: HR
       table: DEPARTMENT
-      pkColumns:
+      pk-columns:
         - DEPT_ID
     - schema: HR
       table: JOB_HISTORY
-      pkColumns:
+      pk-columns:
         - EMPLOYEE_ID
         - START_DATE

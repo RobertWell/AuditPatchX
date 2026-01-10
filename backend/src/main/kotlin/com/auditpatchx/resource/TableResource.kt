@@ -26,9 +26,9 @@ class TableResource(
     fun listTables(): List<TableInfo> {
         return allowlistService.getAllowedTables().map {
             TableInfo(
-                schema = it.schema,
-                table = it.table,
-                pkColumns = it.pkColumns
+                schema = it.schema(),
+                table = it.table(),
+                pkColumns = it.pkColumns()
             )
         }
     }

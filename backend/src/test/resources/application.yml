@@ -21,14 +21,14 @@ allowlist:
   tables:
     - schema: TESTUSER
       table: EMPLOYEE
-      pkColumns:
+      pk-columns:
         - EMP_ID
     - schema: TESTUSER
       table: DEPARTMENT
-      pkColumns:
+      pk-columns:
         - DEPT_ID
     - schema: TESTUSER
       table: JOB_HISTORY
-      pkColumns:
+      pk-columns:
         - EMPLOYEE_ID
         - START_DATE
