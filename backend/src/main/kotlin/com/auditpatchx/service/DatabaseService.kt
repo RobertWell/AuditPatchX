@@ -148,7 +148,13 @@ class DatabaseService(
         val columnTypeMap = columnMetadata.associate { it.name.uppercase() to it.type }
 
         // Build UPDATE SQL
-        val sql = buildUpdateSql(request.schema, request.table, request.set.keys, request.pk.keys)
+        val updateStatement = buildUpdateStatement(
+            request.schema,
+            request.table,
+            request.set,
+            request.pk.keys,
+            columnTypeMap
+        )
 
         logger.info(
             "Executing update: schema=${request.schema}, table=${request.table}, " +
@@ -156,13 +162,11 @@ class DatabaseService(
         )
 
         return jdbi.inTransaction<UpdateResponse, Exception> { handle ->
-            var update = handle.createUpdate(sql)
+            var update = handle.createUpdate(updateStatement.sql)
 
             // Bind SET values with type conversion
-            request.set.forEach { (key, value) ->
-                val columnType = columnTypeMap[key.uppercase()]
-                val convertedValue = convertValueForBinding(value, columnType)
-                update = update.bind("set_$key", convertedValue)
+            updateStatement.bindings.forEach { (key, value) ->
+                update = update.bind(key, value)
             }
 
             // Bind PK values with type conversion
@@ -261,20 +265,56 @@ class DatabaseService(
     /**
      * Build UPDATE SQL
      */
-    private fun buildUpdateSql(
+    private data class UpdateStatement(
+        val sql: String,
+        val bindings: Map<String, Any?>
+    )
+
+    private fun buildUpdateStatement(
         schema: String,
         table: String,
-        setColumns: Set<String>,
-        pkColumns: Set<String>
-    ): String {
-        val setClause = setColumns.map { "${it.uppercase()} = :set_$it" }.joinToString(", ")
+        setValues: Map<String, Any?>,
+        pkColumns: Set<String>,
+        columnTypeMap: Map<String, String>
+    ): UpdateStatement {
+        val bindings = mutableMapOf<String, Any?>()
+        val setClause = setValues.map { (key, value) ->
+            val columnType = columnTypeMap[key.uppercase()]
+            if (isClobColumn(columnType) && value is String) {
+                "${key.uppercase()} = ${buildClobUpdateExpression(value)}"
+            } else if (isClobColumn(columnType) && value == null) {
+                "${key.uppercase()} = NULL"
+            } else {
+                val bindingKey = "set_$key"
+                val convertedValue = convertValueForBinding(value, columnType)
+                bindings[bindingKey] = convertedValue
+                "${key.uppercase()} = :$bindingKey"
+            }
+        }.joinToString(", ")
         val whereClause = pkColumns.map { "${it.uppercase()} = :pk_$it" }.joinToString(" AND ")
 
-        return """
+        val sql = """
             UPDATE ${schema.uppercase()}.${table.uppercase()}
             SET $setClause
             WHERE $whereClause
         """.trimIndent()
+
+        return UpdateStatement(sql = sql, bindings = bindings)
+    }
+
+    private fun isClobColumn(columnType: String?): Boolean {
+        return columnType?.equals("CLOB", ignoreCase = true) == true
+    }
+
+    private fun buildClobUpdateExpression(value: String): String {
+        val escaped = value.replace("'", "''")
+        if (escaped.isEmpty()) {
+            return "TO_CLOB('')"
+        }
+
+        val chunks = escaped.chunked(4000)
+        val concatenated = chunks.joinToString(" || ") { "'$it'" }
+        return "TO_CLOB('') || $concatenated"
     }
 
     /**

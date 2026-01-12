@@ -368,6 +368,31 @@ class DatabaseServiceTest {
         }
 
         @Test
+        @DisplayName("Should update CLOB content beyond 4000 characters")
+        fun testUpdateClobContent() {
+            val longContent = "word ".repeat(4500).trim()
+            val request = UpdateRequest(
+                schema = "TESTUSER",
+                table = "EMPLOYEE",
+                pk = mapOf("EMP_ID" to 3),
+                set = mapOf("BIO" to longContent),
+                reason = "Update employee bio"
+            )
+
+            val response = databaseService.update(request)
+
+            assertThat(response.updated).isEqualTo(1)
+            val bioValue = response.row["BIO"]
+            val bioText = when (bioValue) {
+                is java.sql.Clob -> bioValue.getSubString(1, bioValue.length().toInt())
+                null -> null
+                else -> bioValue.toString()
+            }
+            assertThat(bioText).isNotNull()
+            assertThat(bioText?.length).isEqualTo(longContent.length)
+        }
+
+        @Test
         @DisplayName("Should throw exception when attempting to update PK")
         fun testUpdatePrimaryKey() {
             val request = UpdateRequest(
