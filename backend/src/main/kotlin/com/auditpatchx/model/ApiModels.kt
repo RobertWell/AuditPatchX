@@ -77,7 +77,7 @@ data class ColumnMetadata(
 )
 
 data class DiffPolicy(
-    val excludeTypes: List<String> = listOf("TIMESTAMP", "DATE", "NUMBER"),
+    val excludeTypes: List<String> = emptyList(),
     val excludeColumns: List<String> = emptyList(),
     val includeColumns: List<String>? = null
 )
