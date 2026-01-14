@@ -6,6 +6,7 @@ export interface FieldDiff {
   after: any;
   changed: boolean;
   textDiff?: Diff.Change[];
+  textDiffMode?: 'lines' | 'words';
 }
 
 /**
@@ -69,6 +70,7 @@ export function computeDiff(
       diff.textDiff = hasNewlines
         ? Diff.diffLines(beforeValue || '', afterValue || '')
         : Diff.diffWordsWithSpace(beforeValue || '', afterValue || '');
+      diff.textDiffMode = hasNewlines ? 'lines' : 'words';
     }
 
     diffs.push(diff);
