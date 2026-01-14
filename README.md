@@ -251,6 +251,37 @@ Configure via environment variables or `.env` file:
 8. **Click "Approve Change"** and provide a reason
 9. **Confirm** to apply the update
 
+## Demo (What You'll See)
+
+- **Side-by-side diff** with inline highlights and synchronized scrolling
+- **Unified and Summary views** for quick review
+- **Inline edit modal** using a VSCode-like diff editor (Monaco) for focused field edits
+- **Approve/Reject workflow** with audit reason capture
+
+## Serving Frontend From Backend
+
+The frontend build is configured to output into the Quarkus static resources folder so the backend can serve the UI.
+
+Build the frontend:
+```bash
+cd frontend
+npm run build
+```
+
+Run the backend and open the app:
+```bash
+cd backend
+mvn quarkus:dev
+```
+
+Open `http://localhost:8080`
+
+For local frontend dev (with API proxy):
+```bash
+cd frontend
+npm run dev
+```
+
 ## Testing
 
 ### Backend Tests
