@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, Badge, Tabs, Form, Input, Button, Space, Drawer, Modal, Switch } from 'antd';
+import { DiffEditor } from '@monaco-editor/react';
 import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
 import { computeDiff, formatValue, type FieldDiff } from '../services/diffUtils';
 import { TableMetadataResponse } from '../types/api';
@@ -29,8 +30,6 @@ export const DiffView: React.FC<DiffViewProps> = ({
   const [inlineField, setInlineField] = React.useState<string | null>(null);
   const [inlineValue, setInlineValue] = React.useState<string>('');
   const [editTheme, setEditTheme] = React.useState<'dark' | 'light'>('dark');
-  const proposedOverlayRef = React.useRef<HTMLDivElement | null>(null);
-  const proposedTextareaRef = React.useRef<HTMLTextAreaElement | null>(null);
   const diffs = computeDiff(before, after, metadata || undefined);
   const changedDiffs = diffs.filter((d) => d.changed);
   const unchangedDiffs = diffs.filter((d) => !d.changed);
@@ -130,39 +129,7 @@ export const DiffView: React.FC<DiffViewProps> = ({
     setInlineValue('');
   };
 
-  const inlineDiff = inlineField
-    ? computeDiff(
-        { [inlineField]: before[inlineField] },
-        { [inlineField]: inlineValue },
-        metadata || undefined
-      )[0]
-    : null;
-
-  const buildLineRows = (diff: FieldDiff | null) => {
-    if (!diff?.textDiff || diff.textDiffMode !== 'lines') {
-      return null;
-    }
-
-    const rows: { type: 'added' | 'removed' | 'neutral'; text: string }[] = [];
-    diff.textDiff.forEach((part) => {
-      const lines = part.value.split('\n');
-      lines.forEach((line, index) => {
-        if (index === lines.length - 1 && line === '') return;
-        const type = part.added ? 'added' : part.removed ? 'removed' : 'neutral';
-        rows.push({ type, text: line });
-      });
-    });
-
-    return rows;
-  };
-
-  const inlineLineRows = buildLineRows(inlineDiff);
-
-  const handleProposedScroll = () => {
-    if (!proposedOverlayRef.current || !proposedTextareaRef.current) return;
-    proposedOverlayRef.current.scrollTop = proposedTextareaRef.current.scrollTop;
-    proposedOverlayRef.current.scrollLeft = proposedTextareaRef.current.scrollLeft;
-  };
+  const inlineOriginal = inlineField ? String(before[inlineField] ?? '') : '';
 
   const handleSaveEdit = () => {
     onAfterChange(editValues);
@@ -439,68 +406,25 @@ export const DiffView: React.FC<DiffViewProps> = ({
               background-color: #0b1220;
             }
           `}</style>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="diff-edit-panel border border-gray-300 rounded bg-gray-50 p-2">
-              <div className="text-xs text-gray-500 mb-1">Current</div>
-              {inlineLineRows ? (
-                <div className="diff-editor diff-editor-readonly">
-                {inlineLineRows.map((row, index) => {
-                  const className =
-                    row.type === 'removed'
-                      ? 'diff-line-removed-strong'
-                      : row.type === 'added'
-                      ? 'diff-line-placeholder'
-                      : 'diff-line-neutral';
-                  return (
-                    <div key={`current-${index}`} className={`diff-line-row ${className}`}>
-                      {row.type === 'added' ? ' ' : row.text || ' '}
-                    </div>
-                  );
-                })}
-              </div>
-              ) : (
-                <div className="diff-view whitespace-pre-wrap break-words">
-                  {inlineDiff ? renderValue(inlineDiff, 'before') : ''}
-                </div>
-              )}
-            </div>
-            <div className="diff-edit-panel border border-gray-300 rounded bg-white p-2">
-              <div className="text-xs text-gray-500 mb-1">Proposed</div>
-              {inlineLineRows ? (
-                <div className="diff-editor diff-editor-editable">
-                  <div ref={proposedOverlayRef} className="diff-editor-overlay">
-                    {inlineLineRows.map((row, index) => {
-                      const className =
-                        row.type === 'added'
-                          ? 'diff-line-added'
-                          : row.type === 'removed'
-                          ? 'diff-line-removed-soft'
-                          : 'diff-line-neutral';
-                      return (
-                        <div key={`proposed-${index}`} className={`diff-line-row ${className}`}>
-                          {row.type === 'removed' ? ' ' : row.text || ' '}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <Input.TextArea
-                    ref={proposedTextareaRef}
-                    value={inlineValue}
-                    onChange={(e) => setInlineValue(e.target.value)}
-                    onScroll={handleProposedScroll}
-                    rows={12}
-                    className="diff-editor-textarea"
-                  />
-                </div>
-              ) : (
-                <Input.TextArea
-                  value={inlineValue}
-                  onChange={(e) => setInlineValue(e.target.value)}
-                  rows={12}
-                  className="diff-view"
-                />
-              )}
-            </div>
+          <div className="diff-edit-panel border border-gray-300 rounded">
+            <DiffEditor
+              original={inlineOriginal}
+              modified={inlineValue}
+              language="plaintext"
+              theme={editTheme === 'dark' ? 'vs-dark' : 'light'}
+              onChange={(value) => setInlineValue(value ?? '')}
+              options={{
+                renderSideBySide: true,
+                readOnly: false,
+                originalEditable: false,
+                minimap: { enabled: false },
+                renderIndicators: true,
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                wordWrap: 'on',
+              }}
+              height="60vh"
+            />
           </div>
         </div>
       </Modal>
