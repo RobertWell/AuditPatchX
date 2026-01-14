@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Badge, Tabs, Form, Input, Button, Space, Drawer } from 'antd';
+import { Card, Badge, Tabs, Form, Input, Button, Space, Drawer, Modal, Switch } from 'antd';
 import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
 import { computeDiff, formatValue, type FieldDiff } from '../services/diffUtils';
 import { TableMetadataResponse } from '../types/api';
@@ -26,6 +26,11 @@ export const DiffView: React.FC<DiffViewProps> = ({
   const [viewMode, setViewMode] = React.useState<'side-by-side' | 'unified' | 'summary'>('side-by-side');
   const [editMode, setEditMode] = React.useState(false);
   const [editValues, setEditValues] = React.useState<Record<string, any>>(after);
+  const [inlineField, setInlineField] = React.useState<string | null>(null);
+  const [inlineValue, setInlineValue] = React.useState<string>('');
+  const [editTheme, setEditTheme] = React.useState<'dark' | 'light'>('dark');
+  const proposedOverlayRef = React.useRef<HTMLDivElement | null>(null);
+  const proposedTextareaRef = React.useRef<HTMLTextAreaElement | null>(null);
   const diffs = computeDiff(before, after, metadata || undefined);
   const changedDiffs = diffs.filter((d) => d.changed);
   const unchangedDiffs = diffs.filter((d) => !d.changed);
@@ -33,21 +38,61 @@ export const DiffView: React.FC<DiffViewProps> = ({
   const rightPaneRef = React.useRef<HTMLDivElement | null>(null);
   const syncingRef = React.useRef(false);
 
+  const renderLineDiff = (diff: FieldDiff, side: 'before' | 'after') => {
+    const lineNodes: React.ReactNode[] = [];
+    diff.textDiff?.forEach((part, partIndex) => {
+      if (part.added && side === 'before') return;
+      if (part.removed && side === 'after') return;
+      const className = part.added
+        ? 'diff-line-added'
+        : part.removed
+        ? 'diff-line-removed'
+        : 'diff-line-neutral';
+      const lines = part.value.split('\n');
+      lines.forEach((line, lineIndex) => {
+        const isLast = lineIndex === lines.length - 1;
+        lineNodes.push(
+          <div key={`${diff.field}-${side}-${partIndex}-${lineIndex}`} className={className}>
+            {line === '' ? ' ' : line}
+          </div>
+        );
+        if (!isLast) {
+          lineNodes.push(
+            <div
+              key={`${diff.field}-${side}-${partIndex}-${lineIndex}-spacer`}
+              className={className}
+            >
+              {' '}
+            </div>
+          );
+        }
+      });
+    });
+
+    return <div className="diff-lines">{lineNodes}</div>;
+  };
+
   const renderValue = (diff: FieldDiff, side: 'before' | 'after') => {
     const value = side === 'before' ? diff.before : diff.after;
     if (!diff.textDiff || typeof value !== 'string') {
       return <span className="whitespace-pre-wrap break-words">{formatValue(value)}</span>;
     }
 
+    if (diff.textDiffMode === 'lines') {
+      return renderLineDiff(diff, side);
+    }
+
+    const lineClass = side === 'before' ? 'diff-line-removed-soft' : 'diff-line-added';
+
     return (
-      <span className="whitespace-pre-wrap break-words">
+      <span className={`whitespace-pre-wrap break-words diff-inline-line ${lineClass}`}>
         {diff.textDiff.map((part, index) => {
           if (part.added && side === 'before') return null;
           if (part.removed && side === 'after') return null;
           const className = part.added
-            ? 'diff-text-added'
+            ? 'diff-word-added-strong'
             : part.removed
-            ? 'diff-text-removed'
+            ? 'diff-word-removed-strong'
             : '';
           return (
             <span key={`${diff.field}-${side}-${index}`} className={className}>
@@ -61,6 +106,62 @@ export const DiffView: React.FC<DiffViewProps> = ({
 
   const handleFieldEdit = (field: string, value: string) => {
     setEditValues((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const canEditField = (field: string) => !pkColumns.includes(field);
+
+  const openInlineEditor = (field: string) => {
+    if (!canEditField(field)) return;
+    setInlineField(field);
+    const current = after[field];
+    setInlineValue(current == null ? '' : String(current));
+  };
+
+  const handleInlineSave = () => {
+    if (!inlineField) return;
+    const updated = { ...after, [inlineField]: inlineValue };
+    setEditValues(updated);
+    onAfterChange(updated);
+    setInlineField(null);
+  };
+
+  const handleInlineCancel = () => {
+    setInlineField(null);
+    setInlineValue('');
+  };
+
+  const inlineDiff = inlineField
+    ? computeDiff(
+        { [inlineField]: before[inlineField] },
+        { [inlineField]: inlineValue },
+        metadata || undefined
+      )[0]
+    : null;
+
+  const buildLineRows = (diff: FieldDiff | null) => {
+    if (!diff?.textDiff || diff.textDiffMode !== 'lines') {
+      return null;
+    }
+
+    const rows: { type: 'added' | 'removed' | 'neutral'; text: string }[] = [];
+    diff.textDiff.forEach((part) => {
+      const lines = part.value.split('\n');
+      lines.forEach((line, index) => {
+        if (index === lines.length - 1 && line === '') return;
+        const type = part.added ? 'added' : part.removed ? 'removed' : 'neutral';
+        rows.push({ type, text: line });
+      });
+    });
+
+    return rows;
+  };
+
+  const inlineLineRows = buildLineRows(inlineDiff);
+
+  const handleProposedScroll = () => {
+    if (!proposedOverlayRef.current || !proposedTextareaRef.current) return;
+    proposedOverlayRef.current.scrollTop = proposedTextareaRef.current.scrollTop;
+    proposedOverlayRef.current.scrollLeft = proposedTextareaRef.current.scrollLeft;
   };
 
   const handleSaveEdit = () => {
@@ -83,6 +184,15 @@ export const DiffView: React.FC<DiffViewProps> = ({
     syncingRef.current = false;
   };
 
+  const renderClickableValue = (diff: FieldDiff, side: 'before' | 'after') => (
+    <div
+      onDoubleClick={() => openInlineEditor(diff.field)}
+      className={canEditField(diff.field) ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}
+    >
+      {renderValue(diff, side)}
+    </div>
+  );
+
   const renderSideBySide = () => (
     <div className="flex gap-2 h-96 overflow-hidden">
       <div className="flex-1 border border-gray-300 rounded bg-gray-50 flex flex-col">
@@ -101,7 +211,7 @@ export const DiffView: React.FC<DiffViewProps> = ({
             >
               <div className="grid grid-cols-[160px_minmax(0,1fr)] gap-2 items-start">
                 <span className="text-blue-700 font-semibold truncate">{diff.field}:</span>
-                {renderValue(diff, 'before')}
+                {renderClickableValue(diff, 'before')}
               </div>
             </div>
           ))}
@@ -127,7 +237,7 @@ export const DiffView: React.FC<DiffViewProps> = ({
             >
               <div className="grid grid-cols-[160px_minmax(0,1fr)] gap-2 items-start">
                 <span className="text-blue-700 font-semibold truncate">{diff.field}:</span>
-                {renderValue(diff, 'after')}
+                {renderClickableValue(diff, 'after')}
               </div>
             </div>
           ))}
@@ -145,15 +255,15 @@ export const DiffView: React.FC<DiffViewProps> = ({
             <>
               <div className="diff-row-removed p-1 rounded mb-1">
                 <span className="diff-line-number">-</span>
-                {renderValue(diff, 'before')}
+                {renderClickableValue(diff, 'before')}
               </div>
               <div className="diff-row-added p-1 rounded">
                 <span className="diff-line-number">+</span>
-                {renderValue(diff, 'after')}
+                {renderClickableValue(diff, 'after')}
               </div>
             </>
           ) : (
-            <div className="p-1">{renderValue(diff, 'before')}</div>
+            <div className="p-1">{renderClickableValue(diff, 'before')}</div>
           )}
         </div>
       ))}
@@ -171,10 +281,10 @@ export const DiffView: React.FC<DiffViewProps> = ({
                 <Badge status="warning" text={<span className="font-semibold">{diff.field}</span>} />
                 <div className="ml-6 mt-1 text-xs">
                   <div className="text-red-600">
-                    <span className="font-semibold">Before:</span> {renderValue(diff, 'before')}
+                    <span className="font-semibold">Before:</span> {renderClickableValue(diff, 'before')}
                   </div>
                   <div className="text-green-600">
-                    <span className="font-semibold">After:</span> {renderValue(diff, 'after')}
+                    <span className="font-semibold">After:</span> {renderClickableValue(diff, 'after')}
                   </div>
                 </div>
               </div>
@@ -288,6 +398,112 @@ export const DiffView: React.FC<DiffViewProps> = ({
       </div>
 
       {renderEditForm()}
+
+      <Modal
+        open={inlineField !== null}
+        title={
+          <div className="flex items-center justify-between">
+            <span>{inlineField ? `Edit ${inlineField}` : 'Edit'}</span>
+            <Space size="small">
+              <span className="text-xs text-gray-500">Dark</span>
+              <Switch
+                size="small"
+                checked={editTheme === 'light'}
+                onChange={(checked) => setEditTheme(checked ? 'light' : 'dark')}
+              />
+              <span className="text-xs text-gray-500">Light</span>
+            </Space>
+          </div>
+        }
+        onOk={handleInlineSave}
+        onCancel={handleInlineCancel}
+        okText="Save"
+        cancelText="Cancel"
+        width="80vw"
+        style={{ top: 24 }}
+        bodyStyle={{ maxHeight: '70vh', overflow: 'auto' }}
+      >
+        <div className={`diff-edit-root ${editTheme === 'dark' ? 'diff-edit-dark' : 'diff-edit-light'}`}>
+          <style>{`
+            .diff-edit-dark .ant-input,
+            .diff-edit-dark .ant-input-affix-wrapper,
+            .diff-edit-dark .ant-input-textarea {
+              background-color: transparent;
+              color: #e2e8f0;
+              border-color: #334155;
+            }
+            .diff-edit-dark .ant-input::placeholder {
+              color: #94a3b8;
+            }
+            .diff-edit-dark .ant-modal-body {
+              background-color: #0b1220;
+            }
+          `}</style>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="diff-edit-panel border border-gray-300 rounded bg-gray-50 p-2">
+              <div className="text-xs text-gray-500 mb-1">Current</div>
+              {inlineLineRows ? (
+                <div className="diff-editor diff-editor-readonly">
+                {inlineLineRows.map((row, index) => {
+                  const className =
+                    row.type === 'removed'
+                      ? 'diff-line-removed-strong'
+                      : row.type === 'added'
+                      ? 'diff-line-placeholder'
+                      : 'diff-line-neutral';
+                  return (
+                    <div key={`current-${index}`} className={`diff-line-row ${className}`}>
+                      {row.type === 'added' ? ' ' : row.text || ' '}
+                    </div>
+                  );
+                })}
+              </div>
+              ) : (
+                <div className="diff-view whitespace-pre-wrap break-words">
+                  {inlineDiff ? renderValue(inlineDiff, 'before') : ''}
+                </div>
+              )}
+            </div>
+            <div className="diff-edit-panel border border-gray-300 rounded bg-white p-2">
+              <div className="text-xs text-gray-500 mb-1">Proposed</div>
+              {inlineLineRows ? (
+                <div className="diff-editor diff-editor-editable">
+                  <div ref={proposedOverlayRef} className="diff-editor-overlay">
+                    {inlineLineRows.map((row, index) => {
+                      const className =
+                        row.type === 'added'
+                          ? 'diff-line-added'
+                          : row.type === 'removed'
+                          ? 'diff-line-removed-soft'
+                          : 'diff-line-neutral';
+                      return (
+                        <div key={`proposed-${index}`} className={`diff-line-row ${className}`}>
+                          {row.type === 'removed' ? ' ' : row.text || ' '}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <Input.TextArea
+                    ref={proposedTextareaRef}
+                    value={inlineValue}
+                    onChange={(e) => setInlineValue(e.target.value)}
+                    onScroll={handleProposedScroll}
+                    rows={12}
+                    className="diff-editor-textarea"
+                  />
+                </div>
+              ) : (
+                <Input.TextArea
+                  value={inlineValue}
+                  onChange={(e) => setInlineValue(e.target.value)}
+                  rows={12}
+                  className="diff-view"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </Modal>
     </Card>
   );
 };
