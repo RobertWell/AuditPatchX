@@ -59,14 +59,16 @@ export function computeDiff(
       changed,
     };
 
-    // For string values that changed, compute text diff
-    if (
-      changed &&
-      typeof beforeValue === 'string' &&
-      typeof afterValue === 'string' &&
-      (beforeValue.length > 50 || afterValue.length > 50)
-    ) {
-      diff.textDiff = Diff.diffLines(beforeValue || '', afterValue || '');
+    // For string values that changed, compute text diff for inline highlighting
+    if (changed && typeof beforeValue === 'string' && typeof afterValue === 'string') {
+      const hasNewlines =
+        beforeValue.includes('\n') ||
+        afterValue.includes('\n') ||
+        beforeValue.includes('\r') ||
+        afterValue.includes('\r');
+      diff.textDiff = hasNewlines
+        ? Diff.diffLines(beforeValue || '', afterValue || '')
+        : Diff.diffWordsWithSpace(beforeValue || '', afterValue || '');
     }
 
     diffs.push(diff);

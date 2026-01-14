@@ -336,18 +336,74 @@ class DatabaseService(
             return value
         }
 
-        // Handle DATE type columns
-        if (columnType.equals("DATE", ignoreCase = true) && value is String) {
-            return try {
-                // Parse ISO date format (YYYY-MM-DD) to java.sql.Date
-                java.sql.Date.valueOf(value)
-            } catch (e: Exception) {
-                logger.warn("Failed to parse date value: $value, using as-is", e)
-                value
+        if (value is String) {
+            val typeUpper = columnType.uppercase()
+            val parsed = parseTemporalString(value)
+            if (parsed != null) {
+                return when {
+                    typeUpper.contains("TIMESTAMP WITH TIME ZONE") -> parsed.offsetDateTime
+                    typeUpper.contains("TIMESTAMP WITH LOCAL TIME ZONE") -> parsed.offsetDateTime.toLocalDateTime()
+                    typeUpper.contains("TIMESTAMP") -> parsed.localDateTime
+                    typeUpper == "DATE" -> java.sql.Timestamp.valueOf(parsed.localDateTime)
+                    else -> value
+                }
             }
         }
 
         return value
+    }
+
+    private data class ParsedTemporal(
+        val offsetDateTime: java.time.OffsetDateTime,
+        val localDateTime: java.time.LocalDateTime
+    )
+
+    private fun parseTemporalString(value: String): ParsedTemporal? {
+        if (value.isBlank()) return null
+
+        val trimmed = value.trim()
+        val parsers = listOf<(String) -> ParsedTemporal?>(
+            { input ->
+                runCatching {
+                    val odt = java.time.OffsetDateTime.parse(input)
+                    ParsedTemporal(odt, odt.toLocalDateTime())
+                }.getOrNull()
+            },
+            { input ->
+                runCatching {
+                    val zdt = java.time.ZonedDateTime.parse(input)
+                    ParsedTemporal(zdt.toOffsetDateTime(), zdt.toLocalDateTime())
+                }.getOrNull()
+            },
+            { input ->
+                runCatching {
+                    val ldt = java.time.LocalDateTime.parse(input)
+                    ParsedTemporal(ldt.atOffset(java.time.ZoneOffset.UTC), ldt)
+                }.getOrNull()
+            },
+            { input ->
+                runCatching {
+                    val ld = java.time.LocalDate.parse(input)
+                    val ldt = ld.atStartOfDay()
+                    ParsedTemporal(ldt.atOffset(java.time.ZoneOffset.UTC), ldt)
+                }.getOrNull()
+            },
+            { input ->
+                runCatching {
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[.SSS]")
+                    val ldt = java.time.LocalDateTime.parse(input, formatter)
+                    ParsedTemporal(ldt.atOffset(java.time.ZoneOffset.UTC), ldt)
+                }.getOrNull()
+            }
+        )
+
+        for (parser in parsers) {
+            val parsed = parser(trimmed)
+            if (parsed != null) return parsed
+        }
+
+        logger.warn("Failed to parse temporal value: $value, using as-is")
+        return null
     }
 
     /**

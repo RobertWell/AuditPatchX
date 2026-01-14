@@ -29,6 +29,35 @@ export const DiffView: React.FC<DiffViewProps> = ({
   const diffs = computeDiff(before, after, metadata || undefined);
   const changedDiffs = diffs.filter((d) => d.changed);
   const unchangedDiffs = diffs.filter((d) => !d.changed);
+  const leftPaneRef = React.useRef<HTMLDivElement | null>(null);
+  const rightPaneRef = React.useRef<HTMLDivElement | null>(null);
+  const syncingRef = React.useRef(false);
+
+  const renderValue = (diff: FieldDiff, side: 'before' | 'after') => {
+    const value = side === 'before' ? diff.before : diff.after;
+    if (!diff.textDiff || typeof value !== 'string') {
+      return <span className="whitespace-pre-wrap break-words">{formatValue(value)}</span>;
+    }
+
+    return (
+      <span className="whitespace-pre-wrap break-words">
+        {diff.textDiff.map((part, index) => {
+          if (part.added && side === 'before') return null;
+          if (part.removed && side === 'after') return null;
+          const className = part.added
+            ? 'diff-text-added'
+            : part.removed
+            ? 'diff-text-removed'
+            : '';
+          return (
+            <span key={`${diff.field}-${side}-${index}`} className={className}>
+              {part.value}
+            </span>
+          );
+        })}
+      </span>
+    );
+  };
 
   const handleFieldEdit = (field: string, value: string) => {
     setEditValues((prev) => ({ ...prev, [field]: value }));
@@ -44,40 +73,62 @@ export const DiffView: React.FC<DiffViewProps> = ({
     setEditMode(false);
   };
 
+  const handleSyncScroll = (source: 'left' | 'right') => {
+    if (syncingRef.current) return;
+    const sourceEl = source === 'left' ? leftPaneRef.current : rightPaneRef.current;
+    const targetEl = source === 'left' ? rightPaneRef.current : leftPaneRef.current;
+    if (!sourceEl || !targetEl) return;
+    syncingRef.current = true;
+    targetEl.scrollTop = sourceEl.scrollTop;
+    syncingRef.current = false;
+  };
+
   const renderSideBySide = () => (
     <div className="flex gap-2 h-96 overflow-hidden">
       <div className="flex-1 border border-gray-300 rounded bg-gray-50 flex flex-col">
-        <div className="bg-gray-700 text-white px-3 py-1 text-xs font-semibold">
+        <div className="bg-gray-700 text-white px-3 py-1 text-xs font-semibold sticky top-0 z-10">
           Before (Current Data)
         </div>
-        <div className="flex-1 overflow-auto p-2 diff-view font-mono">
+        <div
+          ref={leftPaneRef}
+          onScroll={() => handleSyncScroll('left')}
+          className="flex-1 overflow-auto p-2 diff-view font-mono"
+        >
           {diffs.map((diff) => (
             <div
               key={diff.field}
-              className={`mb-1 p-1 rounded ${diff.changed ? 'diff-removed' : ''}`}
+              className={`mb-1 p-1 rounded ${diff.changed ? 'diff-row-removed' : ''}`}
             >
-              <span className="text-blue-600 font-semibold">{diff.field}:</span>{' '}
-              {formatValue(diff.before)}
+              <div className="grid grid-cols-[160px_minmax(0,1fr)] gap-2 items-start">
+                <span className="text-blue-700 font-semibold truncate">{diff.field}:</span>
+                {renderValue(diff, 'before')}
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       <div className="flex-1 border border-gray-300 rounded bg-gray-50 flex flex-col">
-        <div className="bg-gray-700 text-white px-3 py-1 text-xs font-semibold flex justify-between">
+        <div className="bg-gray-700 text-white px-3 py-1 text-xs font-semibold flex justify-between sticky top-0 z-10">
           <span>After (Proposed Changes)</span>
           <span className="text-green-400">
             {changedDiffs.length} change{changedDiffs.length !== 1 ? 's' : ''}
           </span>
         </div>
-        <div className="flex-1 overflow-auto p-2 diff-view font-mono">
+        <div
+          ref={rightPaneRef}
+          onScroll={() => handleSyncScroll('right')}
+          className="flex-1 overflow-auto p-2 diff-view font-mono"
+        >
           {diffs.map((diff) => (
             <div
               key={diff.field}
-              className={`mb-1 p-1 rounded ${diff.changed ? 'diff-added' : ''}`}
+              className={`mb-1 p-1 rounded ${diff.changed ? 'diff-row-added' : ''}`}
             >
-              <span className="text-blue-600 font-semibold">{diff.field}:</span>{' '}
-              {formatValue(diff.after)}
+              <div className="grid grid-cols-[160px_minmax(0,1fr)] gap-2 items-start">
+                <span className="text-blue-700 font-semibold truncate">{diff.field}:</span>
+                {renderValue(diff, 'after')}
+              </div>
             </div>
           ))}
         </div>
@@ -92,17 +143,17 @@ export const DiffView: React.FC<DiffViewProps> = ({
           <div className="text-gray-600 font-semibold mb-1">{diff.field}</div>
           {diff.changed ? (
             <>
-              <div className="diff-removed p-1 rounded mb-1">
+              <div className="diff-row-removed p-1 rounded mb-1">
                 <span className="diff-line-number">-</span>
-                {formatValue(diff.before)}
+                {renderValue(diff, 'before')}
               </div>
-              <div className="diff-added p-1 rounded">
+              <div className="diff-row-added p-1 rounded">
                 <span className="diff-line-number">+</span>
-                {formatValue(diff.after)}
+                {renderValue(diff, 'after')}
               </div>
             </>
           ) : (
-            <div className="p-1">{formatValue(diff.before)}</div>
+            <div className="p-1">{renderValue(diff, 'before')}</div>
           )}
         </div>
       ))}
@@ -120,10 +171,10 @@ export const DiffView: React.FC<DiffViewProps> = ({
                 <Badge status="warning" text={<span className="font-semibold">{diff.field}</span>} />
                 <div className="ml-6 mt-1 text-xs">
                   <div className="text-red-600">
-                    <span className="font-semibold">Before:</span> {formatValue(diff.before)}
+                    <span className="font-semibold">Before:</span> {renderValue(diff, 'before')}
                   </div>
                   <div className="text-green-600">
-                    <span className="font-semibold">After:</span> {formatValue(diff.after)}
+                    <span className="font-semibold">After:</span> {renderValue(diff, 'after')}
                   </div>
                 </div>
               </div>
