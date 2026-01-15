@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Badge, Tabs, Form, Input, Button, Space, Drawer, Modal, Switch } from 'antd';
 import { DiffEditor } from '@monaco-editor/react';
+import type { editor as MonacoEditor } from 'monaco-editor';
 import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
 import { computeDiff, formatValue, type FieldDiff } from '../services/diffUtils';
 import { TableMetadataResponse } from '../types/api';
@@ -29,7 +30,9 @@ export const DiffView: React.FC<DiffViewProps> = ({
   const [editValues, setEditValues] = React.useState<Record<string, any>>(after);
   const [inlineField, setInlineField] = React.useState<string | null>(null);
   const [inlineValue, setInlineValue] = React.useState<string>('');
+  const [inlineInitialAfter, setInlineInitialAfter] = React.useState<string>('');
   const [editTheme, setEditTheme] = React.useState<'dark' | 'light'>('dark');
+  const diffEditorRef = React.useRef<MonacoEditor.IStandaloneDiffEditor | null>(null);
   const diffs = computeDiff(before, after, metadata || undefined);
   const changedDiffs = diffs.filter((d) => d.changed);
   const unchangedDiffs = diffs.filter((d) => !d.changed);
@@ -113,12 +116,17 @@ export const DiffView: React.FC<DiffViewProps> = ({
     if (!canEditField(field)) return;
     setInlineField(field);
     const current = after[field];
-    setInlineValue(current == null ? '' : String(current));
+    const currentValue = current == null ? '' : String(current);
+    setInlineValue(currentValue);
+    setInlineInitialAfter(currentValue);
   };
 
   const handleInlineSave = () => {
     if (!inlineField) return;
-    const updated = { ...after, [inlineField]: inlineValue };
+    const latestValue =
+      diffEditorRef.current?.getModifiedEditor().getValue() ?? inlineValue;
+    setInlineValue(latestValue);
+    const updated = { ...after, [inlineField]: latestValue };
     setEditValues(updated);
     onAfterChange(updated);
     setInlineField(null);
@@ -413,6 +421,9 @@ export const DiffView: React.FC<DiffViewProps> = ({
               language="plaintext"
               theme={editTheme === 'dark' ? 'vs-dark' : 'light'}
               onChange={(value) => setInlineValue(value ?? '')}
+              onMount={(editorInstance) => {
+                diffEditorRef.current = editorInstance;
+              }}
               options={{
                 renderSideBySide: true,
                 readOnly: false,

@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import org.jdbi.v3.core.Jdbi
 import org.jdbi.v3.core.kotlin.KotlinPlugin
 import org.slf4j.LoggerFactory
+import java.time.format.DateTimeFormatter
 import javax.sql.DataSource
 
 @ApplicationScoped
@@ -51,7 +52,9 @@ class DatabaseService(
                 query = query.bind("value$index", convertedValue)
             }
 
-            val rows = query.mapToMap().list().map { it.toUppercaseKeys() }
+            val rows = query.mapToMap().list().map { row ->
+                normalizeRowValues(row.toUppercaseKeys(), columnTypeMap)
+            }
 
             QueryResponse(
                 columns = if (rows.isNotEmpty()) rows[0].keys.toList() else emptyList(),
@@ -91,6 +94,7 @@ class DatabaseService(
 
             val row = query.mapToMap().findOne().orElse(null)
                 ?.toUppercaseKeys()
+                ?.let { normalizeRowValues(it, columnTypeMap) }
                 ?: throw NotFoundException("Row not found")
 
             GetByPkResponse(row = row)
@@ -189,6 +193,7 @@ class DatabaseService(
             }
 
             val row = query.mapToMap().findOne().orElse(emptyMap()).toUppercaseKeys()
+                .let { normalizeRowValues(it, columnTypeMap) }
 
             UpdateResponse(updated = updated, row = row)
         }
@@ -338,19 +343,54 @@ class DatabaseService(
 
         if (value is String) {
             val typeUpper = columnType.uppercase()
-            val parsed = parseTemporalString(value)
-            if (parsed != null) {
-                return when {
-                    typeUpper.contains("TIMESTAMP WITH TIME ZONE") -> parsed.offsetDateTime
-                    typeUpper.contains("TIMESTAMP WITH LOCAL TIME ZONE") -> parsed.offsetDateTime.toLocalDateTime()
-                    typeUpper.contains("TIMESTAMP") -> parsed.localDateTime
-                    typeUpper == "DATE" -> java.sql.Timestamp.valueOf(parsed.localDateTime)
-                    else -> value
+            val isTemporalType = typeUpper.contains("TIMESTAMP") || typeUpper == "DATE"
+            if (isTemporalType) {
+                val parsed = parseTemporalString(value)
+                if (parsed != null) {
+                    return when {
+                        typeUpper.contains("TIMESTAMP WITH TIME ZONE") -> parsed.offsetDateTime
+                        typeUpper.contains("TIMESTAMP WITH LOCAL TIME ZONE") -> parsed.offsetDateTime.toLocalDateTime()
+                        typeUpper.contains("TIMESTAMP") -> parsed.localDateTime
+                        typeUpper == "DATE" -> java.sql.Timestamp.valueOf(parsed.localDateTime)
+                        else -> value
+                    }
                 }
             }
         }
 
         return value
+    }
+
+    private fun normalizeRowValues(
+        row: Map<String, Any?>,
+        columnTypeMap: Map<String, String>
+    ): Map<String, Any?> {
+        return row.mapValues { (key, value) ->
+            val columnType = columnTypeMap[key.uppercase()]
+            normalizeValueForJson(value, columnType)
+        }
+    }
+
+    private fun normalizeValueForJson(value: Any?, columnType: String?): Any? {
+        if (value == null) return null
+
+        return when (value) {
+            is oracle.sql.TIMESTAMP -> value.timestampValue().toLocalDateTime()
+                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            is java.sql.Timestamp -> value.toLocalDateTime()
+                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            is oracle.sql.DATE -> value.timestampValue().toLocalDateTime()
+                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            is java.sql.Date -> value.toLocalDate()
+                .format(DateTimeFormatter.ISO_LOCAL_DATE)
+            else -> {
+                when (value.javaClass.name) {
+                    "oracle.sql.TIMESTAMPTZ",
+                    "oracle.sql.TIMESTAMPLTZ" -> value.toString()
+                    else -> value
+                }
+            }
+        }
     }
 
     private data class ParsedTemporal(
