@@ -2,9 +2,9 @@ quarkus:
   datasource:
     db-kind: oracle
     jdbc:
-      url: ${DB_URL:jdbc:oracle:thin:@localhost:1521:ORCL}
-    username: ${DB_USER:admin}
-    password: ${DB_PASSWORD:password}
+      url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
   http:
     port: ${PORT:8080}
     cors:
@@ -14,6 +14,9 @@ quarkus:
       headers: "*"
   log:
     level: INFO
+    console:
+      json: false
+      format: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%c{2.}] (%t) %s%e%n"
     category:
       "com.auditpatchx":
         level: DEBUG
@@ -21,16 +24,16 @@ quarkus:
 # Table allowlist configuration
 allowlist:
   tables:
-    - schema: HR
-      table: EMPLOYEE
+    - schema: TRDMGMR
+      table: AGENT_MGMT
       pk-columns:
-        - EMP_ID
-    - schema: HR
-      table: DEPARTMENT
-      pk-columns:
-        - DEPT_ID
-    - schema: HR
-      table: JOB_HISTORY
-      pk-columns:
-        - EMPLOYEE_ID
-        - START_DATE
+        - AGENT_ID
+    # - schema: HR
+    #   table: DEPARTMENT
+    #   pk-columns:
+    #     - DEPT_ID
+    # - schema: HR
+    #   table: JOB_HISTORY
+    #   pk-columns:
+    #     - EMPLOYEE_ID
+    #     - START_DATE
