@@ -28,10 +28,10 @@ allowlist:
       table: AGENT_MGMT
       pk-columns:
         - AGENT_ID
-    # - schema: HR
-    #   table: DEPARTMENT
-    #   pk-columns:
-    #     - DEPT_ID
+    - schema: TRDMGMR
+      table: TRANSACTIONS
+      pk-columns:
+        - TRANSACTION_ID
     # - schema: HR
     #   table: JOB_HISTORY
     #   pk-columns:
