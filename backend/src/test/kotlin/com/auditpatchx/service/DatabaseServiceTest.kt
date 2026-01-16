@@ -383,13 +383,35 @@ class DatabaseServiceTest {
 
             assertThat(response.updated).isEqualTo(1)
             val bioValue = response.row["BIO"]
-            val bioText = when (bioValue) {
-                is java.sql.Clob -> bioValue.getSubString(1, bioValue.length().toInt())
-                null -> null
-                else -> bioValue.toString()
-            }
-            assertThat(bioText).isNotNull()
-            assertThat(bioText?.length).isEqualTo(longContent.length)
+            assertThat(bioValue).isInstanceOf(String::class.java)
+            assertThat(bioValue as String).hasSize(longContent.length)
+        }
+
+        @Test
+        @DisplayName("Should return CLOB content as string when fetching by PK")
+        fun testGetByPkReturnsClobAsString() {
+            val longContent = "clob ".repeat(900).trim()
+            databaseService.update(
+                UpdateRequest(
+                    schema = "TESTUSER",
+                    table = "EMPLOYEE",
+                    pk = mapOf("EMP_ID" to 2),
+                    set = mapOf("BIO" to longContent),
+                    reason = "Seed CLOB for fetch"
+                )
+            )
+
+            val response = databaseService.getByPk(
+                GetByPkRequest(
+                    schema = "TESTUSER",
+                    table = "EMPLOYEE",
+                    pk = mapOf("EMP_ID" to 2)
+                )
+            )
+
+            val bioValue = response.row["BIO"]
+            assertThat(bioValue).isInstanceOf(String::class.java)
+            assertThat(bioValue as String).isEqualTo(longContent)
         }
 
         @Test
