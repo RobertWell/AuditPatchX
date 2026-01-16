@@ -114,13 +114,12 @@ The backend will start on `http://localhost:8080`
 
 3. Run in development mode:
    ```bash
-   npm run dev
+   npm start
    ```
 
 4. Build for production:
    ```bash
    npm run build
-   npm run preview
    ```
 
 The frontend will start on `http://localhost:3000`
@@ -279,7 +278,7 @@ Open `http://localhost:8080`
 For local frontend dev (with API proxy):
 ```bash
 cd frontend
-npm run dev
+npm start
 ```
 
 ## Testing
@@ -329,10 +328,10 @@ Hot reload is enabled - changes to Kotlin files will automatically reload.
 
 ```bash
 cd frontend
-npm run dev
+npm start
 ```
 
-Hot reload is enabled via Vite.
+Hot reload is enabled via React Scripts.
 
 ### Building
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -9,7 +8,7 @@ interface DataGridProps {
   selectedRowKey?: string;
 }
 
-export const DataGrid: React.FC<DataGridProps> = ({ data, columns, onRowClick, selectedRowKey }) => {
+export const DataGrid = ({ data, columns, onRowClick, selectedRowKey }: DataGridProps) => {
   const tableColumns: ColumnsType<Record<string, any>> = columns.map((col) => ({
     title: col,
     dataIndex: col,

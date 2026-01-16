@@ -2,12 +2,25 @@
   "name": "auditpatchx-frontend",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "start": "react-scripts start",
+    "build": "BUILD_PATH=../backend/src/main/resources/META-INF/resources react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
     "lint": "eslint . --ext ts,tsx"
+  },
+  "proxy": "http://localhost:8080",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -16,20 +29,20 @@
     "diff": "^5.1.0",
     "monaco-editor": "^0.55.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1"
   },
   "devDependencies": {
     "@types/diff": "^5.0.9",
+    "@types/node": "^16.18.68",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
-    "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.55.0",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.8"
+    "typescript": "4.9.5"
   }
 }
