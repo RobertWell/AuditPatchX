@@ -6,6 +6,7 @@ import org.jdbi.v3.core.Jdbi
 import org.jdbi.v3.core.kotlin.KotlinPlugin
 import org.slf4j.LoggerFactory
 import java.time.format.DateTimeFormatter
+import java.sql.Clob
 import javax.sql.DataSource
 
 @ApplicationScoped
@@ -375,6 +376,7 @@ class DatabaseService(
         if (value == null) return null
 
         return when (value) {
+            is Clob -> readClobValue(value)
             is oracle.sql.TIMESTAMP -> value.timestampValue().toLocalDateTime()
                 .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             is java.sql.Timestamp -> value.toLocalDateTime()
@@ -391,6 +393,15 @@ class DatabaseService(
                 }
             }
         }
+    }
+
+    private fun readClobValue(clob: Clob): String {
+        val length = clob.length()
+        if (length == 0L) {
+            return ""
+        }
+        val safeLength = length.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        return clob.getSubString(1, safeLength)
     }
 
     private data class ParsedTemporal(
