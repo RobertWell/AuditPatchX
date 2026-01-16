@@ -13,13 +13,9 @@ quarkus:
       methods: "GET,POST,PUT,DELETE,OPTIONS"
       headers: "*"
   log:
-    level: INFO
+    level: OFF
     console:
-      json: false
-      format: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%c{2.}] (%t) %s%e%n"
-    category:
-      "com.auditpatchx":
-        level: DEBUG
+      enable: false
 
 # Table allowlist configuration
 allowlist:
