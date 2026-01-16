@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Select, Form, Button, Input, Space, Card } from 'antd';
+import { useEffect, useState } from 'react';
+import { Select, Form, Button, Input, Card } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import type { TableInfo } from '../types/api';
 import apiClient from '../services/api';
@@ -8,7 +8,7 @@ interface TableSelectorProps {
   onQuery: (schema: string, table: string, pkValues: Record<string, string>) => void;
 }
 
-export const TableSelector: React.FC<TableSelectorProps> = ({ onQuery }) => {
+export const TableSelector = ({ onQuery }: TableSelectorProps) => {
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [selectedTable, setSelectedTable] = useState<TableInfo | null>(null);
   const [pkValues, setPkValues] = useState<Record<string, string>>({});

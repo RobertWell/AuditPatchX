@@ -1,7 +1,8 @@
-import React from 'react';
+import { useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Card, Badge, Tabs, Form, Input, Button, Space, Drawer, Modal, Switch } from 'antd';
 import { DiffEditor } from '@monaco-editor/react';
-import type { editor as MonacoEditor } from 'monaco-editor';
+import type { editor as MonacoEditor, IDisposable } from 'monaco-editor';
 import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
 import { computeDiff, formatValue, type FieldDiff } from '../services/diffUtils';
 import { TableMetadataResponse } from '../types/api';
@@ -16,7 +17,7 @@ interface DiffViewProps {
   metadata: TableMetadataResponse | null;
 }
 
-export const DiffView: React.FC<DiffViewProps> = ({
+export const DiffView = ({
   before,
   after,
   onAfterChange,
@@ -24,24 +25,24 @@ export const DiffView: React.FC<DiffViewProps> = ({
   onReject,
   pkColumns,
   metadata,
-}) => {
-  const [viewMode, setViewMode] = React.useState<'side-by-side' | 'unified' | 'summary'>('side-by-side');
-  const [editMode, setEditMode] = React.useState(false);
-  const [editValues, setEditValues] = React.useState<Record<string, any>>(after);
-  const [inlineField, setInlineField] = React.useState<string | null>(null);
-  const [inlineValue, setInlineValue] = React.useState<string>('');
-  const [inlineInitialAfter, setInlineInitialAfter] = React.useState<string>('');
-  const [editTheme, setEditTheme] = React.useState<'dark' | 'light'>('dark');
-  const diffEditorRef = React.useRef<MonacoEditor.IStandaloneDiffEditor | null>(null);
+}: DiffViewProps) => {
+  const [viewMode, setViewMode] = useState<'side-by-side' | 'unified' | 'summary'>('side-by-side');
+  const [editMode, setEditMode] = useState(false);
+  const [editValues, setEditValues] = useState<Record<string, any>>(after);
+  const [inlineField, setInlineField] = useState<string | null>(null);
+  const [inlineValue, setInlineValue] = useState<string>('');
+  const [editTheme, setEditTheme] = useState<'dark' | 'light'>('dark');
+  const diffEditorRef = useRef<MonacoEditor.IStandaloneDiffEditor | null>(null);
+  const changeListenerRef = useRef<IDisposable | null>(null);
   const diffs = computeDiff(before, after, metadata || undefined);
   const changedDiffs = diffs.filter((d) => d.changed);
   const unchangedDiffs = diffs.filter((d) => !d.changed);
-  const leftPaneRef = React.useRef<HTMLDivElement | null>(null);
-  const rightPaneRef = React.useRef<HTMLDivElement | null>(null);
-  const syncingRef = React.useRef(false);
+  const leftPaneRef = useRef<HTMLDivElement | null>(null);
+  const rightPaneRef = useRef<HTMLDivElement | null>(null);
+  const syncingRef = useRef(false);
 
   const renderLineDiff = (diff: FieldDiff, side: 'before' | 'after') => {
-    const lineNodes: React.ReactNode[] = [];
+    const lineNodes: ReactNode[] = [];
     diff.textDiff?.forEach((part, partIndex) => {
       if (part.added && side === 'before') return;
       if (part.removed && side === 'after') return;
@@ -118,7 +119,6 @@ export const DiffView: React.FC<DiffViewProps> = ({
     const current = after[field];
     const currentValue = current == null ? '' : String(current);
     setInlineValue(currentValue);
-    setInlineInitialAfter(currentValue);
   };
 
   const handleInlineSave = () => {
@@ -129,10 +129,14 @@ export const DiffView: React.FC<DiffViewProps> = ({
     const updated = { ...after, [inlineField]: latestValue };
     setEditValues(updated);
     onAfterChange(updated);
+    changeListenerRef.current?.dispose();
+    changeListenerRef.current = null;
     setInlineField(null);
   };
 
   const handleInlineCancel = () => {
+    changeListenerRef.current?.dispose();
+    changeListenerRef.current = null;
     setInlineField(null);
     setInlineValue('');
   };
@@ -420,9 +424,13 @@ export const DiffView: React.FC<DiffViewProps> = ({
               modified={inlineValue}
               language="plaintext"
               theme={editTheme === 'dark' ? 'vs-dark' : 'light'}
-              onChange={(value) => setInlineValue(value ?? '')}
               onMount={(editorInstance) => {
                 diffEditorRef.current = editorInstance;
+                changeListenerRef.current?.dispose();
+                const modifiedEditor = editorInstance.getModifiedEditor();
+                changeListenerRef.current = modifiedEditor.onDidChangeModelContent(() => {
+                  setInlineValue(modifiedEditor.getValue());
+                });
               }}
               options={{
                 renderSideBySide: true,
