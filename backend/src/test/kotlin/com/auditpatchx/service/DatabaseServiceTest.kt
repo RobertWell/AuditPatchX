@@ -390,7 +390,7 @@ class DatabaseServiceTest {
         @Test
         @DisplayName("Should return CLOB content as string when fetching by PK")
         fun testGetByPkReturnsClobAsString() {
-            val longContent = "clob ".repeat(900).trim()
+            val longContent = "clob ".repeat(1200).trim()
             databaseService.update(
                 UpdateRequest(
                     schema = "TESTUSER",
