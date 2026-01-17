@@ -1,8 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Card, Badge, Tabs, Form, Input, Button, Space, Drawer, Modal, Switch } from 'antd';
-import { DiffEditor } from '@monaco-editor/react';
-import type { editor as MonacoEditor, IDisposable } from 'monaco-editor';
+import { MergeView } from '@codemirror/merge';
+import { EditorState } from '@codemirror/state';
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { EditorView, type ViewUpdate, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
+import { oneDark } from '@codemirror/theme-one-dark';
 import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
 import { computeDiff, formatValue, type FieldDiff } from '../services/diffUtils';
 import { TableMetadataResponse } from '../types/api';
@@ -16,6 +19,36 @@ interface DiffViewProps {
   pkColumns: string[];
   metadata: TableMetadataResponse | null;
 }
+
+const mergeSpacerLightTheme = EditorView.theme(
+  {
+    '.cm-mergeSpacer': {
+      backgroundColor: 'rgba(0,0,0,0.05)',
+      backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.18) 0 2px, transparent 2px)',
+      pointerEvents: 'none',
+      userSelect: 'none',
+    },
+    '.cm-mergeView .cm-gutters': {
+      backgroundColor: 'rgba(0,0,0,0.02)',
+    },
+  },
+  { dark: false }
+);
+
+const mergeSpacerDarkTheme = EditorView.theme(
+  {
+    '.cm-mergeSpacer': {
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.2) 0 2px, transparent 2px)',
+      pointerEvents: 'none',
+      userSelect: 'none',
+    },
+    '.cm-mergeView .cm-gutters': {
+      backgroundColor: 'rgba(255,255,255,0.03)',
+    },
+  },
+  { dark: true }
+);
 
 export const DiffView = ({
   before,
@@ -32,8 +65,10 @@ export const DiffView = ({
   const [inlineField, setInlineField] = useState<string | null>(null);
   const [inlineValue, setInlineValue] = useState<string>('');
   const [editTheme, setEditTheme] = useState<'dark' | 'light'>('dark');
-  const diffEditorRef = useRef<MonacoEditor.IStandaloneDiffEditor | null>(null);
-  const changeListenerRef = useRef<IDisposable | null>(null);
+  const [isEditorReady, setIsEditorReady] = useState(false);
+  const modifiedValueRef = useRef<string>('');
+  const mergeHostRef = useRef<HTMLDivElement | null>(null);
+  const mergeViewRef = useRef<MergeView | null>(null);
   const diffs = computeDiff(before, after, metadata || undefined);
   const changedDiffs = diffs.filter((d) => d.changed);
   const unchangedDiffs = diffs.filter((d) => !d.changed);
@@ -119,29 +154,81 @@ export const DiffView = ({
     const current = after[field];
     const currentValue = current == null ? '' : String(current);
     setInlineValue(currentValue);
+    modifiedValueRef.current = currentValue;
   };
 
   const handleInlineSave = () => {
     if (!inlineField) return;
-    const latestValue =
-      diffEditorRef.current?.getModifiedEditor().getValue() ?? inlineValue;
+    const latestValue = modifiedValueRef.current;
     setInlineValue(latestValue);
     const updated = { ...after, [inlineField]: latestValue };
     setEditValues(updated);
     onAfterChange(updated);
-    changeListenerRef.current?.dispose();
-    changeListenerRef.current = null;
     setInlineField(null);
+    setInlineValue('');
+    modifiedValueRef.current = '';
   };
 
   const handleInlineCancel = () => {
-    changeListenerRef.current?.dispose();
-    changeListenerRef.current = null;
     setInlineField(null);
     setInlineValue('');
+    modifiedValueRef.current = '';
   };
 
   const inlineOriginal = inlineField ? String(before[inlineField] ?? '') : '';
+  const normalizeEditorValue = (value: string) => value.replace(/\r\n/g, '\n');
+
+  useEffect(() => {
+    if (!isEditorReady || !inlineField || !mergeHostRef.current) return;
+
+    mergeHostRef.current.innerHTML = '';
+
+    const baseExtensions = [
+      lineNumbers(),
+      highlightActiveLineGutter(),
+      highlightActiveLine(),
+      history(),
+      keymap.of([...defaultKeymap, ...historyKeymap]),
+      EditorView.lineWrapping,
+    ];
+
+    const themeExtensions =
+      editTheme === 'dark'
+        ? [oneDark, mergeSpacerDarkTheme]
+        : [mergeSpacerLightTheme];
+    const readOnly = EditorState.readOnly.of(true);
+    const updateListener = EditorView.updateListener.of((update: ViewUpdate) => {
+      if (update.docChanged) {
+        modifiedValueRef.current = update.state.doc.toString();
+      }
+    });
+
+    const initialValue = normalizeEditorValue(
+      modifiedValueRef.current || inlineValue
+    );
+
+    const view = new MergeView({
+      parent: mergeHostRef.current,
+      a: {
+        doc: normalizeEditorValue(inlineOriginal),
+        extensions: [...baseExtensions, ...themeExtensions, readOnly],
+      },
+      b: {
+        doc: initialValue,
+        extensions: [...baseExtensions, ...themeExtensions, updateListener],
+      },
+      gutter: true,
+      highlightChanges: true,
+    });
+
+    mergeViewRef.current = view;
+
+    return () => {
+      mergeViewRef.current?.destroy();
+      mergeViewRef.current = null;
+    };
+    // Recreate when opening a different field or toggling theme.
+  }, [isEditorReady, inlineField, editTheme, inlineOriginal, inlineValue]);
 
   const handleSaveEdit = () => {
     onAfterChange(editValues);
@@ -380,6 +467,14 @@ export const DiffView = ({
 
       <Modal
         open={inlineField !== null}
+        destroyOnClose
+        afterOpenChange={(open) => {
+          setIsEditorReady(open);
+          if (!open) {
+            mergeViewRef.current?.destroy();
+            mergeViewRef.current = null;
+          }
+        }}
         title={
           <div className="flex items-center justify-between">
             <span>{inlineField ? `Edit ${inlineField}` : 'Edit'}</span>
@@ -419,31 +514,7 @@ export const DiffView = ({
             }
           `}</style>
           <div className="diff-edit-panel border border-gray-300 rounded">
-            <DiffEditor
-              original={inlineOriginal}
-              modified={inlineValue}
-              language="plaintext"
-              theme={editTheme === 'dark' ? 'vs-dark' : 'light'}
-              onMount={(editorInstance) => {
-                diffEditorRef.current = editorInstance;
-                changeListenerRef.current?.dispose();
-                const modifiedEditor = editorInstance.getModifiedEditor();
-                changeListenerRef.current = modifiedEditor.onDidChangeModelContent(() => {
-                  setInlineValue(modifiedEditor.getValue());
-                });
-              }}
-              options={{
-                renderSideBySide: true,
-                readOnly: false,
-                originalEditable: false,
-                minimap: { enabled: false },
-                renderIndicators: true,
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                wordWrap: 'on',
-              }}
-              height="60vh"
-            />
+            <div ref={mergeHostRef} style={{ height: '60vh' }} />
           </div>
         </div>
       </Modal>
