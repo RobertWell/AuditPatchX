@@ -22,9 +22,22 @@ interface DiffViewProps {
 
 const mergeSpacerLightTheme = EditorView.theme(
   {
+    '.cm-merge-a .cm-changedLine, .cm-merge-a .cm-deletedChunk': {
+      backgroundColor: 'rgba(207,34,46,0.10)',
+    },
+    '.cm-merge-b .cm-changedLine': {
+      backgroundColor: 'rgba(26,127,55,0.10)',
+    },
+    '.cm-merge-a .cm-changedText, .cm-merge-a .cm-deletedText': {
+      backgroundColor: 'rgba(207,34,46,0.22)',
+    },
+    '.cm-merge-b .cm-changedText': {
+      backgroundColor: 'rgba(26,127,55,0.22)',
+    },
     '.cm-mergeSpacer': {
-      backgroundColor: 'rgba(0,0,0,0.05)',
-      backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.18) 0 2px, transparent 2px)',
+      backgroundColor: 'rgba(0,0,0,0.045)',
+      borderLeft: '3px solid rgba(0,0,0,0.16)',
+      boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)',
       pointerEvents: 'none',
       userSelect: 'none',
     },
@@ -37,9 +50,22 @@ const mergeSpacerLightTheme = EditorView.theme(
 
 const mergeSpacerDarkTheme = EditorView.theme(
   {
+    '.cm-merge-a .cm-changedLine, .cm-merge-a .cm-deletedChunk': {
+      backgroundColor: 'rgba(248,81,73,0.14)',
+    },
+    '.cm-merge-b .cm-changedLine': {
+      backgroundColor: 'rgba(46,160,67,0.14)',
+    },
+    '.cm-merge-a .cm-changedText, .cm-merge-a .cm-deletedText': {
+      backgroundColor: 'rgba(248,81,73,0.32)',
+    },
+    '.cm-merge-b .cm-changedText': {
+      backgroundColor: 'rgba(46,160,67,0.32)',
+    },
     '.cm-mergeSpacer': {
-      backgroundColor: 'rgba(255,255,255,0.06)',
-      backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.2) 0 2px, transparent 2px)',
+      backgroundColor: 'rgba(255,255,255,0.055)',
+      borderLeft: '3px solid rgba(255,255,255,0.22)',
+      boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)',
       pointerEvents: 'none',
       userSelect: 'none',
     },

@@ -13,9 +13,18 @@ quarkus:
       methods: "GET,POST,PUT,DELETE,OPTIONS"
       headers: "*"
   log:
-    level: OFF
+    # Valid levels: OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL
+    # (Do not set to `false` — it will crash startup because it's not a log level.)
+    level: ${LOG_LEVEL:INFO}
     console:
-      enable: false
+      enable: ${LOG_CONSOLE_ENABLE:true}
+      json: false
+      format: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%c{2.}] (%t) %s%e%n"
+
+auditpatchx:
+  update-audit-log:
+    # JSON Lines (one JSON object per line) written for every update request (attempt/success/error).
+    path: ${AUDIT_UPDATE_LOG_PATH:logs/update-audit.jsonl}
 
 # Table allowlist configuration
 allowlist:
