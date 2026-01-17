@@ -4,7 +4,6 @@ import com.auditpatchx.config.AllowlistService
 import com.auditpatchx.model.*
 import com.auditpatchx.service.DatabaseService
 import com.auditpatchx.service.NotFoundException
-import com.auditpatchx.service.UpdateAuditLogService
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
@@ -15,8 +14,7 @@ import org.slf4j.LoggerFactory
 @Consumes(MediaType.APPLICATION_JSON)
 class TableResource(
     private val allowlistService: AllowlistService,
-    private val databaseService: DatabaseService,
-    private val updateAuditLogService: UpdateAuditLogService
+    private val databaseService: DatabaseService
 ) {
     private val logger = LoggerFactory.getLogger(TableResource::class.java)
 
@@ -104,28 +102,22 @@ class TableResource(
     @Path("/record/update")
     fun update(request: UpdateRequest): Response {
         return try {
-            updateAuditLogService.logAttempt(request)
-
             // Validate reason is provided
             if (request.reason.isBlank()) {
-                updateAuditLogService.logRejected(request, "Reason is required")
                 return Response.status(Response.Status.BAD_REQUEST)
                     .entity(ErrorResponse("Reason is required"))
                     .build()
             }
 
             val result = databaseService.update(request)
-            updateAuditLogService.logSuccess(request, result.updated)
             Response.ok(result).build()
         } catch (e: SecurityException) {
             logger.error("Security violation in update: ${e.message}")
-            updateAuditLogService.logError(request, e.message)
             Response.status(Response.Status.FORBIDDEN)
                 .entity(ErrorResponse("Access denied", e.message))
                 .build()
         } catch (e: Exception) {
             logger.error("Update failed", e)
-            updateAuditLogService.logError(request, e.message)
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(ErrorResponse("Update failed", e.message))
                 .build()
