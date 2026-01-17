@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Layout, Typography, message, Modal, Input, Spin } from 'antd';
 import { TableSelector } from './components/TableSelector';
 import { DataGrid } from './components/DataGrid';
@@ -27,6 +27,14 @@ function App() {
   const [beforeData, setBeforeData] = useState<Record<string, any>>({});
   const [afterData, setAfterData] = useState<Record<string, any>>({});
   const [showDiff, setShowDiff] = useState(false);
+
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [approveReason, setApproveReason] = useState('');
+  const [approveError, setApproveError] = useState<string | null>(null);
+  const [approveSubmitting, setApproveSubmitting] = useState(false);
+  const [pendingChangedFields, setPendingChangedFields] = useState<Record<string, any> | null>(null);
+
+  const changedFields = useMemo(() => getChangedFields(beforeData, afterData), [beforeData, afterData]);
 
   const handleQuery = async (schema: string, table: string, pkValues: Record<string, string>) => {
     setLoading(true);
@@ -100,69 +108,15 @@ function App() {
   };
 
   const handleApprove = async () => {
-    const changedFields = getChangedFields(beforeData, afterData);
-
     if (Object.keys(changedFields).length === 0) {
       message.warning('No changes to apply');
       return;
     }
 
-    // Prompt for reason
-    Modal.confirm({
-      title: 'Approve Changes',
-      content: (
-        <div>
-          <p className="mb-2">You are about to update the following fields:</p>
-          <ul className="list-disc list-inside mb-3">
-            {Object.keys(changedFields).map((field) => (
-              <li key={field} className="text-sm">
-                <strong>{field}</strong>: {String(beforeData[field])} → {String(changedFields[field])}
-              </li>
-            ))}
-          </ul>
-          <Input.TextArea
-            id="reason-input"
-            placeholder="Enter reason for this change (required)"
-            rows={3}
-            className="mt-2"
-          />
-        </div>
-      ),
-      okText: 'Approve',
-      cancelText: 'Cancel',
-      onOk: async () => {
-        const reasonInput = document.getElementById('reason-input') as HTMLTextAreaElement;
-        const reason = reasonInput?.value?.trim();
-
-        if (!reason) {
-          message.error('Reason is required');
-          return Promise.reject();
-        }
-
-        setLoading(true);
-        try {
-          const response = await apiClient.update({
-            schema: currentSchema,
-            table: currentTable,
-            pk: currentPk,
-            set: changedFields,
-            reason,
-          });
-
-          message.success(`Successfully updated ${response.updated} record(s)`);
-
-          // Refresh grid and diff with updated data
-          setGridData([response.row]);
-          setBeforeData(response.row);
-          setAfterData(response.row);
-        } catch (error: any) {
-          message.error(`Update failed: ${error.response?.data?.error || error.message}`);
-          throw error;
-        } finally {
-          setLoading(false);
-        }
-      },
-    });
+    setPendingChangedFields(changedFields);
+    setApproveReason('');
+    setApproveError(null);
+    setApproveOpen(true);
   };
 
   const handleReject = () => {
@@ -215,6 +169,76 @@ function App() {
             </div>
           </div>
         </Spin>
+
+        <Modal
+          title="Approve Changes"
+          open={approveOpen}
+          okText="Approve"
+          cancelText="Cancel"
+          okButtonProps={{ disabled: approveSubmitting || approveReason.trim().length === 0 }}
+          confirmLoading={approveSubmitting}
+          onCancel={() => {
+            if (approveSubmitting) return;
+            setApproveOpen(false);
+            setApproveError(null);
+          }}
+          onOk={async () => {
+            const reason = approveReason.trim();
+            if (!reason) {
+              setApproveError('Reason is required');
+              return;
+            }
+            if (!pendingChangedFields || Object.keys(pendingChangedFields).length === 0) {
+              setApproveError('No changes to apply');
+              return;
+            }
+
+            setApproveSubmitting(true);
+            setLoading(true);
+            try {
+              const response = await apiClient.update({
+                schema: currentSchema,
+                table: currentTable,
+                pk: currentPk,
+                set: pendingChangedFields,
+                reason,
+              });
+
+              message.success(`Successfully updated ${response.updated} record(s)`);
+
+              setGridData([response.row]);
+              setBeforeData(response.row);
+              setAfterData(response.row);
+              setApproveOpen(false);
+              setApproveError(null);
+            } catch (error: any) {
+              message.error(`Update failed: ${error.response?.data?.error || error.message}`);
+              setApproveError(error.response?.data?.error || error.message || 'Update failed');
+            } finally {
+              setApproveSubmitting(false);
+              setLoading(false);
+            }
+          }}
+        >
+          <p className="mb-2">You are about to update the following fields:</p>
+          <ul className="list-disc list-inside mb-3">
+            {Object.keys(pendingChangedFields || {}).map((field) => (
+              <li key={field} className="text-sm">
+                <strong>{field}</strong>: {String(beforeData[field])} → {String((pendingChangedFields as any)[field])}
+              </li>
+            ))}
+          </ul>
+          <Input.TextArea
+            value={approveReason}
+            onChange={(e) => {
+              setApproveReason(e.target.value);
+              if (approveError) setApproveError(null);
+            }}
+            placeholder="Enter reason for this change (required)"
+            rows={3}
+          />
+          {approveError && <div className="text-red-600 text-xs mt-2">{approveError}</div>}
+        </Modal>
       </Content>
     </Layout>
   );
