@@ -2,214 +2,135 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-bg: rgba(15, 23, 42, 0.6);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background-attachment: fixed;
+  color: #e2e8f0;
+  min-height: 100vh;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* --- Glass Utilities --- */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
 
-.diff-view {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 12px;
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
 }
 
-.diff-added {
-  background-color: rgba(34, 197, 94, 0.2);
+.text-gradient {
+  background: linear-gradient(to right, #60a5fa, #c084fc, #f472b6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 800;
 }
 
-.diff-removed {
-  background-color: rgba(239, 68, 68, 0.2);
-  text-decoration: line-through;
+/* --- Custom Scrollbar --- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.diff-row-added {
-  background-color: rgba(34, 197, 94, 0.12);
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
 }
 
-.diff-row-removed {
-  background-color: rgba(239, 68, 68, 0.12);
-}
-
-.diff-text-added {
-  background-color: rgba(34, 197, 94, 0.25);
-  border-radius: 2px;
-  padding: 0 2px;
-}
-
-.diff-text-removed {
-  background-color: rgba(239, 68, 68, 0.25);
-  border-radius: 2px;
-  padding: 0 2px;
-  text-decoration: line-through;
-}
-
-.diff-inline-line {
-  display: block;
-  padding: 0 2px;
-  border-radius: 2px;
-}
-
-.diff-word-added-strong {
-  background-color: rgba(16, 185, 129, 0.55);
-  border-radius: 2px;
-  padding: 0 2px;
-}
-
-.diff-word-removed-strong {
-  background-color: rgba(220, 38, 38, 0.55);
-  border-radius: 2px;
-  padding: 0 2px;
-}
-
-.diff-lines {
-  display: block;
-}
-
-.diff-line-added {
-  display: block;
-  background-color: rgba(34, 197, 94, 0.18);
-}
-
-.diff-line-neutral {
-  display: block;
-}
-
-.diff-line-removed-strong {
-  display: block;
-  background-color: rgba(185, 28, 28, 0.4);
-}
-
-.diff-line-removed-soft {
-  display: block;
-  background-color: rgba(239, 68, 68, 0.18);
-}
-
-.diff-line-placeholder {
-  display: block;
-  background-color: rgba(148, 163, 184, 0.25);
-}
-
-.diff-line-row {
-  white-space: pre;
-}
-
-.diff-editor {
-  position: relative;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 12px;
-  line-height: 1.4;
-  max-height: 60vh;
-  overflow: auto;
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
 }
 
-.diff-editor-readonly {
-  background-color: rgba(15, 23, 42, 0.02);
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
-.diff-editor-editable {
-  background-color: #fff;
+/* --- Ant Design Overrides --- */
+.ant-modal-content,
+.ant-drawer-content {
+  background: #0f172a !important;
+  border: 1px solid var(--glass-border);
 }
 
-.diff-editor-overlay {
-  position: absolute;
-  inset: 0;
-  padding: 8px;
-  pointer-events: none;
-  overflow: auto;
-  color: transparent;
-  z-index: 1;
+.ant-modal-header,
+.ant-drawer-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--glass-border) !important;
 }
 
-.diff-editor-textarea {
-  position: relative;
-  background: transparent;
-  border: 1px solid #e5e7eb;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 12px;
-  line-height: 1.4;
-  padding: 8px;
-  min-height: 300px;
-  z-index: 2;
-  box-shadow: none;
-  outline: none;
+.ant-modal-title,
+.ant-drawer-title {
+  color: #f1f5f9 !important;
 }
 
-.diff-editor-textarea:focus {
-  box-shadow: none;
-  outline: none;
+.ant-modal-close {
+  color: #94a3b8 !important;
 }
 
-.diff-edit-root .diff-editor-textarea::selection {
-  background: transparent;
+.ant-input,
+.ant-input-textarea,
+.ant-select-selector {
+  background: rgba(0, 0, 0, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
 }
 
-.diff-edit-root {
-  color: #0f172a;
+.ant-input::placeholder {
+  color: #64748b;
 }
 
-.diff-edit-panel {
-  background-color: #f8fafc;
-  border-color: #e2e8f0;
+.ant-table {
+  background: transparent !important;
+  color: #e2e8f0 !important;
 }
 
-.diff-edit-dark {
-  color: #e2e8f0;
+.ant-table-thead > tr > th {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #94a3b8 !important;
+  border-bottom: 1px solid var(--glass-border) !important;
 }
 
-.diff-edit-dark .diff-edit-panel {
-  background-color: #0b1220;
-  border-color: #1f2937;
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--glass-border) !important;
 }
 
-.diff-edit-dark .diff-editor-readonly {
-  background-color: #0b1220;
+.ant-table-tbody > tr:hover > td {
+  background: rgba(255, 255, 255, 0.03) !important;
 }
 
-.diff-edit-dark .diff-editor-editable {
-  background-color: #0f172a;
+.ant-pagination-item a {
+  color: #94a3b8 !important;
 }
 
-.diff-edit-dark .diff-editor-textarea {
-  color: #e2e8f0;
-  border-color: #334155;
+.ant-pagination-item-active {
+  background: transparent !important;
+  border-color: #3b82f6 !important;
 }
 
-
-.diff-edit-dark .diff-line-neutral {
-  color: #e2e8f0;
+.ant-pagination-item-active a {
+  color: #3b82f6 !important;
 }
 
-.diff-edit-dark .diff-line-placeholder {
-  background-color: rgba(148, 163, 184, 0.2);
-}
-
-.diff-edit-dark .diff-line-added {
-  background-color: rgba(34, 197, 94, 0.25);
-}
-
-.diff-edit-dark .diff-line-removed-soft {
-  background-color: rgba(239, 68, 68, 0.25);
-}
-
-.diff-edit-dark .diff-line-removed-strong {
-  background-color: rgba(185, 28, 28, 0.55);
-}
-
-.diff-line-number {
-  display: inline-block;
-  width: 40px;
-  padding-right: 8px;
-  text-align: right;
-  color: #666;
-  user-select: none;
-  border-right: 1px solid #ddd;
+/* --- Legacy Diff Styles (Preserved & Adapted) --- */
+.diff-view {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace;
+  font-size: 13px;
 }

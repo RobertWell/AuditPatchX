@@ -214,6 +214,8 @@ export const DiffView = ({
       },
       gutter: true,
       highlightChanges: true,
+      orientation: 'a-b',
+      revertControls: 'a-to-b',
     });
 
     mergeViewRef.current = view;
@@ -250,21 +252,21 @@ export const DiffView = ({
 
   // --- Views ---
   const renderSideBySide = () => (
-    <div className="flex gap-4 h-[500px] overflow-hidden">
+    <div className="flex gap-4 h-[600px] overflow-hidden relative">
       {/* Left Pane (Before) */}
-      <div className="flex-1 flex flex-col rounded-xl overflow-hidden bg-black/20 backdrop-blur-sm border border-white/5 shadow-inner">
-        <div className="bg-gradient-to-r from-red-900/30 to-transparent px-4 py-2 text-xs font-bold text-red-200 uppercase tracking-wider sticky top-0 z-10 flex justify-between items-center">
+      <div className="flex-1 flex flex-col rounded-xl overflow-hidden bg-black/20 backdrop-blur-sm border border-white/5 shadow-inner min-w-0">
+        <div className="bg-gradient-to-r from-red-900/30 to-transparent px-4 py-2 text-xs font-bold text-red-200 uppercase tracking-wider sticky top-0 z-10 flex justify-between items-center shrink-0">
           <span>Current Data</span>
           <InfoCircleOutlined />
         </div>
         <div
           ref={leftPaneRef}
           onScroll={() => handleSyncScroll('left')}
-          className="flex-1 overflow-auto p-3 custom-scrollbar"
+          className="flex-1 overflow-y-auto overflow-x-hidden p-3 custom-scrollbar"
         >
           {diffs.map((diff) => (
             <div key={diff.field} className={`mb-3 ${diff.changed ? 'bg-red-500/5 rounded-lg' : ''}`}>
-              <div className="text-xs text-blue-300/80 mb-1 font-medium">{diff.field}</div>
+              <div className="text-xs text-blue-300/80 mb-1 font-medium truncate">{diff.field}</div>
               {renderClickableValue(diff, 'before')}
             </div>
           ))}
@@ -272,19 +274,19 @@ export const DiffView = ({
       </div>
 
       {/* Right Pane (After) */}
-      <div className="flex-1 flex flex-col rounded-xl overflow-hidden bg-black/20 backdrop-blur-sm border border-white/5 shadow-inner relative">
-        <div className="bg-gradient-to-r from-green-900/30 to-transparent px-4 py-2 text-xs font-bold text-green-200 uppercase tracking-wider sticky top-0 z-10 flex justify-between items-center">
+      <div className="flex-1 flex flex-col rounded-xl overflow-hidden bg-black/20 backdrop-blur-sm border border-white/5 shadow-inner relative min-w-0">
+        <div className="bg-gradient-to-r from-green-900/30 to-transparent px-4 py-2 text-xs font-bold text-green-200 uppercase tracking-wider sticky top-0 z-10 flex justify-between items-center shrink-0">
           <span>Proposed Changes</span>
           {changedDiffs.length > 0 && <Badge count={changedDiffs.length} color="#52c41a" />}
         </div>
         <div
           ref={rightPaneRef}
           onScroll={() => handleSyncScroll('right')}
-          className="flex-1 overflow-auto p-3 custom-scrollbar"
+          className="flex-1 overflow-y-auto overflow-x-hidden p-3 custom-scrollbar"
         >
           {diffs.map((diff) => (
             <div key={diff.field} className={`mb-3 ${diff.changed ? 'bg-green-500/5 rounded-lg transition-colors duration-500' : ''}`}>
-              <div className="text-xs text-blue-300/80 mb-1 font-medium">{diff.field}</div>
+              <div className="text-xs text-blue-300/80 mb-1 font-medium truncate">{diff.field}</div>
               {renderClickableValue(diff, 'after')}
             </div>
           ))}
