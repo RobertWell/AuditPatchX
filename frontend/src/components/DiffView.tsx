@@ -1,11 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Card, Badge, Tabs, Form, Input, Button, Space, Drawer, Modal, Switch } from 'antd';
-import { MergeView } from '@codemirror/merge';
-import { EditorState } from '@codemirror/state';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-import { EditorView, type ViewUpdate, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
-import { oneDark } from '@codemirror/theme-one-dark';
+import { Card, Badge, Tabs, Form, Input, Button, Space, Drawer, Modal } from 'antd';
+import { DiffEditor, type DiffOnMount } from '@monaco-editor/react';
 import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
 import { computeDiff, formatValue, type FieldDiff } from '../services/diffUtils';
 import { TableMetadataResponse } from '../types/api';
@@ -19,62 +15,6 @@ interface DiffViewProps {
   pkColumns: string[];
   metadata: TableMetadataResponse | null;
 }
-
-const mergeSpacerLightTheme = EditorView.theme(
-  {
-    '.cm-merge-a .cm-changedLine, .cm-merge-a .cm-deletedChunk': {
-      backgroundColor: 'rgba(207,34,46,0.10)',
-    },
-    '.cm-merge-b .cm-changedLine': {
-      backgroundColor: 'rgba(26,127,55,0.10)',
-    },
-    '.cm-merge-a .cm-changedText, .cm-merge-a .cm-deletedText': {
-      backgroundColor: 'rgba(207,34,46,0.22)',
-    },
-    '.cm-merge-b .cm-changedText': {
-      backgroundColor: 'rgba(26,127,55,0.22)',
-    },
-    '.cm-mergeSpacer': {
-      backgroundColor: 'rgba(0,0,0,0.045)',
-      borderLeft: '3px solid rgba(0,0,0,0.16)',
-      boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)',
-      pointerEvents: 'none',
-      userSelect: 'none',
-    },
-    '.cm-mergeView .cm-gutters': {
-      backgroundColor: 'rgba(0,0,0,0.02)',
-    },
-  },
-  { dark: false }
-);
-
-const mergeSpacerDarkTheme = EditorView.theme(
-  {
-    '.cm-merge-a .cm-changedLine, .cm-merge-a .cm-deletedChunk': {
-      backgroundColor: 'rgba(248,81,73,0.14)',
-    },
-    '.cm-merge-b .cm-changedLine': {
-      backgroundColor: 'rgba(46,160,67,0.14)',
-    },
-    '.cm-merge-a .cm-changedText, .cm-merge-a .cm-deletedText': {
-      backgroundColor: 'rgba(248,81,73,0.32)',
-    },
-    '.cm-merge-b .cm-changedText': {
-      backgroundColor: 'rgba(46,160,67,0.32)',
-    },
-    '.cm-mergeSpacer': {
-      backgroundColor: 'rgba(255,255,255,0.055)',
-      borderLeft: '3px solid rgba(255,255,255,0.22)',
-      boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)',
-      pointerEvents: 'none',
-      userSelect: 'none',
-    },
-    '.cm-mergeView .cm-gutters': {
-      backgroundColor: 'rgba(255,255,255,0.03)',
-    },
-  },
-  { dark: true }
-);
 
 export const DiffView = ({
   before,
@@ -90,11 +30,7 @@ export const DiffView = ({
   const [editValues, setEditValues] = useState<Record<string, any>>(after);
   const [inlineField, setInlineField] = useState<string | null>(null);
   const [inlineValue, setInlineValue] = useState<string>('');
-  const [editTheme, setEditTheme] = useState<'dark' | 'light'>('dark');
-  const [isEditorReady, setIsEditorReady] = useState(false);
   const modifiedValueRef = useRef<string>('');
-  const mergeHostRef = useRef<HTMLDivElement | null>(null);
-  const mergeViewRef = useRef<MergeView | null>(null);
   const diffs = computeDiff(before, after, metadata || undefined);
   const changedDiffs = diffs.filter((d) => d.changed);
   const unchangedDiffs = diffs.filter((d) => !d.changed);
@@ -203,58 +139,17 @@ export const DiffView = ({
 
   const inlineOriginal = inlineField ? String(before[inlineField] ?? '') : '';
   const normalizeEditorValue = (value: string) => value.replace(/\r\n/g, '\n');
-
-  useEffect(() => {
-    if (!isEditorReady || !inlineField || !mergeHostRef.current) return;
-
-    mergeHostRef.current.innerHTML = '';
-
-    const baseExtensions = [
-      lineNumbers(),
-      highlightActiveLineGutter(),
-      highlightActiveLine(),
-      history(),
-      keymap.of([...defaultKeymap, ...historyKeymap]),
-      EditorView.lineWrapping,
-    ];
-
-    const themeExtensions =
-      editTheme === 'dark'
-        ? [oneDark, mergeSpacerDarkTheme]
-        : [mergeSpacerLightTheme];
-    const readOnly = EditorState.readOnly.of(true);
-    const updateListener = EditorView.updateListener.of((update: ViewUpdate) => {
-      if (update.docChanged) {
-        modifiedValueRef.current = update.state.doc.toString();
-      }
-    });
-
-    const initialValue = normalizeEditorValue(
-      modifiedValueRef.current || inlineValue
-    );
-
-    const view = new MergeView({
-      parent: mergeHostRef.current,
-      a: {
-        doc: normalizeEditorValue(inlineOriginal),
-        extensions: [...baseExtensions, ...themeExtensions, readOnly],
-      },
-      b: {
-        doc: initialValue,
-        extensions: [...baseExtensions, ...themeExtensions, updateListener],
-      },
-      gutter: true,
-      highlightChanges: true,
-    });
-
-    mergeViewRef.current = view;
-
-    return () => {
-      mergeViewRef.current?.destroy();
-      mergeViewRef.current = null;
+  const handleDiffMount: DiffOnMount = (editor) => {
+    const modifiedEditor = editor.getModifiedEditor();
+    const updateValue = () => {
+      const value = modifiedEditor.getValue();
+      setInlineValue(value);
+      modifiedValueRef.current = value;
     };
-    // Recreate when opening a different field or toggling theme.
-  }, [isEditorReady, inlineField, editTheme, inlineOriginal, inlineValue]);
+    const subscription = modifiedEditor.onDidChangeModelContent(updateValue);
+    updateValue();
+    editor.onDidDispose(() => subscription.dispose());
+  };
 
   const handleSaveEdit = () => {
     onAfterChange(editValues);
@@ -494,25 +389,9 @@ export const DiffView = ({
       <Modal
         open={inlineField !== null}
         destroyOnClose
-        afterOpenChange={(open) => {
-          setIsEditorReady(open);
-          if (!open) {
-            mergeViewRef.current?.destroy();
-            mergeViewRef.current = null;
-          }
-        }}
         title={
           <div className="flex items-center justify-between">
             <span>{inlineField ? `Edit ${inlineField}` : 'Edit'}</span>
-            <Space size="small">
-              <span className="text-xs text-gray-500">Dark</span>
-              <Switch
-                size="small"
-                checked={editTheme === 'light'}
-                onChange={(checked) => setEditTheme(checked ? 'light' : 'dark')}
-              />
-              <span className="text-xs text-gray-500">Light</span>
-            </Space>
           </div>
         }
         onOk={handleInlineSave}
@@ -523,26 +402,22 @@ export const DiffView = ({
         style={{ top: 24 }}
         bodyStyle={{ maxHeight: '70vh', overflow: 'auto' }}
       >
-        <div className={`diff-edit-root ${editTheme === 'dark' ? 'diff-edit-dark' : 'diff-edit-light'}`}>
-          <style>{`
-            .diff-edit-dark .ant-input,
-            .diff-edit-dark .ant-input-affix-wrapper,
-            .diff-edit-dark .ant-input-textarea {
-              background-color: transparent;
-              color: #e2e8f0;
-              border-color: #334155;
-            }
-            .diff-edit-dark .ant-input::placeholder {
-              color: #94a3b8;
-            }
-            .diff-edit-dark .ant-modal-body {
-              background-color: #0b1220;
-            }
-          `}</style>
-          <div className="diff-edit-panel border border-gray-300 rounded">
-            <div ref={mergeHostRef} style={{ height: '60vh' }} />
-          </div>
-        </div>
+        {inlineField && (
+          <DiffEditor
+            original={normalizeEditorValue(inlineOriginal)}
+            modified={normalizeEditorValue(inlineValue)}
+            onMount={handleDiffMount}
+            height="60vh"
+            options={{
+              renderSideBySide: true,
+              originalEditable: false,
+              minimap: { enabled: false },
+              wordWrap: 'on',
+              scrollBeyondLastLine: false,
+            }}
+            theme="light"
+          />
+        )}
       </Modal>
     </Card>
   );
