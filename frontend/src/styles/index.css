@@ -36,17 +36,32 @@ html[data-theme='dark'] {
   color-scheme: dark;
 }
 
-.app-panel {
-  border: 1px solid var(--app-border);
-  border-radius: 10px;
-  background: var(--app-panel);
-  box-shadow: var(--app-panel-shadow);
-}
+@layer components {
+  .app-header {
+    @apply shadow-md flex items-center justify-between gap-4;
+    background: var(--app-header);
+    color: #fff;
+  }
 
-.app-panel-header {
-  background: var(--app-panel-muted);
-  color: var(--app-fg);
-  border-bottom: 1px solid var(--app-border);
+  .app-content {
+    @apply p-4;
+    background: var(--app-bg);
+    color: var(--app-fg);
+  }
+
+  .app-panel {
+    @apply border rounded-lg;
+    border-color: var(--app-border);
+    background: var(--app-panel);
+    box-shadow: var(--app-panel-shadow);
+  }
+
+  .app-panel-header {
+    @apply text-xs font-semibold;
+    background: var(--app-panel-muted);
+    color: var(--app-fg);
+    border-bottom: 1px solid var(--app-border);
+  }
 }
 
 code {

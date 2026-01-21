@@ -6,14 +6,15 @@ import { DiffView } from './components/DiffView';
 import apiClient from './services/api';
 import { getChangedFields } from './services/diffUtils';
 import { TableMetadataResponse } from './types/api';
+import { ThemeMode } from './types/theme';
 
 const { Header, Content } = Layout;
 const { Title } = Typography;
 
 function App() {
-  const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => {
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem('auditpatchx.theme');
-    return saved === 'dark' ? 'dark' : 'light';
+    return saved === ThemeMode.Dark ? ThemeMode.Dark : ThemeMode.Light;
   });
   const [loading, setLoading] = useState(false);
   const [currentSchema, setCurrentSchema] = useState<string>('');
@@ -137,33 +138,27 @@ function App() {
   return (
     <ConfigProvider
       theme={{
-        algorithm: themeMode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        algorithm: themeMode === ThemeMode.Dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
           colorPrimary: '#3078c1',
         },
       }}
     >
-      <Layout className={`min-h-screen ${themeMode === 'dark' ? 'app-dark' : 'app-light'}`}>
-        <Header
-          className="shadow-md"
-          style={{
-            background: themeMode === 'dark' ? '#0b1220' : '#3078c1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-          }}
-        >
+      <Layout className={`min-h-screen ${themeMode === ThemeMode.Dark ? 'app-dark' : 'app-light'}`}>
+        <Header className="app-header">
           <Title level={3} className="m-0 py-2" style={{ color: '#fff' }}>
             AuditPatchX - Database Configuration Manager
           </Title>
           <div className="flex items-center gap-2 text-white/90">
             <span className="text-xs">Dark</span>
-            <Switch checked={themeMode === 'dark'} onChange={(v) => setThemeMode(v ? 'dark' : 'light')} />
+            <Switch
+              checked={themeMode === ThemeMode.Dark}
+              onChange={(v) => setThemeMode(v ? ThemeMode.Dark : ThemeMode.Light)}
+            />
           </div>
         </Header>
 
-        <Content className="p-4">
+        <Content className="app-content">
           <Spin spinning={loading}>
             <div className="max-w-screen-2xl mx-auto">
               <TableSelector onQuery={handleQuery} />

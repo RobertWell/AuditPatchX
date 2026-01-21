@@ -1,15 +1,22 @@
 import { Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { ThemeMode } from '../types/theme';
 
 interface DataGridProps {
   data: Record<string, any>[];
   columns: string[];
   onRowClick?: (row: Record<string, any>) => void;
   selectedRowKey?: string;
-  themeMode?: 'light' | 'dark';
+  themeMode?: ThemeMode;
 }
 
-export const DataGrid = ({ data, columns, onRowClick, selectedRowKey, themeMode = 'light' }: DataGridProps) => {
+export const DataGrid = ({
+  data,
+  columns,
+  onRowClick,
+  selectedRowKey,
+  themeMode = ThemeMode.Light,
+}: DataGridProps) => {
   const tableColumns: ColumnsType<Record<string, any>> = columns.map((col) => ({
     title: col,
     dataIndex: col,
@@ -42,10 +49,10 @@ export const DataGrid = ({ data, columns, onRowClick, selectedRowKey, themeMode 
           onClick: () => onRowClick?.(record),
           className:
             record._rowKey === selectedRowKey
-              ? themeMode === 'dark'
+              ? themeMode === ThemeMode.Dark
                 ? 'bg-blue-950/40 border-l-4 border-l-blue-400'
                 : 'bg-blue-50 border-l-4 border-l-blue-500'
-              : themeMode === 'dark'
+              : themeMode === ThemeMode.Dark
               ? 'cursor-pointer hover:bg-white/5'
               : 'cursor-pointer hover:bg-gray-50',
         })}

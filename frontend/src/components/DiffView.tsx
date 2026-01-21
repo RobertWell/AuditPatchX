@@ -5,6 +5,7 @@ import { DiffEditor, type DiffOnMount } from '@monaco-editor/react';
 import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
 import { computeDiff, formatValue, type FieldDiff } from '../services/diffUtils';
 import type { TableMetadataResponse } from '../types/api';
+import { ThemeMode } from '../types/theme';
 
 interface DiffViewProps {
   before: Record<string, any>;
@@ -14,7 +15,7 @@ interface DiffViewProps {
   onReject: () => void;
   pkColumns: string[];
   metadata: TableMetadataResponse | null;
-  themeMode?: 'light' | 'dark';
+  themeMode?: ThemeMode;
 }
 
 export const DiffView = ({
@@ -25,7 +26,7 @@ export const DiffView = ({
   onReject,
   pkColumns,
   metadata,
-  themeMode = 'light',
+  themeMode = ThemeMode.Light,
 }: DiffViewProps) => {
   const [viewMode, setViewMode] = useState<'side-by-side' | 'unified' | 'summary'>('side-by-side');
   const [editMode, setEditMode] = useState(false);
@@ -210,7 +211,7 @@ export const DiffView = ({
       <div className="flex-1 app-panel flex flex-col">
         <div className="app-panel-header px-3 py-1 text-xs font-semibold flex justify-between sticky top-0 z-10">
           <span>After (Proposed Changes)</span>
-          <span className={themeMode === 'dark' ? 'text-green-300' : 'text-green-600'}>
+          <span className={themeMode === ThemeMode.Dark ? 'text-green-300' : 'text-green-600'}>
             {changedDiffs.length} change{changedDiffs.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -239,7 +240,13 @@ export const DiffView = ({
     <div className="h-96 overflow-auto app-panel p-2 diff-view font-mono">
       {diffs.map((diff) => (
         <div key={diff.field} className="mb-2">
-          <div className={themeMode === 'dark' ? 'text-slate-200 font-semibold mb-1' : 'text-gray-600 font-semibold mb-1'}>
+          <div
+            className={
+              themeMode === ThemeMode.Dark
+                ? 'text-slate-200 font-semibold mb-1'
+                : 'text-gray-600 font-semibold mb-1'
+            }
+          >
             {diff.field}
           </div>
           {diff.changed ? (
@@ -271,10 +278,10 @@ export const DiffView = ({
               <div key={diff.field} className="app-panel p-2">
                 <Badge status="warning" text={<span className="font-semibold">{diff.field}</span>} />
                 <div className="ml-6 mt-1 text-xs">
-                  <div className={themeMode === 'dark' ? 'text-red-300' : 'text-red-600'}>
+                  <div className={themeMode === ThemeMode.Dark ? 'text-red-300' : 'text-red-600'}>
                     <span className="font-semibold">Before:</span> {renderClickableValue(diff, 'before')}
                   </div>
-                  <div className={themeMode === 'dark' ? 'text-green-300' : 'text-green-600'}>
+                  <div className={themeMode === ThemeMode.Dark ? 'text-green-300' : 'text-green-600'}>
                     <span className="font-semibold">After:</span> {renderClickableValue(diff, 'after')}
                   </div>
                 </div>
@@ -282,13 +289,15 @@ export const DiffView = ({
             ))}
           </div>
         ) : (
-          <div className={themeMode === 'dark' ? 'text-slate-400 italic' : 'text-gray-500 italic'}>No changes detected</div>
+          <div className={themeMode === ThemeMode.Dark ? 'text-slate-400 italic' : 'text-gray-500 italic'}>
+            No changes detected
+          </div>
         )}
       </div>
 
       <div>
         <h4 className="font-semibold text-sm mb-2">Unchanged Fields ({unchangedDiffs.length})</h4>
-        <div className={themeMode === 'dark' ? 'text-xs text-slate-400' : 'text-xs text-gray-500'}>
+        <div className={themeMode === ThemeMode.Dark ? 'text-xs text-slate-400' : 'text-xs text-gray-500'}>
           {unchangedDiffs.map((diff) => diff.field).join(', ')}
         </div>
       </div>
@@ -404,21 +413,27 @@ export const DiffView = ({
         cancelText="Cancel"
         width="80vw"
         style={{ top: 24 }}
-        bodyStyle={{ maxHeight: '70vh', overflow: 'auto' }}
+        bodyStyle={{ maxHeight: '80vh', overflow: 'auto' }}
         styles={{
           content: {
-            background: themeMode === 'dark' ? '#0b1220' : '#ffffff',
-            border: themeMode === 'dark' ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.08)',
+            background: themeMode === ThemeMode.Dark ? '#0b1220' : '#ffffff',
+            border:
+              themeMode === ThemeMode.Dark
+                ? '1px solid rgba(255,255,255,0.10)'
+                : '1px solid rgba(0,0,0,0.08)',
             borderRadius: 12,
             overflow: 'hidden',
           },
           header: {
-            background: themeMode === 'dark' ? '#0b1220' : '#ffffff',
-            borderBottom: themeMode === 'dark' ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.08)',
+            background: themeMode === ThemeMode.Dark ? '#0b1220' : '#ffffff',
+            borderBottom:
+              themeMode === ThemeMode.Dark
+                ? '1px solid rgba(255,255,255,0.10)'
+                : '1px solid rgba(0,0,0,0.08)',
             margin: 0,
           },
           body: {
-            background: themeMode === 'dark' ? '#0b1220' : '#ffffff',
+            background: themeMode === ThemeMode.Dark ? '#0b1220' : '#ffffff',
           },
         }}
       >
@@ -427,7 +442,7 @@ export const DiffView = ({
             original={normalizeEditorValue(inlineOriginal)}
             modified={normalizeEditorValue(inlineValue)}
             onMount={handleDiffMount}
-            height="60vh"
+            height="80vh"
             options={{
               renderSideBySide: true,
               originalEditable: false,
@@ -435,7 +450,7 @@ export const DiffView = ({
               wordWrap: 'on',
               scrollBeyondLastLine: false,
             }}
-            theme={themeMode === 'dark' ? 'vs-dark' : 'light'}
+            theme={themeMode === ThemeMode.Dark ? 'vs-dark' : 'light'}
           />
         )}
       </Modal>
