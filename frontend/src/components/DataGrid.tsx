@@ -6,9 +6,10 @@ interface DataGridProps {
   columns: string[];
   onRowClick?: (row: Record<string, any>) => void;
   selectedRowKey?: string;
+  themeMode?: 'light' | 'dark';
 }
 
-export const DataGrid = ({ data, columns, onRowClick, selectedRowKey }: DataGridProps) => {
+export const DataGrid = ({ data, columns, onRowClick, selectedRowKey, themeMode = 'light' }: DataGridProps) => {
   const tableColumns: ColumnsType<Record<string, any>> = columns.map((col) => ({
     title: col,
     dataIndex: col,
@@ -29,7 +30,7 @@ export const DataGrid = ({ data, columns, onRowClick, selectedRowKey }: DataGrid
   }));
 
   return (
-    <div className="h-full overflow-auto border border-gray-300 rounded">
+    <div className="h-full overflow-auto app-panel">
       <Table
         columns={tableColumns}
         dataSource={dataWithKeys}
@@ -39,7 +40,14 @@ export const DataGrid = ({ data, columns, onRowClick, selectedRowKey }: DataGrid
         scroll={{ x: 'max-content', y: 'calc(100vh - 400px)' }}
         onRow={(record) => ({
           onClick: () => onRowClick?.(record),
-          className: record._rowKey === selectedRowKey ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'cursor-pointer hover:bg-gray-50',
+          className:
+            record._rowKey === selectedRowKey
+              ? themeMode === 'dark'
+                ? 'bg-blue-950/40 border-l-4 border-l-blue-400'
+                : 'bg-blue-50 border-l-4 border-l-blue-500'
+              : themeMode === 'dark'
+              ? 'cursor-pointer hover:bg-white/5'
+              : 'cursor-pointer hover:bg-gray-50',
         })}
         className="text-xs"
       />

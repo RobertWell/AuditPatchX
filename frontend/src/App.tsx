@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Layout, Typography, message, Modal, Input, Spin } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
+import { ConfigProvider, Input, Layout, Modal, Spin, Switch, Typography, message, theme } from 'antd';
 import { TableSelector } from './components/TableSelector';
 import { DataGrid } from './components/DataGrid';
 import { DiffView } from './components/DiffView';
@@ -11,6 +11,10 @@ const { Header, Content } = Layout;
 const { Title } = Typography;
 
 function App() {
+  const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('auditpatchx.theme');
+    return saved === 'dark' ? 'dark' : 'light';
+  });
   const [loading, setLoading] = useState(false);
   const [currentSchema, setCurrentSchema] = useState<string>('');
   const [currentTable, setCurrentTable] = useState<string>('');
@@ -35,6 +39,11 @@ function App() {
   const [pendingChangedFields, setPendingChangedFields] = useState<Record<string, any> | null>(null);
 
   const changedFields = useMemo(() => getChangedFields(beforeData, afterData), [beforeData, afterData]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+    localStorage.setItem('auditpatchx.theme', themeMode);
+  }, [themeMode]);
 
   const handleQuery = async (schema: string, table: string, pkValues: Record<string, string>) => {
     setLoading(true);
@@ -126,121 +135,146 @@ function App() {
   };
 
   return (
-    <Layout className="min-h-screen">
-      <Header className="bg-primary shadow-md">
-        <Title level={3} className="text-white m-0 py-2">
-          AuditPatchX - Database Configuration Manager
-        </Title>
-      </Header>
-
-      <Content className="p-4">
-        <Spin spinning={loading}>
-          <div className="max-w-screen-2xl mx-auto">
-            <TableSelector onQuery={handleQuery} />
-
-            <div className="grid grid-cols-1 gap-4">
-              {/* Data Grid */}
-              {gridData.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold mb-2">Query Results</h3>
-                  <DataGrid
-                    data={gridData}
-                    columns={gridColumns}
-                    onRowClick={handleRowClick}
-                    selectedRowKey={selectedRowKey}
-                  />
-                </div>
-              )}
-
-              {/* Diff View */}
-              {showDiff && (
-                <div>
-                  <DiffView
-                    before={beforeData}
-                    after={afterData}
-                    onAfterChange={handleAfterChange}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
-                    pkColumns={pkColumns}
-                    metadata={metadata}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </Spin>
-
-        <Modal
-          title="Approve Changes"
-          open={approveOpen}
-          okText="Approve"
-          cancelText="Cancel"
-          okButtonProps={{ disabled: approveSubmitting || approveReason.trim().length === 0 }}
-          confirmLoading={approveSubmitting}
-          onCancel={() => {
-            if (approveSubmitting) return;
-            setApproveOpen(false);
-            setApproveError(null);
-          }}
-          onOk={async () => {
-            const reason = approveReason.trim();
-            if (!reason) {
-              setApproveError('Reason is required');
-              return;
-            }
-            if (!pendingChangedFields || Object.keys(pendingChangedFields).length === 0) {
-              setApproveError('No changes to apply');
-              return;
-            }
-
-            setApproveSubmitting(true);
-            setLoading(true);
-            try {
-              const response = await apiClient.update({
-                schema: currentSchema,
-                table: currentTable,
-                pk: currentPk,
-                set: pendingChangedFields,
-                reason,
-              });
-
-              message.success(`Successfully updated ${response.updated} record(s)`);
-
-              setGridData([response.row]);
-              setBeforeData(response.row);
-              setAfterData(response.row);
-              setApproveOpen(false);
-              setApproveError(null);
-            } catch (error: any) {
-              message.error(`Update failed: ${error.response?.data?.error || error.message}`);
-              setApproveError(error.response?.data?.error || error.message || 'Update failed');
-            } finally {
-              setApproveSubmitting(false);
-              setLoading(false);
-            }
+    <ConfigProvider
+      theme={{
+        algorithm: themeMode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        token: {
+          colorPrimary: '#3078c1',
+        },
+      }}
+    >
+      <Layout className={`min-h-screen ${themeMode === 'dark' ? 'app-dark' : 'app-light'}`}>
+        <Header
+          className="shadow-md"
+          style={{
+            background: themeMode === 'dark' ? '#0b1220' : '#3078c1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
           }}
         >
-          <p className="mb-2">You are about to update the following fields:</p>
-          <ul className="list-disc list-inside mb-3">
-            {Object.keys(pendingChangedFields || {}).map((field) => (
-              <li key={field} className="text-sm">
-                <strong>{field}</strong>: {String(beforeData[field])} → {String((pendingChangedFields as any)[field])}
-              </li>
-            ))}
-          </ul>
-          <Input.TextArea
-            value={approveReason}
-            onChange={(e) => {
-              setApproveReason(e.target.value);
-              if (approveError) setApproveError(null);
+          <Title level={3} className="m-0 py-2" style={{ color: '#fff' }}>
+            AuditPatchX - Database Configuration Manager
+          </Title>
+          <div className="flex items-center gap-2 text-white/90">
+            <span className="text-xs">Dark</span>
+            <Switch checked={themeMode === 'dark'} onChange={(v) => setThemeMode(v ? 'dark' : 'light')} />
+          </div>
+        </Header>
+
+        <Content className="p-4">
+          <Spin spinning={loading}>
+            <div className="max-w-screen-2xl mx-auto">
+              <TableSelector onQuery={handleQuery} />
+
+              <div className="grid grid-cols-1 gap-4">
+                {/* Data Grid */}
+                {gridData.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Query Results</h3>
+                    <DataGrid
+                      data={gridData}
+                      columns={gridColumns}
+                      onRowClick={handleRowClick}
+                      selectedRowKey={selectedRowKey}
+                      themeMode={themeMode}
+                    />
+                  </div>
+                )}
+
+                {/* Diff View */}
+                {showDiff && (
+                  <div>
+                    <DiffView
+                      before={beforeData}
+                      after={afterData}
+                      onAfterChange={handleAfterChange}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                      pkColumns={pkColumns}
+                      metadata={metadata}
+                      themeMode={themeMode}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </Spin>
+
+          <Modal
+            title="Approve Changes"
+            open={approveOpen}
+            okText="Approve"
+            cancelText="Cancel"
+            okButtonProps={{ disabled: approveSubmitting || approveReason.trim().length === 0 }}
+            confirmLoading={approveSubmitting}
+            onCancel={() => {
+              if (approveSubmitting) return;
+              setApproveOpen(false);
+              setApproveError(null);
             }}
-            placeholder="Enter reason for this change (required)"
-            rows={3}
-          />
-          {approveError && <div className="text-red-600 text-xs mt-2">{approveError}</div>}
-        </Modal>
-      </Content>
-    </Layout>
+            onOk={async () => {
+              const reason = approveReason.trim();
+              if (!reason) {
+                setApproveError('Reason is required');
+                return;
+              }
+              if (!pendingChangedFields || Object.keys(pendingChangedFields).length === 0) {
+                setApproveError('No changes to apply');
+                return;
+              }
+
+              setApproveSubmitting(true);
+              setLoading(true);
+              try {
+                const response = await apiClient.update({
+                  schema: currentSchema,
+                  table: currentTable,
+                  pk: currentPk,
+                  set: pendingChangedFields,
+                  reason,
+                });
+
+                message.success(`Successfully updated ${response.updated} record(s)`);
+
+                setGridData([response.row]);
+                setBeforeData(response.row);
+                setAfterData(response.row);
+                setApproveOpen(false);
+                setApproveError(null);
+              } catch (error: any) {
+                message.error(`Update failed: ${error.response?.data?.error || error.message}`);
+                setApproveError(error.response?.data?.error || error.message || 'Update failed');
+              } finally {
+                setApproveSubmitting(false);
+                setLoading(false);
+              }
+            }}
+          >
+            <p className="mb-2">You are about to update the following fields:</p>
+            <ul className="list-disc list-inside mb-3">
+              {Object.keys(pendingChangedFields || {}).map((field) => (
+                <li key={field} className="text-sm">
+                  <strong>{field}</strong>: {String(beforeData[field])} →{' '}
+                  {String((pendingChangedFields as any)[field])}
+                </li>
+              ))}
+            </ul>
+            <Input.TextArea
+              value={approveReason}
+              onChange={(e) => {
+                setApproveReason(e.target.value);
+                if (approveError) setApproveError(null);
+              }}
+              placeholder="Enter reason for this change (required)"
+              rows={3}
+            />
+            {approveError && <div className="text-red-600 text-xs mt-2">{approveError}</div>}
+          </Modal>
+        </Content>
+      </Layout>
+    </ConfigProvider>
   );
 }
 

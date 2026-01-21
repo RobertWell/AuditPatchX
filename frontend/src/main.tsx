@@ -1,7 +1,6 @@
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles/index.css';
-import { ConfigProvider } from 'antd';
 import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import JsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
 import CssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
@@ -27,13 +26,5 @@ self.MonacoEnvironment = {
 
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <ConfigProvider
-    theme={{
-      token: {
-        colorPrimary: '#3078c1',
-      },
-    }}
-  >
-    <App />
-  </ConfigProvider>
+  <App />
 );

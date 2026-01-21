@@ -9,6 +9,44 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--app-bg);
+  color: var(--app-fg);
+}
+
+:root {
+  --app-bg: #f6f8fa;
+  --app-panel: #ffffff;
+  --app-panel-muted: #f8fafc;
+  --app-border: rgba(0, 0, 0, 0.12);
+  --app-fg: #0f172a;
+  --app-fg-muted: #475569;
+  --app-header: #3078c1;
+  --app-panel-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme='dark'] {
+  --app-bg: #0b1220;
+  --app-panel: #0f172a;
+  --app-panel-muted: #111827;
+  --app-border: rgba(255, 255, 255, 0.12);
+  --app-fg: #e5e7eb;
+  --app-fg-muted: #94a3b8;
+  --app-header: #0b1220;
+  --app-panel-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+.app-panel {
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-panel);
+  box-shadow: var(--app-panel-shadow);
+}
+
+.app-panel-header {
+  background: var(--app-panel-muted);
+  color: var(--app-fg);
+  border-bottom: 1px solid var(--app-border);
 }
 
 code {
