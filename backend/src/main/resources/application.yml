@@ -21,11 +21,6 @@ quarkus:
       json: false
       format: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%c{2.}] (%t) %s%e%n"
 
-auditpatchx:
-  update-audit-log:
-    # JSON Lines (one JSON object per line) written for every update request (attempt/success/error).
-    path: ${AUDIT_UPDATE_LOG_PATH:logs/update-audit.jsonl}
-
 # Table allowlist configuration
 allowlist:
   tables:
