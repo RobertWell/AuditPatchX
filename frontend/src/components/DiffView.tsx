@@ -141,7 +141,6 @@ export const DiffView = ({
   };
 
   const inlineOriginal = inlineField ? String(before[inlineField] ?? '') : '';
-  const normalizeEditorValue = (value: string) => value.replace(/\r\n/g, '\n');
   const handleDiffMount: DiffOnMount = (editor) => {
     const modifiedEditor = editor.getModifiedEditor();
     const updateValue = () => {
@@ -439,16 +438,22 @@ export const DiffView = ({
       >
         {inlineField && (
           <DiffEditor
-            original={normalizeEditorValue(inlineOriginal)}
-            modified={normalizeEditorValue(inlineValue)}
+            original={inlineOriginal}
+            modified={inlineValue}
             onMount={handleDiffMount}
             height="80vh"
             options={{
               renderSideBySide: true,
               originalEditable: false,
               minimap: { enabled: false },
-              wordWrap: 'on',
+              wordWrap: 'off',
               scrollBeyondLastLine: false,
+              scrollbar: {
+                vertical: 'visible',
+                horizontal: 'visible',
+                verticalScrollbarSize: 12,
+                horizontalScrollbarSize: 12,
+              },
             }}
             theme={themeMode === ThemeMode.Dark ? 'vs-dark' : 'light'}
           />
