@@ -446,8 +446,14 @@ export const DiffView = ({
               renderSideBySide: true,
               originalEditable: false,
               minimap: { enabled: false },
-              wordWrap: 'on',
+              wordWrap: 'off',
               scrollBeyondLastLine: false,
+              scrollbar: {
+                vertical: 'visible',
+                horizontal: 'visible',
+                verticalScrollbarSize: 12,
+                horizontalScrollbarSize: 12,
+              },
             }}
             theme={themeMode === ThemeMode.Dark ? 'vs-dark' : 'light'}
           />
