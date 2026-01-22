@@ -141,7 +141,6 @@ export const DiffView = ({
   };
 
   const inlineOriginal = inlineField ? String(before[inlineField] ?? '') : '';
-  const normalizeEditorValue = (value: string) => value.replace(/\r\n/g, '\n');
   const handleDiffMount: DiffOnMount = (editor) => {
     const modifiedEditor = editor.getModifiedEditor();
     const updateValue = () => {
@@ -439,8 +438,8 @@ export const DiffView = ({
       >
         {inlineField && (
           <DiffEditor
-            original={normalizeEditorValue(inlineOriginal)}
-            modified={normalizeEditorValue(inlineValue)}
+            original={inlineOriginal}
+            modified={inlineValue}
             onMount={handleDiffMount}
             height="80vh"
             options={{
