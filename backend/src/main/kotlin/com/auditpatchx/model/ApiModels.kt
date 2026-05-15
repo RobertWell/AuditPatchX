@@ -93,3 +93,31 @@ data class ErrorResponse(
     val error: String,
     val details: String? = null
 )
+
+data class CompareJobRequest(
+    val tableOne: String,
+    val tableTwo: String,
+    val syncPk: List<String>,
+    val ignoreColumns: List<String>,
+    val limit: Int = 100
+)
+
+data class CompareJobChange(
+    val column: String,
+    val sourceValue: String,
+    val targetValue: String,
+    val isLongText: Boolean
+)
+
+data class CompareJobDiffRow(
+    val pk: String,
+    val status: String,
+    val changedColumns: Int,
+    val updatedBy: String,
+    val reviewStatus: String,
+    val changes: List<CompareJobChange>
+)
+
+data class CompareJobResponse(
+    val differences: List<CompareJobDiffRow>
+)

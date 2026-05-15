@@ -148,4 +148,25 @@ class TableResource(
                 .build()
         }
     }
+    /**
+     * POST /api/compare/job - Compare two tables
+     */
+    @POST
+    @Path("/compare/job")
+    fun compareJob(request: CompareJobRequest): Response {
+        return try {
+            val result = databaseService.compareTables(request)
+            Response.ok(result).build()
+        } catch (e: SecurityException) {
+            logger.error("Security violation in compare: ${e.message}")
+            Response.status(Response.Status.FORBIDDEN)
+                .entity(ErrorResponse("Access denied", e.message))
+                .build()
+        } catch (e: Exception) {
+            logger.error("Compare failed", e)
+            Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(ErrorResponse("Compare failed", e.message))
+                .build()
+        }
+    }
 }
