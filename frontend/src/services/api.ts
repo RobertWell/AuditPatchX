@@ -10,6 +10,8 @@ import type {
   UpdateRequest,
   UpdateResponse,
   TableMetadataResponse,
+  CompareJobRequest,
+  CompareJobResponse,
 } from '../types/api';
 
 const USE_MOCK = true;
@@ -99,6 +101,33 @@ class ApiClient {
       return Promise.resolve(MOCK_METADATA);
     }
     const response = await this.client.get<TableMetadataResponse>(`/db/tables/${schema}/${table}`);
+    return response.data;
+  }
+
+  async compareJob(request: CompareJobRequest): Promise<CompareJobResponse> {
+    if (USE_MOCK) {
+      // Return realistic mocked data based on the request
+      return Promise.resolve({
+        differences: [
+          {
+            pk: 'MOCK_PK_1',
+            status: 'UPDATE',
+            changedColumns: 1,
+            updatedBy: 'john.doe',
+            reviewStatus: 'PENDING',
+            changes: [
+              {
+                column: 'mock_column',
+                sourceValue: 'old_value',
+                targetValue: 'new_value',
+                isLongText: false
+              }
+            ]
+          }
+        ]
+      });
+    }
+    const response = await this.client.post<CompareJobResponse>('/compare/job', request);
     return response.data;
   }
 
