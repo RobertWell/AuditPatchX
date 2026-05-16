@@ -18,7 +18,6 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       title: 'Database Sync',
       items: [
         { id: 'compare', label: 'Compare Job', icon: GitCompare },
-        { id: 'review', label: 'Review Changes', icon: Database },
       ]
     }
   ];
