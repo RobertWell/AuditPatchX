@@ -111,3 +111,34 @@ export interface CompareJobDiffRow {
 export interface CompareJobResponse {
   differences: CompareJobDiffRow[];
 }
+
+export interface ColumnTypeMismatch {
+  column: string;
+  tableOneType: string;
+  tableTwoType: string;
+}
+
+export interface CompareValidationRequest {
+  tableOne: string;
+  tableTwo: string;
+}
+
+export interface CompareValidationResponse {
+  compatible: boolean;
+  pkMatch: boolean;
+  columnTypeMatch: boolean;
+  missingInTableOne: string[];
+  missingInTableTwo: string[];
+  mismatchedTypes: ColumnTypeMismatch[];
+  details: string;
+}
+
+export interface SyncPairConfigInfo {
+  pairName: string;
+  db: string;
+  tableA: string;
+  tableB: string;
+  pkColumns: string[];
+  excludeColumns: string[];
+  validation: CompareValidationResponse;
+}

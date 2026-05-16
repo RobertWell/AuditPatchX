@@ -121,3 +121,34 @@ data class CompareJobDiffRow(
 data class CompareJobResponse(
     val differences: List<CompareJobDiffRow>
 )
+
+data class CompareValidationRequest(
+    val tableOne: String,
+    val tableTwo: String
+)
+
+data class CompareValidationResponse(
+    val compatible: Boolean,
+    val pkMatch: Boolean,
+    val columnTypeMatch: Boolean,
+    val missingInTableOne: List<String>,
+    val missingInTableTwo: List<String>,
+    val mismatchedTypes: List<ColumnTypeMismatch>,
+    val details: String
+)
+
+data class ColumnTypeMismatch(
+    val column: String,
+    val tableOneType: String,
+    val tableTwoType: String
+)
+
+data class SyncPairConfigInfo(
+    val pairName: String,
+    val db: String,
+    val tableA: String,
+    val tableB: String,
+    val pkColumns: List<String>,
+    val excludeColumns: List<String>,
+    val validation: CompareValidationResponse
+)
