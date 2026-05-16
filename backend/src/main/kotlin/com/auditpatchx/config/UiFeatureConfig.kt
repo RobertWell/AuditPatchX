@@ -15,13 +15,9 @@ interface ReadonlyConfig {
 }
 
 interface DiffPolicyConfig {
-    @WithDefault("TIMESTAMP,DATE,NUMBER")
-    fun excludeTypes(): List<String>
-
     @WithDefault("")
     fun excludeColumns(): List<String>
 
     @WithDefault("")
     fun includeColumns(): List<String>
 }
-
