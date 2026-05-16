@@ -12,7 +12,6 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       title: 'Patch Management',
       items: [
         { id: 'patches', label: 'Patches', icon: FileText },
-        { id: 'audit', label: 'Audit Review', icon: History },
       ]
     },
     {
@@ -20,9 +19,6 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       items: [
         { id: 'compare', label: 'Compare Job', icon: GitCompare },
         { id: 'review', label: 'Review Changes', icon: Database },
-        { id: 'history', label: 'Sync History', icon: History },
-        { id: 'conflicts', label: 'Conflict Review', icon: AlertTriangle },
-        { id: 'rules', label: 'Ignore Rules', icon: Settings },
       ]
     }
   ];
