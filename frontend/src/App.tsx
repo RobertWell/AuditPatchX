@@ -5,7 +5,7 @@ import { DataGrid } from './components/DataGrid';
 import { DiffView } from './components/DiffView';
 import apiClient from './services/api';
 import { getChangedFields } from './services/diffUtils';
-import { TableMetadataResponse } from './types/api';
+import { TableMetadataResponse, CompareJobRequest, CompareJobDiffRow } from './types/api';
 import { ThemeMode } from './types/theme';
 
 // Figma UI Imports
@@ -13,9 +13,7 @@ import { Sidebar } from './components/Sidebar';
 import { CompareJob } from './components/CompareJob';
 import { DiffResult } from './components/DiffResult';
 import { SqlReviewPanel } from './components/SqlReviewPanel';
-import { SyncHistory } from './components/SyncHistory';
 
-const { Header, Content } = Layout;
 const { Title } = Typography;
 
 type Page = 'patches' | 'audit' | 'compare' | 'review' | 'history' | 'conflicts' | 'rules';
@@ -40,6 +38,7 @@ function PlaceholderPage({ title }: { title: string }) {
 function App() {
   // === Figma App State ===
   const [currentPage, setCurrentPage] = useState<Page>('patches');
+  const [compareData, setCompareData] = useState<CompareJobDiffRow[]>([]);
   const [sqlReview, setSqlReview] = useState<SqlReviewState>({
     isOpen: false,
     rowId: '',
@@ -51,6 +50,19 @@ function App() {
   };
   const handleCloseSqlReview = () => {
     setSqlReview({ isOpen: false, rowId: '', column: '' });
+  };
+
+  const handleRunComparison = async (config: CompareJobRequest) => {
+    setLoading(true);
+    try {
+      const response = await apiClient.compareJob(config);
+      setCompareData(response.differences);
+      setCurrentPage('review');
+    } catch (error: any) {
+      message.error(`Compare failed: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // === Old AuditPatchX State ===
@@ -159,20 +171,18 @@ function App() {
         token: { colorPrimary: '#3078c1' },
       }}
     >
-      <Layout className={`h-full overflow-y-auto ${themeMode === ThemeMode.Dark ? 'app-dark' : 'app-light'}`}>
-        <Header className="app-header !px-4">
-          <Title level={3} className="!m-0 !py-2 !text-white">
-            AuditPatchX - Patches
-          </Title>
-          <div className="flex items-center gap-2 text-white/90">
-            <span className="text-xs">Dark</span>
+      <div className={`flex-1 overflow-auto p-6 bg-background ${themeMode === ThemeMode.Dark ? 'app-dark dark' : 'app-light'}`}>
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Patch Management</h1>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Dark Mode</span>
             <Switch
               checked={themeMode === ThemeMode.Dark}
               onChange={(v) => setThemeMode(v ? ThemeMode.Dark : ThemeMode.Light)}
             />
           </div>
-        </Header>
-        <Content className="app-content h-full">
+        </div>
+        <div className="h-full">
           <Spin spinning={loading}>
             <div className="max-w-screen-2xl mx-auto">
               <TableSelector onQuery={handleQuery} />
@@ -268,8 +278,8 @@ function App() {
             />
             {approveError && <div className="text-red-600 text-xs mt-2">{approveError}</div>}
           </Modal>
-        </Content>
-      </Layout>
+        </div>
+      </div>
     </ConfigProvider>
   );
 
@@ -280,11 +290,9 @@ function App() {
       case 'audit':
         return <PlaceholderPage title="Audit Review" />;
       case 'compare':
-        return <CompareJob onStartReview={() => setCurrentPage('review')} />;
+        return <CompareJob onStartReview={handleRunComparison} />;
       case 'review':
-        return <DiffResult onOpenSqlReview={handleOpenSqlReview} />;
-      case 'history':
-        return <SyncHistory />;
+        return <DiffResult data={compareData} onOpenSqlReview={handleOpenSqlReview} />;
       case 'conflicts':
         return <PlaceholderPage title="Conflict Review" />;
       case 'rules':
