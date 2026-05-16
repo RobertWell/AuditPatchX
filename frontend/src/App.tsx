@@ -301,7 +301,13 @@ function App() {
                 </div>
               ) : null}
               {compareData.length > 0 ? (
-                <DiffResult data={compareData} onOpenSqlReview={handleOpenSqlReview} />
+                <DiffResult 
+                  data={compareData} 
+                  onOpenSqlReview={handleOpenSqlReview} 
+                  onReviewSelected={(pks) => {
+                    message.success(`Successfully queued ${pks.length} item(s) for review.`);
+                  }}
+                />
               ) : (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
                   Run a comparison to view the differences here.
