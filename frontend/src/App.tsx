@@ -57,7 +57,6 @@ function App() {
     try {
       const response = await apiClient.compareJob(config);
       setCompareData(response.differences);
-      setCurrentPage('review');
     } catch (error: any) {
       message.error(`Compare failed: ${error.response?.data?.error || error.message}`);
     } finally {
@@ -290,9 +289,27 @@ function App() {
       case 'audit':
         return <PlaceholderPage title="Audit Review" />;
       case 'compare':
-        return <CompareJob onStartReview={handleRunComparison} />;
-      case 'review':
-        return <DiffResult data={compareData} onOpenSqlReview={handleOpenSqlReview} />;
+        return (
+          <div className="flex flex-col h-full overflow-hidden bg-background">
+            <div className="shrink-0 border-b border-border shadow-sm z-10 max-h-[50%] overflow-y-auto">
+              <CompareJob onStartReview={handleRunComparison} />
+            </div>
+            <div className="flex-1 overflow-hidden relative">
+              {loading ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-20">
+                  <Spin size="large" />
+                </div>
+              ) : null}
+              {compareData.length > 0 ? (
+                <DiffResult data={compareData} onOpenSqlReview={handleOpenSqlReview} />
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  Run a comparison to view the differences here.
+                </div>
+              )}
+            </div>
+          </div>
+        );
       case 'conflicts':
         return <PlaceholderPage title="Conflict Review" />;
       case 'rules':
