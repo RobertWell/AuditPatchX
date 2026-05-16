@@ -1,6 +1,7 @@
 package com.auditpatchx.service
 
 import com.auditpatchx.model.*
+import com.auditpatchx.config.UiFeatureConfig
 import jakarta.enterprise.context.ApplicationScoped
 import org.jdbi.v3.core.Jdbi
 import org.jdbi.v3.core.kotlin.KotlinPlugin
@@ -13,7 +14,8 @@ import javax.sql.DataSource
 class DatabaseService(
     dataSource: DataSource,
     private val securityService: SecurityValidationService,
-    private val allowlistService: com.auditpatchx.config.AllowlistService
+    private val allowlistService: com.auditpatchx.config.AllowlistService,
+    private val uiFeatureConfig: UiFeatureConfig
 ) {
     private val logger = LoggerFactory.getLogger(DatabaseService::class.java)
     private val jdbi: Jdbi = Jdbi.create(dataSource).installPlugin(KotlinPlugin())
@@ -118,6 +120,7 @@ class DatabaseService(
 
             // Ensure set doesn't contain PK columns
             securityService.validateSetColumnsNotPk(request.schema, request.table, request.set.keys)
+            securityService.validateSetColumnsNotReadonly(request.set.keys, getReadonlyColumnsSet())
 
             return ValidatePatchResponse(
                 ok = true,
@@ -147,6 +150,7 @@ class DatabaseService(
 
         // Ensure set doesn't contain PK columns
         securityService.validateSetColumnsNotPk(request.schema, request.table, request.set.keys)
+        securityService.validateSetColumnsNotReadonly(request.set.keys, getReadonlyColumnsSet())
 
         // Get column metadata for type conversions
         val columnMetadata = securityService.getDetailedColumnMetadata(request.schema, request.table)
@@ -336,10 +340,24 @@ class DatabaseService(
                     nullable = it.nullable
                 )
             },
-            readonlyColumns = emptyList(), // Can be configured per table
-            diffPolicy = DiffPolicy()
+            readonlyColumns = getReadonlyColumnsList(),
+            diffPolicy = DiffPolicy(
+                excludeTypes = uiFeatureConfig.diffPolicy().excludeTypes().filter { it.isNotBlank() },
+                excludeColumns = uiFeatureConfig.diffPolicy().excludeColumns().filter { it.isNotBlank() },
+                includeColumns = uiFeatureConfig.diffPolicy().includeColumns().filter { it.isNotBlank() }
+                    .takeIf { it.isNotEmpty() }
+            )
         )
     }
+
+    private fun getReadonlyColumnsList(): List<String> {
+        return uiFeatureConfig.readonly().columns()
+            .map { it.uppercase() }
+            .filter { it.isNotBlank() }
+            .distinct()
+    }
+
+    private fun getReadonlyColumnsSet(): Set<String> = getReadonlyColumnsList().toSet()
 
     /**
      * Build SELECT query SQL with filters
