@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, Plus, Trash2, RefreshCw, Filter, AlertTriangle } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -6,44 +6,33 @@ import { Checkbox } from './ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '../lib/utils';
 
-interface DiffRow {
-  pk: string;
-  status: 'INSERT' | 'UPDATE' | 'DELETE' | 'CONFLICT' | 'IGNORED';
-  changedColumns: number;
-  updatedBy: string;
-  reviewStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
-  changes: {
-    column: string;
-    sourceValue: string;
-    targetValue: string;
-    isLongText: boolean;
-  }[];
-}
+
+
+import { CompareJobDiffRow } from '../types/api';
 
 interface DiffResultProps {
-  onOpenSqlReview: (row: DiffRow, column: string) => void;
+  data: CompareJobDiffRow[];
+  onOpenSqlReview: (row: CompareJobDiffRow, column: string) => void;
 }
 
-export function DiffResult({ onOpenSqlReview }: DiffResultProps) {
+export function DiffResult({ data, onOpenSqlReview }: DiffResultProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
 
-  const allColumns = [
-    'SQL_DEFINITION',
-    'RULE_TYPE',
-    'RULE_NAME',
-    'DESCRIPTION',
-    'VALIDATION_PROCEDURE',
-    'ERROR_MESSAGE',
-    'PRIORITY',
-    'IS_ACTIVE',
-    'CONFIG_JSON',
-    'NOTES'
-  ];
+  const allColumns = Array.from(new Set(
+    data.flatMap(row => row.changes.map(change => change.column))
+  ));
 
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    new Set(['SQL_DEFINITION', 'RULE_TYPE', 'VALIDATION_PROCEDURE'])
-  );
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set(allColumns));
+
+  // Update visible columns if data changes and introduces new columns
+  useEffect(() => {
+    setVisibleColumns(prev => {
+      const newVisible = new Set(prev);
+      allColumns.forEach(col => newVisible.add(col));
+      return newVisible;
+    });
+  }, [data]);
 
   const toggleColumn = (column: string) => {
     const newVisible = new Set(visibleColumns);
@@ -54,59 +43,6 @@ export function DiffResult({ onOpenSqlReview }: DiffResultProps) {
     }
     setVisibleColumns(newVisible);
   };
-
-  const mockData: DiffRow[] = [
-    {
-      pk: 'RULE_001',
-      status: 'UPDATE',
-      changedColumns: 3,
-      updatedBy: 'john.doe',
-      reviewStatus: 'PENDING',
-      changes: [
-        {
-          column: 'SQL_DEFINITION',
-          sourceValue: 'SELECT * FROM users WHERE status = \'ACTIVE\' AND created_date > SYSDATE - 30',
-          targetValue: 'SELECT u.*, d.department_name FROM users u LEFT JOIN departments d ON u.dept_id = d.id WHERE u.status = \'ACTIVE\' AND u.created_date > SYSDATE - 30 ORDER BY u.created_date DESC',
-          isLongText: true
-        },
-        {
-          column: 'RULE_TYPE',
-          sourceValue: 'SIMPLE',
-          targetValue: 'COMPLEX',
-          isLongText: false
-        },
-        {
-          column: 'DESCRIPTION',
-          sourceValue: 'Basic user query',
-          targetValue: 'Enhanced user query with department info',
-          isLongText: false
-        }
-      ]
-    },
-    {
-      pk: 'RULE_002',
-      status: 'UPDATE',
-      changedColumns: 1,
-      updatedBy: 'jane.smith',
-      reviewStatus: 'PENDING',
-      changes: [
-        {
-          column: 'VALIDATION_PROCEDURE',
-          sourceValue: 'CREATE OR REPLACE PROCEDURE validate_input(p_value VARCHAR2) IS BEGIN IF p_value IS NULL THEN RAISE_APPLICATION_ERROR(-20001, \'Invalid input\'); END IF; END;',
-          targetValue: 'CREATE OR REPLACE PROCEDURE validate_input(p_value VARCHAR2, p_type VARCHAR2 DEFAULT \'STRING\') IS BEGIN IF p_value IS NULL THEN RAISE_APPLICATION_ERROR(-20001, \'Invalid input\'); END IF; IF p_type = \'EMAIL\' AND NOT REGEXP_LIKE(p_value, \'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}$\') THEN RAISE_APPLICATION_ERROR(-20002, \'Invalid email format\'); END IF; END;',
-          isLongText: true
-        }
-      ]
-    },
-    {
-      pk: 'RULE_003',
-      status: 'INSERT',
-      changedColumns: 5,
-      updatedBy: 'system',
-      reviewStatus: 'PENDING',
-      changes: []
-    }
-  ];
 
   const toggleRow = (pk: string) => {
     const newExpanded = new Set(expandedRows);
@@ -128,7 +64,7 @@ export function DiffResult({ onOpenSqlReview }: DiffResultProps) {
     setSelectedRows(newSelected);
   };
 
-  const getStatusBadge = (status: DiffRow['status']) => {
+  const getStatusBadge = (status: CompareJobDiffRow['status']) => {
     const variants = {
       INSERT: { variant: 'default' as const, icon: Plus, color: 'text-green-600 bg-green-50 border-green-200' },
       UPDATE: { variant: 'secondary' as const, icon: RefreshCw, color: 'text-blue-600 bg-blue-50 border-blue-200' },
@@ -152,7 +88,7 @@ export function DiffResult({ onOpenSqlReview }: DiffResultProps) {
         <div>
           <h1>Comparison Results</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Found {mockData.length} differences • {selectedRows.size} selected
+            Found {data.length} differences • {selectedRows.size} selected
           </p>
         </div>
         <div className="flex gap-2">
@@ -211,7 +147,7 @@ export function DiffResult({ onOpenSqlReview }: DiffResultProps) {
               </tr>
             </thead>
             <tbody>
-              {mockData.map((row) => {
+              {data.map((row) => {
                 const isExpanded = expandedRows.has(row.pk);
                 const isSelected = selectedRows.has(row.pk);
                 return (
