@@ -43,9 +43,7 @@ ui:
     # Global readonly columns to protect from patch update.
     columns: UPDATED_AT,UPDATED_BY,CREATED_AT,CREATED_BY
   diff-policy:
-    # Column types hidden by default in frontend diff view.
-    exclude-types: TIMESTAMP,DATE,NUMBER
-    # Optional column list hidden in diff regardless of type.
+    # Optional column list ignored for row comparison in frontend diff workflow.
     exclude-columns:
     # Optional strict include list. Keep empty to include all non-excluded fields.
     include-columns:

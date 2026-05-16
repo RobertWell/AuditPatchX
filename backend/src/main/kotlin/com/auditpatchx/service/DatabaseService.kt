@@ -342,7 +342,7 @@ class DatabaseService(
             },
             readonlyColumns = getReadonlyColumnsList(),
             diffPolicy = DiffPolicy(
-                excludeTypes = uiFeatureConfig.diffPolicy().excludeTypes().filter { it.isNotBlank() },
+                excludeTypes = emptyList(),
                 excludeColumns = uiFeatureConfig.diffPolicy().excludeColumns().filter { it.isNotBlank() },
                 includeColumns = uiFeatureConfig.diffPolicy().includeColumns().filter { it.isNotBlank() }
                     .takeIf { it.isNotEmpty() }
