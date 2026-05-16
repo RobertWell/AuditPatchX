@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Play, ArrowRightLeft } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
-import { CompareJobRequest } from '../types/api';
+import { CompareJobRequest, SyncPairConfigInfo } from '../types/api';
+import apiClient from '../services/api';
 
 interface CompareJobProps {
   onStartReview: (config: CompareJobRequest) => void;
@@ -16,6 +17,26 @@ export function CompareJob({ onStartReview }: CompareJobProps) {
   const [syncPk, setSyncPk] = useState('id, company_id');
   const [ignoreColumn, setIgnoreColumn] = useState('update_time, modified_by');
   const [limit, setLimit] = useState(100);
+  const [syncPairs, setSyncPairs] = useState<SyncPairConfigInfo[]>([]);
+
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const pairs = await apiClient.getCompareConfig();
+        setSyncPairs(pairs);
+        if (pairs.length > 0) {
+          const first = pairs[0];
+          setTableOne(first.tableA);
+          setTableTwo(first.tableB);
+          setSyncPk(first.pkColumns.join(', '));
+          setIgnoreColumn(first.excludeColumns.join(', '));
+        }
+      } catch {
+        // Keep manual input mode if compare config API is unavailable.
+      }
+    };
+    loadConfig();
+  }, []);
 
   const handleRun = () => {
     onStartReview({
@@ -38,6 +59,7 @@ export function CompareJob({ onStartReview }: CompareJobProps) {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Comparison Configuration</h2>
+          <span className="text-xs text-muted-foreground">Configured pairs: {syncPairs.length}</span>
           <Button onClick={handleRun} size="sm" className="gap-2">
             <Play className="w-4 h-4" />
             Run Comparison

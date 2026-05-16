@@ -169,4 +169,56 @@ class TableResource(
                 .build()
         }
     }
+
+    /**
+     * POST /api/compare/validate - Validate sync compatibility between two tables
+     */
+    @POST
+    @Path("/compare/validate")
+    fun validateCompare(request: CompareValidationRequest): Response {
+        return try {
+            val result = databaseService.validateCompareTables(request)
+            Response.ok(result).build()
+        } catch (e: SecurityException) {
+            logger.error("Security violation in compare validation: ${e.message}")
+            Response.status(Response.Status.FORBIDDEN)
+                .entity(ErrorResponse("Access denied", e.message))
+                .build()
+        } catch (e: IllegalArgumentException) {
+            Response.status(Response.Status.BAD_REQUEST)
+                .entity(ErrorResponse("Invalid request", e.message))
+                .build()
+        } catch (e: Exception) {
+            logger.error("Compare validation failed", e)
+            Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(ErrorResponse("Compare validation failed", e.message))
+                .build()
+        }
+    }
+
+    /**
+     * GET /api/compare/config - list sync table pair configs and validation
+     */
+    @GET
+    @Path("/compare/config")
+    fun getCompareConfig(): Response {
+        return try {
+            val result = databaseService.getSyncPairConfigs()
+            Response.ok(result).build()
+        } catch (e: SecurityException) {
+            logger.error("Security violation in compare config: ${e.message}")
+            Response.status(Response.Status.FORBIDDEN)
+                .entity(ErrorResponse("Access denied", e.message))
+                .build()
+        } catch (e: IllegalArgumentException) {
+            Response.status(Response.Status.BAD_REQUEST)
+                .entity(ErrorResponse("Invalid sync config", e.message))
+                .build()
+        } catch (e: Exception) {
+            logger.error("Compare config fetch failed", e)
+            Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(ErrorResponse("Compare config fetch failed", e.message))
+                .build()
+        }
+    }
 }
