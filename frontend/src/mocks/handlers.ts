@@ -57,17 +57,53 @@ export const handlers = [
     return HttpResponse.json({
       differences: [
         {
-          pk: 'MOCK_PK_1',
+          pk: 'PKG_ACCOUNT_PROC',
           status: 'UPDATE',
-          changedColumns: 1,
-          updatedBy: 'john.doe',
+          changedColumns: 2,
+          updatedBy: 'jane.smith',
           reviewStatus: 'PENDING',
           changes: [
             {
-              column: 'mock_column',
-              sourceValue: 'old_value',
-              targetValue: 'new_value',
+              column: 'STATUS',
+              sourceValue: 'ACTIVE',
+              targetValue: 'INACTIVE',
               isLongText: false
+            },
+            {
+              column: 'PROCEDURE_BODY',
+              sourceValue: 'CREATE OR REPLACE PROCEDURE update_account_status(p_acc_id IN NUMBER)\nIS\nBEGIN\n  UPDATE accounts SET status = \'ACTIVE\' WHERE id = p_acc_id;\n  COMMIT;\nEND;',
+              targetValue: 'CREATE OR REPLACE PROCEDURE update_account_status(p_acc_id IN NUMBER)\nIS\nBEGIN\n  -- Added validation\n  IF p_acc_id IS NULL THEN\n    RAISE_APPLICATION_ERROR(-20001, \'Account ID cannot be null\');\n  END IF;\n  UPDATE accounts SET status = \'INACTIVE\', updated_at = SYSDATE WHERE id = p_acc_id;\n  COMMIT;\nEND;',
+              isLongText: true
+            }
+          ]
+        },
+        {
+          pk: 'IDX_TRANS_DATE',
+          status: 'INSERT',
+          changedColumns: 1,
+          updatedBy: 'system',
+          reviewStatus: 'APPROVED',
+          changes: [
+            {
+              column: 'DDL_STATEMENT',
+              sourceValue: null,
+              targetValue: 'CREATE INDEX idx_trans_date ON transactions(created_date DESC, status) TABLESPACE users;',
+              isLongText: true
+            }
+          ]
+        },
+        {
+          pk: 'JSON_CONFIG_22',
+          status: 'CONFLICT',
+          changedColumns: 1,
+          updatedBy: 'bob.jones',
+          reviewStatus: 'REJECTED',
+          changes: [
+            {
+              column: 'RULES_PAYLOAD',
+              sourceValue: '{\n  "maxLimit": 5000,\n  "currency": "USD",\n  "flags": ["auto_approve"]\n}',
+              targetValue: '{\n  "maxLimit": 10000,\n  "currency": "USD",\n  "flags": ["requires_manager", "auto_notify"]\n}',
+              isLongText: true
             }
           ]
         }

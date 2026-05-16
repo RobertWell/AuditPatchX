@@ -13,9 +13,10 @@ import { CompareJobDiffRow } from '../types/api';
 interface DiffResultProps {
   data: CompareJobDiffRow[];
   onOpenSqlReview: (row: CompareJobDiffRow, column: string) => void;
+  onReviewSelected?: (selectedPks: string[]) => void;
 }
 
-export function DiffResult({ data, onOpenSqlReview }: DiffResultProps) {
+export function DiffResult({ data, onOpenSqlReview, onReviewSelected }: DiffResultProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
 
@@ -123,7 +124,10 @@ export function DiffResult({ data, onOpenSqlReview }: DiffResultProps) {
             </PopoverContent>
           </Popover>
           <Button variant="outline">Export SQL</Button>
-          <Button disabled={selectedRows.size === 0}>
+          <Button 
+            disabled={selectedRows.size === 0}
+            onClick={() => onReviewSelected?.(Array.from(selectedRows))}
+          >
             Review Selected ({selectedRows.size})
           </Button>
         </div>
