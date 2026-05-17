@@ -83,3 +83,31 @@ export interface ErrorResponse {
   error: string;
   details?: string;
 }
+
+export interface CompareJobRequest {
+  tableOne: string;
+  tableTwo: string;
+  syncPk: string[];
+  ignoreColumns: string[];
+  limit: number;
+}
+
+export interface CompareJobChange {
+  column: string;
+  sourceValue: string;
+  targetValue: string;
+  isLongText: boolean;
+}
+
+export interface CompareJobDiffRow {
+  pk: string;
+  status: 'INSERT' | 'UPDATE' | 'DELETE' | 'CONFLICT' | 'IGNORED';
+  changedColumns: number;
+  updatedBy: string;
+  reviewStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+  changes: CompareJobChange[];
+}
+
+export interface CompareJobResponse {
+  differences: CompareJobDiffRow[];
+}

@@ -86,6 +86,14 @@ class SecurityValidationService(
         }
     }
 
+    fun validateSetColumnsNotReadonly(setKeys: Set<String>, readonlyColumns: Set<String>) {
+        val setColumnsUpper = setKeys.map { it.uppercase() }
+        val readonlyInSet = setColumnsUpper.filter { it in readonlyColumns }
+        if (readonlyInSet.isNotEmpty()) {
+            throw SecurityException("Cannot update readonly columns: ${readonlyInSet.joinToString()}")
+        }
+    }
+
     /**
      * Fetches column metadata from database using DatabaseMetaData
      */

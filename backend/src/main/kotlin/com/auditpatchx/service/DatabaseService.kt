@@ -1,6 +1,7 @@
 package com.auditpatchx.service
 
 import com.auditpatchx.model.*
+import com.auditpatchx.config.UiFeatureConfig
 import jakarta.enterprise.context.ApplicationScoped
 import org.jdbi.v3.core.Jdbi
 import org.jdbi.v3.core.kotlin.KotlinPlugin
@@ -13,7 +14,8 @@ import javax.sql.DataSource
 class DatabaseService(
     dataSource: DataSource,
     private val securityService: SecurityValidationService,
-    private val allowlistService: com.auditpatchx.config.AllowlistService
+    private val allowlistService: com.auditpatchx.config.AllowlistService,
+    private val uiFeatureConfig: UiFeatureConfig
 ) {
     private val logger = LoggerFactory.getLogger(DatabaseService::class.java)
     private val jdbi: Jdbi = Jdbi.create(dataSource).installPlugin(KotlinPlugin())
@@ -118,6 +120,7 @@ class DatabaseService(
 
             // Ensure set doesn't contain PK columns
             securityService.validateSetColumnsNotPk(request.schema, request.table, request.set.keys)
+            securityService.validateSetColumnsNotReadonly(request.set.keys, getReadonlyColumnsSet())
 
             return ValidatePatchResponse(
                 ok = true,
@@ -147,6 +150,7 @@ class DatabaseService(
 
         // Ensure set doesn't contain PK columns
         securityService.validateSetColumnsNotPk(request.schema, request.table, request.set.keys)
+        securityService.validateSetColumnsNotReadonly(request.set.keys, getReadonlyColumnsSet())
 
         // Get column metadata for type conversions
         val columnMetadata = securityService.getDetailedColumnMetadata(request.schema, request.table)
@@ -201,6 +205,121 @@ class DatabaseService(
     }
 
     /**
+     * Compare two tables
+     */
+    fun compareTables(request: CompareJobRequest): CompareJobResponse {
+        val (schema1, table1) = parseSchemaTable(request.tableOne)
+        val (schema2, table2) = parseSchemaTable(request.tableTwo)
+
+        securityService.validateAndGetColumns(schema1, table1)
+        securityService.validateAndGetColumns(schema2, table2)
+
+        val columnMetadata1 = securityService.getDetailedColumnMetadata(schema1, table1)
+        val columnTypeMap1 = columnMetadata1.associate { it.name.uppercase() to it.type }
+
+        val columnMetadata2 = securityService.getDetailedColumnMetadata(schema2, table2)
+        val columnTypeMap2 = columnMetadata2.associate { it.name.uppercase() to it.type }
+
+        val limit = request.limit.coerceIn(1, 1000)
+
+        return jdbi.inTransaction<CompareJobResponse, Exception> { handle ->
+            // Query source table (tableOne)
+            val sql1 = """
+                SELECT * FROM ${schema1.uppercase()}.${table1.uppercase()}
+                FETCH FIRST $limit ROWS ONLY
+            """.trimIndent()
+
+            val sourceRows = handle.createQuery(sql1)
+                .mapToMap()
+                .list()
+                .map { row -> normalizeRowValues(row.toUppercaseKeys(), columnTypeMap1) }
+
+            val differences = mutableListOf<CompareJobDiffRow>()
+
+            for (sourceRow in sourceRows) {
+                // Extract PKs
+                val pkValues = request.syncPk.associateWith { sourceRow[it.uppercase()] }
+                if (pkValues.values.any { it == null }) {
+                    continue // Skip rows missing PK values
+                }
+
+                // Query target table (tableTwo)
+                val whereClause = request.syncPk.joinToString(" AND ") { "${it.uppercase()} = :$it" }
+                val sql2 = """
+                    SELECT * FROM ${schema2.uppercase()}.${table2.uppercase()}
+                    WHERE $whereClause
+                """.trimIndent()
+
+                var query2 = handle.createQuery(sql2)
+                request.syncPk.forEach { pkCol ->
+                    val columnType = columnTypeMap2[pkCol.uppercase()]
+                    val convertedValue = convertValueForBinding(pkValues[pkCol], columnType)
+                    query2 = query2.bind(pkCol, convertedValue)
+                }
+
+                val targetRowOpt = query2.mapToMap().findOne()
+
+                val pkString = request.syncPk.joinToString("-") { pkValues[it].toString() }
+
+                if (!targetRowOpt.isPresent) {
+                    differences.add(
+                        CompareJobDiffRow(
+                            pk = pkString,
+                            status = "INSERT",
+                            changedColumns = sourceRow.size,
+                            updatedBy = "system",
+                            reviewStatus = "PENDING",
+                            changes = emptyList()
+                        )
+                    )
+                } else {
+                    val targetRow = normalizeRowValues(targetRowOpt.get().toUppercaseKeys(), columnTypeMap2)
+                    val changes = mutableListOf<CompareJobChange>()
+                    
+                    val ignoreSet = request.ignoreColumns.map { it.uppercase() }.toSet()
+
+                    sourceRow.forEach { (col, srcVal) ->
+                        if (!ignoreSet.contains(col) && !request.syncPk.map { it.uppercase() }.contains(col)) {
+                            val tgtVal = targetRow[col]
+                            if (srcVal.toString() != tgtVal.toString()) {
+                                changes.add(
+                                    CompareJobChange(
+                                        column = col,
+                                        sourceValue = srcVal?.toString() ?: "NULL",
+                                        targetValue = tgtVal?.toString() ?: "NULL",
+                                        isLongText = (srcVal?.toString()?.length ?: 0) > 100 || (tgtVal?.toString()?.length ?: 0) > 100
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    if (changes.isNotEmpty()) {
+                        differences.add(
+                            CompareJobDiffRow(
+                                pk = pkString,
+                                status = "UPDATE",
+                                changedColumns = changes.size,
+                                updatedBy = "system",
+                                reviewStatus = "PENDING",
+                                changes = changes
+                            )
+                        )
+                    }
+                }
+            }
+
+            CompareJobResponse(differences = differences)
+        }
+    }
+
+    private fun parseSchemaTable(input: String): Pair<String, String> {
+        val parts = input.split(".")
+        if (parts.size != 2) throw IllegalArgumentException("Invalid table format. Expected schema.table, got $input")
+        return Pair(parts[0], parts[1])
+    }
+
+    /**
      * Get table metadata
      */
     fun getTableMetadata(schema: String, table: String): TableMetadataResponse {
@@ -221,10 +340,24 @@ class DatabaseService(
                     nullable = it.nullable
                 )
             },
-            readonlyColumns = emptyList(), // Can be configured per table
-            diffPolicy = DiffPolicy()
+            readonlyColumns = getReadonlyColumnsList(),
+            diffPolicy = DiffPolicy(
+                excludeTypes = emptyList(),
+                excludeColumns = uiFeatureConfig.diffPolicy().excludeColumns().filter { it.isNotBlank() },
+                includeColumns = uiFeatureConfig.diffPolicy().includeColumns().filter { it.isNotBlank() }
+                    .takeIf { it.isNotEmpty() }
+            )
         )
     }
+
+    private fun getReadonlyColumnsList(): List<String> {
+        return uiFeatureConfig.readonly().columns()
+            .map { it.uppercase() }
+            .filter { it.isNotBlank() }
+            .distinct()
+    }
+
+    private fun getReadonlyColumnsSet(): Set<String> = getReadonlyColumnsList().toSet()
 
     /**
      * Build SELECT query SQL with filters
