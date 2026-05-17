@@ -32,6 +32,14 @@ allowlist:
       pk-columns:
         - EMPLOYEE_ID
         - START_DATE
+    - schema: TESTUSER
+      table: COMPARE_SOURCE
+      pk-columns:
+        - ID
+    - schema: TESTUSER
+      table: COMPARE_TARGET
+      pk-columns:
+        - ID
 
 sync-tables:
   pairs:
@@ -44,3 +52,12 @@ sync-tables:
         - EMP_ID
       exclude-columns:
         - MANAGER_ID
+    - pair-name: Compare Source Target
+      db: TEST_ORACLE
+      tables:
+        table-a: TESTUSER.COMPARE_SOURCE
+        table-b: TESTUSER.COMPARE_TARGET
+      pk-columns:
+        - ID
+      exclude-columns:
+        - UPDATED_BY

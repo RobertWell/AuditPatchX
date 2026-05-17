@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, Plus, Trash2, RefreshCw, Filter, AlertTriangle } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -155,7 +155,7 @@ export function DiffResult({ data, onOpenSqlReview, onReviewSelected }: DiffResu
                 const isExpanded = expandedRows.has(row.pk);
                 const isSelected = selectedRows.has(row.pk);
                 return (
-                  <>
+                  <Fragment key={row.pk}>
                     <tr key={row.pk} className={cn(
                       "border-b hover:bg-muted/30 transition-colors",
                       isSelected && "bg-primary/5"
@@ -240,7 +240,7 @@ export function DiffResult({ data, onOpenSqlReview, onReviewSelected }: DiffResu
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>

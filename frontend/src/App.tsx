@@ -22,6 +22,8 @@ interface SqlReviewState {
   isOpen: boolean;
   rowId: string;
   column: string;
+  sourceValue: string;
+  targetValue: string;
 }
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -42,14 +44,42 @@ function App() {
   const [sqlReview, setSqlReview] = useState<SqlReviewState>({
     isOpen: false,
     rowId: '',
-    column: ''
+    column: '',
+    sourceValue: '',
+    targetValue: ''
   });
 
-  const handleOpenSqlReview = (row: any, column: string) => {
-    setSqlReview({ isOpen: true, rowId: row.pk, column });
+  const handleOpenSqlReview = (row: CompareJobDiffRow, column: string) => {
+    const change = row.changes.find((item) => item.column === column);
+    setSqlReview({
+      isOpen: true,
+      rowId: row.pk,
+      column,
+      sourceValue: change?.sourceValue ?? '',
+      targetValue: change?.targetValue ?? ''
+    });
   };
   const handleCloseSqlReview = () => {
-    setSqlReview({ isOpen: false, rowId: '', column: '' });
+    setSqlReview({ isOpen: false, rowId: '', column: '', sourceValue: '', targetValue: '' });
+  };
+
+  const handleSubmitSqlReview = (review: {
+    rowId: string;
+    column: string;
+    decision: 'approved' | 'rejected';
+    comment: string;
+  }) => {
+    const reviewStatus = review.decision === 'approved' ? 'APPROVED' : 'REJECTED';
+
+    setCompareData((rows) =>
+      rows.map((row) =>
+        row.pk === review.rowId
+          ? { ...row, reviewStatus }
+          : row
+      )
+    );
+    message.success(`${review.column} review ${review.decision}`);
+    handleCloseSqlReview();
   };
 
   const handleRunComparison = async (config: CompareJobRequest) => {
@@ -336,6 +366,9 @@ function App() {
           onClose={handleCloseSqlReview}
           rowId={sqlReview.rowId}
           column={sqlReview.column}
+          sourceValue={sqlReview.sourceValue}
+          targetValue={sqlReview.targetValue}
+          onSubmitReview={handleSubmitSqlReview}
         />
       )}
     </div>

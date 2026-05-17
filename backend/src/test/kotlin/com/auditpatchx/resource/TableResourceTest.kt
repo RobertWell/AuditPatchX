@@ -34,6 +34,9 @@ class TableResourceTest {
                 .body("[0].tableB", equalTo("TESTUSER.EMPLOYEE"))
                 .body("[0].pkColumns", hasItem("EMP_ID"))
                 .body("[0].validation.compatible", equalTo(true))
+                .body("find { it.pairName == 'Compare Source Target' }.tableA", equalTo("TESTUSER.COMPARE_SOURCE"))
+                .body("find { it.pairName == 'Compare Source Target' }.tableB", equalTo("TESTUSER.COMPARE_TARGET"))
+                .body("find { it.pairName == 'Compare Source Target' }.excludeColumns", hasItem("UPDATED_BY"))
         }
 
         @Test
@@ -73,6 +76,33 @@ class TableResourceTest {
                 .body("compatible", equalTo(false))
                 .body("pkMatch", equalTo(false))
         }
+
+        @Test
+        @DisplayName("Should compare tables with long text and ignored columns")
+        fun testCompareJobLongTextAndIgnoredColumns() {
+            val request = CompareJobRequest(
+                tableOne = "TESTUSER.COMPARE_SOURCE",
+                tableTwo = "TESTUSER.COMPARE_TARGET",
+                syncPk = listOf("ID"),
+                ignoreColumns = listOf("UPDATED_BY"),
+                limit = 100
+            )
+
+            given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .`when`().post("/api/compare/job")
+                .then()
+                .statusCode(200)
+                .body("differences.size()", equalTo(2))
+                .body("differences.find { it.pk == '1' }.status", equalTo("UPDATE"))
+                .body("differences.find { it.pk == '1' }.changedColumns", equalTo(2))
+                .body("differences.find { it.pk == '1' }.changes.column", containsInAnyOrder("STATUS", "DESCRIPTION"))
+                .body("differences.find { it.pk == '1' }.changes.find { it.column == 'DESCRIPTION' }.isLongText", equalTo(true))
+                .body("differences.find { it.pk == '1' }.changes.column", not(hasItem("UPDATED_BY")))
+                .body("differences.find { it.pk == '2' }", nullValue())
+                .body("differences.find { it.pk == '3' }.status", equalTo("INSERT"))
+        }
     }
 
     @Nested
@@ -87,7 +117,7 @@ class TableResourceTest {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("size()", equalTo(3))
+                .body("size()", equalTo(5))
                 .body("[0].schema", notNullValue())
                 .body("[0].table", notNullValue())
                 .body("[0].pkColumns", notNullValue())
