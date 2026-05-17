@@ -89,6 +89,7 @@ data class TableMetadataResponse(
     val diffPolicy: DiffPolicy = DiffPolicy()
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class ErrorResponse(
     val error: String,
     val details: String? = null

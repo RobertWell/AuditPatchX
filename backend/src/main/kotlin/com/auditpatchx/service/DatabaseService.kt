@@ -213,8 +213,15 @@ class DatabaseService(
         val (schema1, table1) = parseSchemaTable(request.tableOne)
         val (schema2, table2) = parseSchemaTable(request.tableTwo)
 
-        securityService.validateAndGetColumns(schema1, table1)
-        securityService.validateAndGetColumns(schema2, table2)
+        val allowedColumns1 = securityService.validateAndGetColumns(schema1, table1)
+        val allowedColumns2 = securityService.validateAndGetColumns(schema2, table2)
+
+        securityService.validateColumns(allowedColumns1, request.syncPk)
+        securityService.validateColumns(allowedColumns2, request.syncPk)
+        securityService.validatePkColumns(schema1, table1, request.syncPk.toSet())
+        securityService.validatePkColumns(schema2, table2, request.syncPk.toSet())
+        securityService.validateColumns(allowedColumns1, request.ignoreColumns)
+        securityService.validateColumns(allowedColumns2, request.ignoreColumns)
 
         val columnMetadata1 = securityService.getDetailedColumnMetadata(schema1, table1)
         val columnTypeMap1 = columnMetadata1.associate { it.name.uppercase() to it.type }
