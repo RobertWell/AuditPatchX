@@ -22,9 +22,34 @@ body {
   --app-fg-muted: #475569;
   --app-header: #3078c1;
   --app-panel-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+
+  /* Shadcn Variables */
+  --font-size: 16px;
+  --background: #ffffff;
+  --foreground: hsl(222.2 84% 4.9%);
+  --card: #ffffff;
+  --card-foreground: hsl(222.2 84% 4.9%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222.2 84% 4.9%);
+  --primary: #030213;
+  --primary-foreground: hsl(210 40% 98%);
+  --secondary: hsl(210 40% 96.1%);
+  --secondary-foreground: #030213;
+  --muted: #ececf0;
+  --muted-foreground: #717182;
+  --accent: #e9ebef;
+  --accent-foreground: #030213;
+  --destructive: #d4183d;
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: rgba(0, 0, 0, 0.1);
+  --input: transparent;
+  --input-background: #f3f3f5;
+  --switch-background: #cbced4;
+  --ring: hsl(222.2 84% 4.9%);
+  --radius: 0.625rem;
 }
 
-html[data-theme='dark'] {
+html[data-theme='dark'], .dark {
   --app-bg: #0b1220;
   --app-panel: #0f172a;
   --app-panel-muted: #111827;
@@ -34,6 +59,27 @@ html[data-theme='dark'] {
   --app-header: #0b1220;
   --app-panel-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
+
+  /* Shadcn Variables */
+  --background: hsl(222.2 84% 4.9%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(222.2 84% 4.9%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(222.2 84% 4.9%);
+  --popover-foreground: hsl(210 40% 98%);
+  --primary: hsl(210 40% 98%);
+  --primary-foreground: hsl(222.2 47.4% 11.2%);
+  --secondary: hsl(217.2 32.6% 17.5%);
+  --secondary-foreground: hsl(210 40% 98%);
+  --muted: hsl(217.2 32.6% 17.5%);
+  --muted-foreground: hsl(215 20.2% 65.1%);
+  --accent: hsl(217.2 32.6% 17.5%);
+  --accent-foreground: hsl(210 40% 98%);
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(217.2 32.6% 17.5%);
+  --input: hsl(217.2 32.6% 17.5%);
+  --ring: hsl(212.7 26.8% 83.9%);
 }
 
 @layer components {

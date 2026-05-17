@@ -5,13 +5,66 @@ import { DataGrid } from './components/DataGrid';
 import { DiffView } from './components/DiffView';
 import apiClient from './services/api';
 import { getChangedFields } from './services/diffUtils';
-import { TableMetadataResponse } from './types/api';
+import { TableMetadataResponse, CompareJobRequest, CompareJobDiffRow } from './types/api';
 import { ThemeMode } from './types/theme';
 
-const { Header, Content } = Layout;
+// Figma UI Imports
+import { Sidebar } from './components/Sidebar';
+import { CompareJob } from './components/CompareJob';
+import { DiffResult } from './components/DiffResult';
+import { SqlReviewPanel } from './components/SqlReviewPanel';
+
 const { Title } = Typography;
 
+type Page = 'patches' | 'audit' | 'compare' | 'review' | 'history' | 'conflicts' | 'rules';
+
+interface SqlReviewState {
+  isOpen: boolean;
+  rowId: string;
+  column: string;
+}
+
+function PlaceholderPage({ title }: { title: string }) {
+  return (
+    <div className="flex-1 flex items-center justify-center bg-background text-foreground h-full">
+      <div className="text-center">
+        <h1 className="mb-2 text-2xl font-bold">{title}</h1>
+        <p className="text-muted-foreground">This feature is under development</p>
+      </div>
+    </div>
+  );
+}
+
 function App() {
+  // === Figma App State ===
+  const [currentPage, setCurrentPage] = useState<Page>('patches');
+  const [compareData, setCompareData] = useState<CompareJobDiffRow[]>([]);
+  const [sqlReview, setSqlReview] = useState<SqlReviewState>({
+    isOpen: false,
+    rowId: '',
+    column: ''
+  });
+
+  const handleOpenSqlReview = (row: any, column: string) => {
+    setSqlReview({ isOpen: true, rowId: row.pk, column });
+  };
+  const handleCloseSqlReview = () => {
+    setSqlReview({ isOpen: false, rowId: '', column: '' });
+  };
+
+  const handleRunComparison = async (config: CompareJobRequest) => {
+    setLoading(true);
+    try {
+      const response = await apiClient.compareJob(config);
+      setCompareData(response.differences);
+    } catch (error: any) {
+      message.error(`Compare failed: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // === Old AuditPatchX State ===
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem('auditpatchx.theme');
     return saved === ThemeMode.Dark ? ThemeMode.Dark : ThemeMode.Light;
@@ -23,12 +76,10 @@ function App() {
   const [pkColumns, setPkColumns] = useState<string[]>([]);
   const [metadata, setMetadata] = useState<TableMetadataResponse | null>(null);
 
-  // Grid state
   const [gridData, setGridData] = useState<Record<string, any>[]>([]);
   const [gridColumns, setGridColumns] = useState<string[]>([]);
   const [selectedRowKey, setSelectedRowKey] = useState<string>('');
 
-  // Diff state
   const [beforeData, setBeforeData] = useState<Record<string, any>>({});
   const [afterData, setAfterData] = useState<Record<string, any>>({});
   const [showDiff, setShowDiff] = useState(false);
@@ -43,42 +94,32 @@ function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = themeMode;
+    if (themeMode === ThemeMode.Dark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
     localStorage.setItem('auditpatchx.theme', themeMode);
   }, [themeMode]);
 
   const handleQuery = async (schema: string, table: string, pkValues: Record<string, string>) => {
     setLoading(true);
     try {
-      // Store current context
       setCurrentSchema(schema);
       setCurrentTable(table);
       setCurrentPk(pkValues);
-
-      // Get table metadata to know PK columns and diff policy
       const metadataResp = await apiClient.getTableMetadata(schema, table);
       setPkColumns(metadataResp.pkColumns);
       setMetadata(metadataResp);
-
-      // Query by PK
-      const response = await apiClient.getByPk({
-        schema,
-        table,
-        pk: pkValues,
-      });
-
-      // Display in grid
+      const response = await apiClient.getByPk({ schema, table, pk: pkValues });
       setGridData([response.row]);
       setGridColumns(Object.keys(response.row));
-
-      // Load into diff view as baseline
       setBeforeData(response.row);
       setAfterData(response.row);
       setShowDiff(true);
-
       message.success('Record loaded successfully');
     } catch (error: any) {
       message.error(`Failed to load record: ${error.response?.data?.error || error.message}`);
-      console.error('Query error:', error);
     } finally {
       setLoading(false);
     }
@@ -86,22 +127,11 @@ function App() {
 
   const handleRowClick = async (row: Record<string, any>) => {
     setSelectedRowKey(JSON.stringify(row));
-
-    // Extract PK values from row
     const pkValues: Record<string, any> = {};
-    pkColumns.forEach((col) => {
-      pkValues[col] = row[col];
-    });
-
+    pkColumns.forEach((col) => { pkValues[col] = row[col]; });
     setLoading(true);
     try {
-      // Fetch fresh baseline
-      const response = await apiClient.getByPk({
-        schema: currentSchema,
-        table: currentTable,
-        pk: pkValues,
-      });
-
+      const response = await apiClient.getByPk({ schema: currentSchema, table: currentTable, pk: pkValues });
       setBeforeData(response.row);
       setAfterData(response.row);
       setCurrentPk(pkValues);
@@ -122,7 +152,6 @@ function App() {
       message.warning('No changes to apply');
       return;
     }
-
     setPendingChangedFields(changedFields);
     setApproveReason('');
     setApproveError(null);
@@ -130,41 +159,33 @@ function App() {
   };
 
   const handleReject = () => {
-    // Reset after to match before
     setAfterData(beforeData);
     message.info('Changes rejected');
   };
 
-  return (
+  const renderPatchesContent = () => (
     <ConfigProvider
       theme={{
         algorithm: themeMode === ThemeMode.Dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
-        token: {
-          colorPrimary: '#3078c1',
-        },
+        token: { colorPrimary: '#3078c1' },
       }}
     >
-      <Layout className={`min-h-screen ${themeMode === ThemeMode.Dark ? 'app-dark' : 'app-light'}`}>
-        <Header className="app-header">
-          <Title level={3} className="m-0 py-2" style={{ color: '#fff' }}>
-            AuditPatchX - Database Configuration Manager
-          </Title>
-          <div className="flex items-center gap-2 text-white/90">
-            <span className="text-xs">Dark</span>
+      <div className={`flex-1 overflow-auto p-6 bg-background ${themeMode === ThemeMode.Dark ? 'app-dark dark' : 'app-light'}`}>
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Patch Management</h1>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Dark Mode</span>
             <Switch
               checked={themeMode === ThemeMode.Dark}
               onChange={(v) => setThemeMode(v ? ThemeMode.Dark : ThemeMode.Light)}
             />
           </div>
-        </Header>
-
-        <Content className="app-content">
+        </div>
+        <div className="h-full">
           <Spin spinning={loading}>
             <div className="max-w-screen-2xl mx-auto">
               <TableSelector onQuery={handleQuery} />
-
               <div className="grid grid-cols-1 gap-4">
-                {/* Data Grid */}
                 {gridData.length > 0 && (
                   <div>
                     <h3 className="text-sm font-semibold mb-2">Query Results</h3>
@@ -177,8 +198,6 @@ function App() {
                     />
                   </div>
                 )}
-
-                {/* Diff View */}
                 {showDiff && (
                   <div>
                     <DiffView
@@ -196,7 +215,6 @@ function App() {
               </div>
             </div>
           </Spin>
-
           <Modal
             title="Approve Changes"
             open={approveOpen}
@@ -211,15 +229,10 @@ function App() {
             }}
             onOk={async () => {
               const reason = approveReason.trim();
-              if (!reason) {
-                setApproveError('Reason is required');
-                return;
-              }
+              if (!reason) { setApproveError('Reason is required'); return; }
               if (!pendingChangedFields || Object.keys(pendingChangedFields).length === 0) {
-                setApproveError('No changes to apply');
-                return;
+                setApproveError('No changes to apply'); return;
               }
-
               setApproveSubmitting(true);
               setLoading(true);
               try {
@@ -230,9 +243,7 @@ function App() {
                   set: pendingChangedFields,
                   reason,
                 });
-
                 message.success(`Successfully updated ${response.updated} record(s)`);
-
                 setGridData([response.row]);
                 setBeforeData(response.row);
                 setAfterData(response.row);
@@ -251,8 +262,7 @@ function App() {
             <ul className="list-disc list-inside mb-3">
               {Object.keys(pendingChangedFields || {}).map((field) => (
                 <li key={field} className="text-sm">
-                  <strong>{field}</strong>: {String(beforeData[field])} →{' '}
-                  {String((pendingChangedFields as any)[field])}
+                  <strong>{field}</strong>: {String(beforeData[field])} → {String((pendingChangedFields as any)[field])}
                 </li>
               ))}
             </ul>
@@ -267,9 +277,68 @@ function App() {
             />
             {approveError && <div className="text-red-600 text-xs mt-2">{approveError}</div>}
           </Modal>
-        </Content>
-      </Layout>
+        </div>
+      </div>
     </ConfigProvider>
+  );
+
+  const renderContent = () => {
+    switch (currentPage) {
+      case 'patches':
+        return renderPatchesContent();
+      case 'audit':
+        return <PlaceholderPage title="Audit Review" />;
+      case 'compare':
+        return (
+          <div className="flex flex-col h-full overflow-hidden bg-background">
+            <div className="shrink-0 border-b border-border shadow-sm z-10 max-h-[50%] overflow-y-auto">
+              <CompareJob onStartReview={handleRunComparison} />
+            </div>
+            <div className="flex-1 overflow-hidden relative">
+              {loading ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-20">
+                  <Spin size="large" />
+                </div>
+              ) : null}
+              {compareData.length > 0 ? (
+                <DiffResult 
+                  data={compareData} 
+                  onOpenSqlReview={handleOpenSqlReview} 
+                  onReviewSelected={(pks) => {
+                    message.success(`Successfully queued ${pks.length} item(s) for review.`);
+                  }}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  Run a comparison to view the differences here.
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      case 'conflicts':
+        return <PlaceholderPage title="Conflict Review" />;
+      case 'rules':
+        return <PlaceholderPage title="Ignore Rules" />;
+      default:
+        return <PlaceholderPage title="Unknown Page" />;
+    }
+  };
+
+  return (
+    <div className="h-screen flex bg-background text-foreground w-full">
+      <Sidebar currentPage={currentPage} onNavigate={(page) => setCurrentPage(page as Page)} />
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {renderContent()}
+      </div>
+      {sqlReview.isOpen && (
+        <SqlReviewPanel
+          onClose={handleCloseSqlReview}
+          rowId={sqlReview.rowId}
+          column={sqlReview.column}
+        />
+      )}
+    </div>
   );
 }
 
