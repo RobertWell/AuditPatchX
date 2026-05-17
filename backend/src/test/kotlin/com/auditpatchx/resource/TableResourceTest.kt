@@ -103,6 +103,50 @@ class TableResourceTest {
                 .body("differences.find { it.pk == '2' }", nullValue())
                 .body("differences.find { it.pk == '3' }.status", equalTo("INSERT"))
         }
+
+        @Test
+        @DisplayName("Should reject injected compare PK identifiers")
+        fun testCompareJobRejectsInjectedPkIdentifier() {
+            val injectedPk = "ID) OR 1=1 --"
+            val request = CompareJobRequest(
+                tableOne = "TESTUSER.COMPARE_SOURCE",
+                tableTwo = "TESTUSER.COMPARE_TARGET",
+                syncPk = listOf(injectedPk),
+                ignoreColumns = listOf("UPDATED_BY"),
+                limit = 100
+            )
+
+            given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .`when`().post("/api/compare/job")
+                .then()
+                .statusCode(403)
+                .body("error", equalTo("Access denied"))
+                .body("details", nullValue())
+        }
+
+        @Test
+        @DisplayName("Should reject injected compare ignored column identifiers")
+        fun testCompareJobRejectsInjectedIgnoreColumnIdentifier() {
+            val injectedColumn = "UPDATED_BY FROM TESTUSER.COMPARE_TARGET --"
+            val request = CompareJobRequest(
+                tableOne = "TESTUSER.COMPARE_SOURCE",
+                tableTwo = "TESTUSER.COMPARE_TARGET",
+                syncPk = listOf("ID"),
+                ignoreColumns = listOf(injectedColumn),
+                limit = 100
+            )
+
+            given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .`when`().post("/api/compare/job")
+                .then()
+                .statusCode(403)
+                .body("error", equalTo("Access denied"))
+                .body("details", nullValue())
+        }
     }
 
     @Nested
@@ -183,6 +227,50 @@ class TableResourceTest {
         }
 
         @Test
+        @DisplayName("Should bind query filter values to prevent SQL injection")
+        fun testQueryFilterValueInjectionDoesNotExpandResults() {
+            val request = QueryRequest(
+                schema = "TESTUSER",
+                table = "EMPLOYEE",
+                filters = listOf(
+                    FilterCondition(col = "FIRST_NAME", op = "eq", value = "John' OR '1'='1")
+                ),
+                limit = 50
+            )
+
+            given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .`when`().post("/api/query/pk")
+                .then()
+                .statusCode(200)
+                .body("rows.size()", equalTo(0))
+        }
+
+        @Test
+        @DisplayName("Should reject injected query column identifiers without leaking details")
+        fun testQueryRejectsInjectedColumnIdentifier() {
+            val injectedColumn = "FIRST_NAME) OR 1=1 --"
+            val request = QueryRequest(
+                schema = "TESTUSER",
+                table = "EMPLOYEE",
+                filters = listOf(
+                    FilterCondition(col = injectedColumn, op = "eq", value = "John")
+                ),
+                limit = 50
+            )
+
+            given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .`when`().post("/api/query/pk")
+                .then()
+                .statusCode(403)
+                .body("error", equalTo("Access denied"))
+                .body("details", nullValue())
+        }
+
+        @Test
         @DisplayName("Should query with multiple filters")
         fun testQueryWithMultipleFilters() {
             val request = QueryRequest(
@@ -241,6 +329,7 @@ class TableResourceTest {
                 .then()
                 .statusCode(500)
                 .body("error", equalTo("Query failed"))
+                .body("details", nullValue())
         }
     }
 
@@ -287,6 +376,25 @@ class TableResourceTest {
                 .then()
                 .statusCode(200)
                 .body("row.JOB_TITLE", equalTo("Junior Developer"))
+        }
+
+        @Test
+        @DisplayName("Should reject incomplete composite PK")
+        fun testGetByCompositePkRequiresAllColumns() {
+            val request = GetByPkRequest(
+                schema = "TESTUSER",
+                table = "JOB_HISTORY",
+                pk = mapOf("EMPLOYEE_ID" to 2)
+            )
+
+            given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .`when`().post("/api/record/get")
+                .then()
+                .statusCode(403)
+                .body("error", equalTo("Access denied"))
+                .body("details", nullValue())
         }
 
         @Test
@@ -442,6 +550,74 @@ class TableResourceTest {
         }
 
         @Test
+        @DisplayName("Should update a row selected by composite PK")
+        fun testUpdateCompositePkRecord() {
+            val request = UpdateRequest(
+                schema = "TESTUSER",
+                table = "JOB_HISTORY",
+                pk = mapOf(
+                    "EMPLOYEE_ID" to 2,
+                    "START_DATE" to "2021-03-21"
+                ),
+                set = mapOf("JOB_TITLE" to "Principal Developer"),
+                reason = "Regression test composite PK update"
+            )
+
+            given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .`when`().post("/api/record/update")
+                .then()
+                .statusCode(200)
+                .body("updated", equalTo(1))
+                .body("row.JOB_TITLE", equalTo("Principal Developer"))
+        }
+
+        @Test
+        @DisplayName("Should update and fetch CLOB with SQL-like special characters")
+        fun testUpdateClobWithSqlSpecialCharacters() {
+            val clobText = """
+                select transaction_id, status, amount
+                from trdmgmr.transactions
+                where status = 'APPROVED'
+                  and note = q'[free typing: ; -- /* */ ' " ${'$'} { } ]'
+                  and payload like '%100%'
+                order by event_ts desc
+            """.trimIndent()
+
+            val updateRequest = UpdateRequest(
+                schema = "TESTUSER",
+                table = "EMPLOYEE",
+                pk = mapOf("EMP_ID" to 1),
+                set = mapOf("BIO" to clobText),
+                reason = "Regression test CLOB SQL text"
+            )
+
+            given()
+                .contentType(ContentType.JSON)
+                .body(updateRequest)
+                .`when`().post("/api/record/update")
+                .then()
+                .statusCode(200)
+                .body("updated", equalTo(1))
+                .body("row.BIO", equalTo(clobText))
+
+            val getRequest = GetByPkRequest(
+                schema = "TESTUSER",
+                table = "EMPLOYEE",
+                pk = mapOf("EMP_ID" to 1)
+            )
+
+            given()
+                .contentType(ContentType.JSON)
+                .body(getRequest)
+                .`when`().post("/api/record/get")
+                .then()
+                .statusCode(200)
+                .body("row.BIO", equalTo(clobText))
+        }
+
+        @Test
         @DisplayName("Should return 400 when reason is missing")
         fun testUpdateMissingReason() {
             val request = UpdateRequest(
@@ -479,7 +655,7 @@ class TableResourceTest {
                 .then()
                 .statusCode(403)
                 .body("error", equalTo("Access denied"))
-                .body("details", containsString("primary key"))
+                .body("details", nullValue())
         }
 
         @Test
@@ -500,6 +676,7 @@ class TableResourceTest {
                 .then()
                 .statusCode(403)
                 .body("error", equalTo("Access denied"))
+                .body("details", nullValue())
         }
     }
 

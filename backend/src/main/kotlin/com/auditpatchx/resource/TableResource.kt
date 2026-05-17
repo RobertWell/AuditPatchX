@@ -45,12 +45,12 @@ class TableResource(
         } catch (e: SecurityException) {
             logger.error("Security violation in query: ${e.message}")
             Response.status(Response.Status.FORBIDDEN)
-                .entity(ErrorResponse("Access denied", e.message))
+                .entity(ErrorResponse("Access denied"))
                 .build()
         } catch (e: Exception) {
             logger.error("Query failed", e)
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ErrorResponse("Query failed", e.message))
+                .entity(ErrorResponse("Query failed"))
                 .build()
         }
     }
@@ -71,12 +71,12 @@ class TableResource(
         } catch (e: SecurityException) {
             logger.error("Security violation in get: ${e.message}")
             Response.status(Response.Status.FORBIDDEN)
-                .entity(ErrorResponse("Access denied", e.message))
+                .entity(ErrorResponse("Access denied"))
                 .build()
         } catch (e: Exception) {
             logger.error("Get failed", e)
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ErrorResponse("Get failed", e.message))
+                .entity(ErrorResponse("Get failed"))
                 .build()
         }
     }
@@ -114,12 +114,12 @@ class TableResource(
         } catch (e: SecurityException) {
             logger.error("Security violation in update: ${e.message}")
             Response.status(Response.Status.FORBIDDEN)
-                .entity(ErrorResponse("Access denied", e.message))
+                .entity(ErrorResponse("Access denied"))
                 .build()
         } catch (e: Exception) {
             logger.error("Update failed", e)
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ErrorResponse("Update failed", e.message))
+                .entity(ErrorResponse("Update failed"))
                 .build()
         }
     }
@@ -139,12 +139,12 @@ class TableResource(
         } catch (e: SecurityException) {
             logger.error("Security violation in metadata: ${e.message}")
             Response.status(Response.Status.FORBIDDEN)
-                .entity(ErrorResponse("Access denied", e.message))
+                .entity(ErrorResponse("Access denied"))
                 .build()
         } catch (e: Exception) {
             logger.error("Metadata fetch failed", e)
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ErrorResponse("Metadata fetch failed", e.message))
+                .entity(ErrorResponse("Metadata fetch failed"))
                 .build()
         }
     }
@@ -160,12 +160,12 @@ class TableResource(
         } catch (e: SecurityException) {
             logger.error("Security violation in compare: ${e.message}")
             Response.status(Response.Status.FORBIDDEN)
-                .entity(ErrorResponse("Access denied", e.message))
+                .entity(ErrorResponse("Access denied"))
                 .build()
         } catch (e: Exception) {
             logger.error("Compare failed", e)
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ErrorResponse("Compare failed", e.message))
+                .entity(ErrorResponse("Compare failed"))
                 .build()
         }
     }
@@ -182,16 +182,16 @@ class TableResource(
         } catch (e: SecurityException) {
             logger.error("Security violation in compare validation: ${e.message}")
             Response.status(Response.Status.FORBIDDEN)
-                .entity(ErrorResponse("Access denied", e.message))
+                .entity(ErrorResponse("Access denied"))
                 .build()
         } catch (e: IllegalArgumentException) {
             Response.status(Response.Status.BAD_REQUEST)
-                .entity(ErrorResponse("Invalid request", e.message))
+                .entity(ErrorResponse("Invalid request"))
                 .build()
         } catch (e: Exception) {
             logger.error("Compare validation failed", e)
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ErrorResponse("Compare validation failed", e.message))
+                .entity(ErrorResponse("Compare validation failed"))
                 .build()
         }
     }
@@ -208,16 +208,16 @@ class TableResource(
         } catch (e: SecurityException) {
             logger.error("Security violation in compare config: ${e.message}")
             Response.status(Response.Status.FORBIDDEN)
-                .entity(ErrorResponse("Access denied", e.message))
+                .entity(ErrorResponse("Access denied"))
                 .build()
         } catch (e: IllegalArgumentException) {
             Response.status(Response.Status.BAD_REQUEST)
-                .entity(ErrorResponse("Invalid sync config", e.message))
+                .entity(ErrorResponse("Invalid sync config"))
                 .build()
         } catch (e: Exception) {
             logger.error("Compare config fetch failed", e)
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ErrorResponse("Compare config fetch failed", e.message))
+                .entity(ErrorResponse("Compare config fetch failed"))
                 .build()
         }
     }
