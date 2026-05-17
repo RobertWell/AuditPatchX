@@ -2,6 +2,7 @@ package com.auditpatchx.config
 
 import io.smallrye.config.ConfigMapping
 import io.smallrye.config.WithDefault
+import java.util.Optional
 
 @ConfigMapping(prefix = "ui")
 interface UiFeatureConfig {
@@ -15,9 +16,7 @@ interface ReadonlyConfig {
 }
 
 interface DiffPolicyConfig {
-    @WithDefault("")
-    fun excludeColumns(): List<String>
+    fun excludeColumns(): Optional<List<String>>
 
-    @WithDefault("")
-    fun includeColumns(): List<String>
+    fun includeColumns(): Optional<List<String>>
 }

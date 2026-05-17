@@ -32,6 +32,10 @@ allowlist:
       table: TRANSACTIONS
       pk-columns:
         - TRANSACTION_ID
+    - schema: TRDMGMR_UAT
+      table: TRANSACTIONS
+      pk-columns:
+        - TRANSACTION_ID
     # - schema: HR
     #   table: JOB_HISTORY
     #   pk-columns:
@@ -44,9 +48,9 @@ ui:
     columns: UPDATED_AT,UPDATED_BY,CREATED_AT,CREATED_BY
   diff-policy:
     # Optional column list ignored for row comparison in frontend diff workflow.
-    exclude-columns:
+    exclude-columns: []
     # Optional strict include list. Keep empty to include all non-excluded fields.
-    include-columns:
+    include-columns: []
 
 sync-tables:
   pairs:
@@ -54,7 +58,7 @@ sync-tables:
       db: ORACLE_MAIN
       tables:
         table-a: TRDMGMR.TRANSACTIONS
-        table-b: TRDMGMR.TRANSACTIONS_UAT
+        table-b: TRDMGMR_UAT.TRANSACTIONS
       pk-columns:
         - TRANSACTION_ID
       # Optional list ignored for row comparison when deciding identical rows.
