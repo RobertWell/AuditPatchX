@@ -47,3 +47,17 @@ ui:
     exclude-columns:
     # Optional strict include list. Keep empty to include all non-excluded fields.
     include-columns:
+
+sync-tables:
+  pairs:
+    - pair-name: Sync Prod and UAT
+      db: ORACLE_MAIN
+      tables:
+        table-a: TRDMGMR.TRANSACTIONS
+        table-b: TRDMGMR.TRANSACTIONS_UAT
+      pk-columns:
+        - TRANSACTION_ID
+      # Optional list ignored for row comparison when deciding identical rows.
+      exclude-columns:
+        - UPDATED_BY
+        - UPDATED_AT

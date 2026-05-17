@@ -2,6 +2,7 @@ package com.auditpatchx.service
 
 import com.auditpatchx.model.*
 import com.auditpatchx.config.UiFeatureConfig
+import com.auditpatchx.config.SyncTableConfig
 import jakarta.enterprise.context.ApplicationScoped
 import org.jdbi.v3.core.Jdbi
 import org.jdbi.v3.core.kotlin.KotlinPlugin
@@ -15,7 +16,8 @@ class DatabaseService(
     dataSource: DataSource,
     private val securityService: SecurityValidationService,
     private val allowlistService: com.auditpatchx.config.AllowlistService,
-    private val uiFeatureConfig: UiFeatureConfig
+    private val uiFeatureConfig: UiFeatureConfig,
+    private val syncTableConfig: SyncTableConfig
 ) {
     private val logger = LoggerFactory.getLogger(DatabaseService::class.java)
     private val jdbi: Jdbi = Jdbi.create(dataSource).installPlugin(KotlinPlugin())
@@ -310,6 +312,124 @@ class DatabaseService(
             }
 
             CompareJobResponse(differences = differences)
+        }
+    }
+
+    fun validateCompareTables(request: CompareValidationRequest): CompareValidationResponse {
+        val (schema1, table1) = parseSchemaTable(request.tableOne)
+        val (schema2, table2) = parseSchemaTable(request.tableTwo)
+
+        securityService.validateAndGetColumns(schema1, table1)
+        securityService.validateAndGetColumns(schema2, table2)
+
+        val pk1 = (allowlistService.getTableConfig(schema1, table1)?.pkColumns() ?: emptyList())
+            .map { it.uppercase() }
+            .toSet()
+        val pk2 = (allowlistService.getTableConfig(schema2, table2)?.pkColumns() ?: emptyList())
+            .map { it.uppercase() }
+            .toSet()
+
+        val tableOneColumns = loadOracleColumnTypes(schema1, table1)
+        val tableTwoColumns = loadOracleColumnTypes(schema2, table2)
+
+        val cols1 = tableOneColumns.keys
+        val cols2 = tableTwoColumns.keys
+
+        val missingInTableOne = (cols2 - cols1).sorted()
+        val missingInTableTwo = (cols1 - cols2).sorted()
+        val commonColumns = cols1.intersect(cols2)
+
+        val mismatchedTypes = commonColumns
+            .filter { col -> tableOneColumns[col] != tableTwoColumns[col] }
+            .sorted()
+            .map { col ->
+                ColumnTypeMismatch(
+                    column = col,
+                    tableOneType = tableOneColumns[col] ?: "UNKNOWN",
+                    tableTwoType = tableTwoColumns[col] ?: "UNKNOWN"
+                )
+            }
+
+        val pkMatch = pk1 == pk2
+        val columnTypeMatch = missingInTableOne.isEmpty() && missingInTableTwo.isEmpty() && mismatchedTypes.isEmpty()
+        val compatible = pkMatch && columnTypeMatch
+
+        val details = when {
+            compatible -> "Tables are compatible for sync"
+            !pkMatch -> "Primary key columns do not match between the two tables"
+            else -> "Column name/type mismatch detected between the two tables"
+        }
+
+        return CompareValidationResponse(
+            compatible = compatible,
+            pkMatch = pkMatch,
+            columnTypeMatch = columnTypeMatch,
+            missingInTableOne = missingInTableOne,
+            missingInTableTwo = missingInTableTwo,
+            mismatchedTypes = mismatchedTypes,
+            details = details
+        )
+    }
+
+    fun getSyncPairConfigs(): List<SyncPairConfigInfo> {
+        return syncTableConfig.pairs().map { pair ->
+            val validation = validateCompareTables(
+                CompareValidationRequest(
+                    tableOne = pair.tables().tableA(),
+                    tableTwo = pair.tables().tableB()
+                )
+            )
+
+            SyncPairConfigInfo(
+                pairName = pair.pairName(),
+                db = pair.db(),
+                tableA = pair.tables().tableA(),
+                tableB = pair.tables().tableB(),
+                pkColumns = pair.pkColumns().map { it.uppercase() },
+                excludeColumns = pair.excludeColumns().map { it.uppercase() },
+                validation = validation
+            )
+        }
+    }
+
+    private fun loadOracleColumnTypes(schema: String, table: String): Map<String, String> {
+        val owner = schema.uppercase()
+        val tableName = table.uppercase()
+
+        return jdbi.withHandle<Map<String, String>, Exception> { handle ->
+            val exists = handle.createQuery(
+                """
+                SELECT 1
+                FROM all_tables
+                WHERE owner = :owner
+                  AND table_name = :tableName
+                """.trimIndent()
+            )
+                .bind("owner", owner)
+                .bind("tableName", tableName)
+                .mapTo(Int::class.java)
+                .findOne()
+                .isPresent
+
+            if (!exists) {
+                throw IllegalArgumentException("Table not found in Oracle metadata: $owner.$tableName")
+            }
+
+            handle.createQuery(
+                """
+                SELECT column_name, data_type
+                FROM all_tab_columns
+                WHERE owner = :owner
+                  AND table_name = :tableName
+                """.trimIndent()
+            )
+                .bind("owner", owner)
+                .bind("tableName", tableName)
+                .mapToMap()
+                .list()
+                .associate { row ->
+                    row["COLUMN_NAME"].toString().uppercase() to row["DATA_TYPE"].toString().uppercase()
+                }
         }
     }
 

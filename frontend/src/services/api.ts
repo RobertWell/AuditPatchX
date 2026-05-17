@@ -12,6 +12,9 @@ import type {
   TableMetadataResponse,
   CompareJobRequest,
   CompareJobResponse,
+  CompareValidationRequest,
+  CompareValidationResponse,
+  SyncPairConfigInfo,
 } from '../types/api';
 
 
@@ -60,6 +63,16 @@ class ApiClient {
 
   async compareJob(request: CompareJobRequest): Promise<CompareJobResponse> {
     const response = await this.client.post<CompareJobResponse>('/compare/job', request);
+    return response.data;
+  }
+
+  async validateCompare(request: CompareValidationRequest): Promise<CompareValidationResponse> {
+    const response = await this.client.post<CompareValidationResponse>('/compare/validate', request);
+    return response.data;
+  }
+
+  async getCompareConfig(): Promise<SyncPairConfigInfo[]> {
+    const response = await this.client.get<SyncPairConfigInfo[]>('/compare/config');
     return response.data;
   }
 
