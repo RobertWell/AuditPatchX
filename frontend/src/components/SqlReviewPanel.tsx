@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Textarea } from './ui/textarea';
 import { cn } from '../lib/utils';
+import { buildSqlReviewDiff, summarizeSqlReviewDiff } from '../services/sqlReviewDiff';
 
 interface SqlReviewPanelProps {
   onClose: () => void;
@@ -33,72 +34,9 @@ export function SqlReviewPanel({
   const [decision, setDecision] = useState<'approved' | 'rejected' | null>(null);
   const [comment, setComment] = useState('');
 
-  const sourceLinesArray = sourceValue.split('\n');
-  const targetLinesArray = targetValue.split('\n');
-
-  const getDiffLines = () => {
-    const diff: Array<{
-      type: 'unchanged' | 'added' | 'removed' | 'modified';
-      sourceLine?: string;
-      targetLine?: string;
-      sourceLineNum?: number;
-      targetLineNum?: number;
-    }> = [];
-
-    let sourceIdx = 0;
-    let targetIdx = 0;
-
-    while (sourceIdx < sourceLinesArray.length || targetIdx < targetLinesArray.length) {
-      const sourceLine = sourceLinesArray[sourceIdx];
-      const targetLine = targetLinesArray[targetIdx];
-
-      if (sourceLine === targetLine) {
-        diff.push({
-          type: 'unchanged',
-          sourceLine,
-          targetLine,
-          sourceLineNum: sourceIdx + 1,
-          targetLineNum: targetIdx + 1
-        });
-        sourceIdx++;
-        targetIdx++;
-      } else if (sourceIdx >= sourceLinesArray.length) {
-        diff.push({
-          type: 'added',
-          targetLine,
-          targetLineNum: targetIdx + 1
-        });
-        targetIdx++;
-      } else if (targetIdx >= targetLinesArray.length) {
-        diff.push({
-          type: 'removed',
-          sourceLine,
-          sourceLineNum: sourceIdx + 1
-        });
-        sourceIdx++;
-      } else {
-        diff.push({
-          type: 'modified',
-          sourceLine,
-          targetLine,
-          sourceLineNum: sourceIdx + 1,
-          targetLineNum: targetIdx + 1
-        });
-        sourceIdx++;
-        targetIdx++;
-      }
-    }
-
-    return diff;
-  };
-
-  const diffLines = getDiffLines();
+  const diffLines = buildSqlReviewDiff(sourceValue, targetValue);
   const visibleLines = showUnchanged ? diffLines : diffLines.filter(l => l.type !== 'unchanged');
-
-  const addedLines = diffLines.filter(line => line.type === 'added').length;
-  const removedLines = diffLines.filter(line => line.type === 'removed').length;
-  const modifiedLines = diffLines.filter(line => line.type === 'modified').length;
-  const changedLines = addedLines + removedLines + modifiedLines;
+  const { addedLines, removedLines, modifiedLines, changedLines } = summarizeSqlReviewDiff(diffLines);
 
   const riskFactors = [
     { label: 'Long Text', level: 'LOW' },
