@@ -17,3 +17,6 @@ package-lock.json
 
 # Local logs
 backend/logs/
+
+# Frontend build output copied into the backend during CI/deploy
+backend/src/main/resources/META-INF/resources/
