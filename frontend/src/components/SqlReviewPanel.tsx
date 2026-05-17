@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { X, Check, XCircle, MessageSquare, Code, Eye, AlignLeft, Minimize2, Maximize2, Search } from 'lucide-react';
+import { X, Check, XCircle, MessageSquare, Eye, AlignLeft, Minimize2, Maximize2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ScrollArea } from './ui/scroll-area';
 import { Textarea } from './ui/textarea';
 import { cn } from '../lib/utils';
@@ -11,48 +10,31 @@ interface SqlReviewPanelProps {
   onClose: () => void;
   rowId: string;
   column: string;
+  sourceValue: string;
+  targetValue: string;
+  onSubmitReview: (review: {
+    rowId: string;
+    column: string;
+    decision: 'approved' | 'rejected';
+    comment: string;
+  }) => void;
 }
 
-export function SqlReviewPanel({ onClose, rowId, column }: SqlReviewPanelProps) {
+export function SqlReviewPanel({
+  onClose,
+  rowId,
+  column,
+  sourceValue,
+  targetValue,
+  onSubmitReview
+}: SqlReviewPanelProps) {
   const [viewMode, setViewMode] = useState<'split' | 'unified'>('split');
   const [showUnchanged, setShowUnchanged] = useState(false);
   const [decision, setDecision] = useState<'approved' | 'rejected' | null>(null);
+  const [comment, setComment] = useState('');
 
-  const sourceSQL = `SELECT
-  u.user_id,
-  u.username,
-  u.email,
-  u.created_date,
-  u.status
-FROM users u
-WHERE u.status = 'ACTIVE'
-  AND u.created_date > SYSDATE - 30
-ORDER BY u.created_date DESC`;
-
-  const targetSQL = `SELECT
-  u.user_id,
-  u.username,
-  u.email,
-  u.created_date,
-  u.status,
-  u.last_login_date,
-  d.department_name,
-  d.department_code,
-  r.role_name
-FROM users u
-LEFT JOIN departments d
-  ON u.dept_id = d.id
-LEFT JOIN user_roles ur
-  ON u.user_id = ur.user_id
-LEFT JOIN roles r
-  ON ur.role_id = r.role_id
-WHERE u.status = 'ACTIVE'
-  AND u.created_date > SYSDATE - 30
-  AND u.is_deleted = 0
-ORDER BY u.created_date DESC, u.username ASC`;
-
-  const sourceLinesArray = sourceSQL.split('\n');
-  const targetLinesArray = targetSQL.split('\n');
+  const sourceLinesArray = sourceValue.split('\n');
+  const targetLinesArray = targetValue.split('\n');
 
   const getDiffLines = () => {
     const diff: Array<{
@@ -113,10 +95,15 @@ ORDER BY u.created_date DESC, u.username ASC`;
   const diffLines = getDiffLines();
   const visibleLines = showUnchanged ? diffLines : diffLines.filter(l => l.type !== 'unchanged');
 
+  const addedLines = diffLines.filter(line => line.type === 'added').length;
+  const removedLines = diffLines.filter(line => line.type === 'removed').length;
+  const modifiedLines = diffLines.filter(line => line.type === 'modified').length;
+  const changedLines = addedLines + removedLines + modifiedLines;
+
   const riskFactors = [
-    { label: 'JOIN Added', level: 'MEDIUM' },
-    { label: 'New Columns', level: 'LOW' },
-    { label: 'WHERE Modified', level: 'HIGH' }
+    { label: 'Long Text', level: 'LOW' },
+    { label: `${changedLines} Changed Lines`, level: changedLines > 5 ? 'MEDIUM' : 'LOW' },
+    { label: 'Manual Review', level: 'MEDIUM' }
   ];
 
   return (
@@ -183,7 +170,7 @@ ORDER BY u.created_date DESC, u.username ASC`;
                 <div className="overflow-hidden flex flex-col">
                   <div className="bg-red-50 dark:bg-red-950/20 px-4 py-2 border-b text-sm flex items-center gap-2">
                     <Badge variant="outline" className="bg-background">Source</Badge>
-                    <span className="text-muted-foreground">PROD_DB1.APP_SCHEMA</span>
+                    <span className="text-muted-foreground">{rowId}</span>
                   </div>
                   <ScrollArea className="flex-1">
                     <div className="font-mono text-sm">
@@ -214,7 +201,7 @@ ORDER BY u.created_date DESC, u.username ASC`;
                 <div className="overflow-hidden flex flex-col">
                   <div className="bg-green-50 dark:bg-green-950/20 px-4 py-2 border-b text-sm flex items-center gap-2">
                     <Badge variant="outline" className="bg-background">Target</Badge>
-                    <span className="text-muted-foreground">UAT_DB1.APP_SCHEMA</span>
+                    <span className="text-muted-foreground">{rowId}</span>
                   </div>
                   <ScrollArea className="flex-1">
                     <div className="font-mono text-sm">
@@ -332,6 +319,8 @@ ORDER BY u.created_date DESC, u.username ASC`;
                   <Textarea
                     placeholder="Add review comments..."
                     className="min-h-24"
+                    value={comment}
+                    onChange={(event) => setComment(event.target.value)}
                   />
                 </div>
 
@@ -340,15 +329,15 @@ ORDER BY u.created_date DESC, u.username ASC`;
                   <div className="space-y-2 text-sm">
                     <div className="p-2 bg-background rounded border">
                       <div className="text-muted-foreground">Lines Added</div>
-                      <div className="font-mono">+12</div>
+                      <div className="font-mono">+{addedLines + modifiedLines}</div>
                     </div>
                     <div className="p-2 bg-background rounded border">
                       <div className="text-muted-foreground">Lines Removed</div>
-                      <div className="font-mono">-3</div>
+                      <div className="font-mono">-{removedLines + modifiedLines}</div>
                     </div>
                     <div className="p-2 bg-background rounded border">
                       <div className="text-muted-foreground">Complexity</div>
-                      <div className="font-mono">Medium</div>
+                      <div className="font-mono">{changedLines > 5 ? 'Medium' : 'Low'}</div>
                     </div>
                   </div>
                 </div>
@@ -358,19 +347,15 @@ ORDER BY u.created_date DESC, u.username ASC`;
                   <div className="space-y-1 text-sm">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-green-500" />
-                      <span>New columns in SELECT</span>
+                      <span>{addedLines} added line(s)</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                      <span>LEFT JOIN added</span>
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <span>{removedLines} removed line(s)</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-orange-500" />
-                      <span>WHERE clause modified</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
-                      <span>ORDER BY extended</span>
+                      <span>{modifiedLines} modified line(s)</span>
                     </div>
                   </div>
                 </div>
@@ -378,7 +363,14 @@ ORDER BY u.created_date DESC, u.username ASC`;
             </ScrollArea>
 
             <div className="p-4 border-t space-y-2">
-              <Button className="w-full" disabled={!decision}>
+              <Button
+                className="w-full"
+                disabled={!decision}
+                onClick={() => {
+                  if (!decision) return;
+                  onSubmitReview({ rowId, column, decision, comment });
+                }}
+              >
                 Submit Review
               </Button>
               <Button variant="outline" className="w-full" onClick={onClose}>
