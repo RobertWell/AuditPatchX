@@ -17,6 +17,65 @@ import org.junit.jupiter.api.Nested
 class TableResourceTest {
 
     @Nested
+    @DisplayName("Compare Configuration and Validation")
+    inner class CompareConfigTests {
+
+        @Test
+        @DisplayName("Should return configured sync pairs with validation")
+        fun testGetCompareConfig() {
+            given()
+                .`when`().get("/api/compare/config")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("size()", greaterThan(0))
+                .body("[0].pairName", equalTo("Employee Self Compare"))
+                .body("[0].tableA", equalTo("TESTUSER.EMPLOYEE"))
+                .body("[0].tableB", equalTo("TESTUSER.EMPLOYEE"))
+                .body("[0].pkColumns", hasItem("EMP_ID"))
+                .body("[0].validation.compatible", equalTo(true))
+        }
+
+        @Test
+        @DisplayName("Should validate compatible tables")
+        fun testValidateCompareCompatibleTables() {
+            val request = CompareValidationRequest(
+                tableOne = "TESTUSER.EMPLOYEE",
+                tableTwo = "TESTUSER.EMPLOYEE"
+            )
+
+            given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .`when`().post("/api/compare/validate")
+                .then()
+                .statusCode(200)
+                .body("compatible", equalTo(true))
+                .body("pkMatch", equalTo(true))
+                .body("columnTypeMatch", equalTo(true))
+                .body("mismatchedTypes.size()", equalTo(0))
+        }
+
+        @Test
+        @DisplayName("Should validate incompatible tables by pk")
+        fun testValidateCompareIncompatiblePk() {
+            val request = CompareValidationRequest(
+                tableOne = "TESTUSER.EMPLOYEE",
+                tableTwo = "TESTUSER.DEPARTMENT"
+            )
+
+            given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .`when`().post("/api/compare/validate")
+                .then()
+                .statusCode(200)
+                .body("compatible", equalTo(false))
+                .body("pkMatch", equalTo(false))
+        }
+    }
+
+    @Nested
     @DisplayName("GET /api/tables - List Tables")
     inner class ListTablesTests {
 

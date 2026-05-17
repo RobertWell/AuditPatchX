@@ -32,3 +32,15 @@ allowlist:
       pk-columns:
         - EMPLOYEE_ID
         - START_DATE
+
+sync-tables:
+  pairs:
+    - pair-name: Employee Self Compare
+      db: TEST_ORACLE
+      tables:
+        table-a: TESTUSER.EMPLOYEE
+        table-b: TESTUSER.EMPLOYEE
+      pk-columns:
+        - EMP_ID
+      exclude-columns:
+        - MANAGER_ID

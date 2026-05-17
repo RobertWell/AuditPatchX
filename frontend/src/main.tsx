@@ -24,17 +24,6 @@ self.MonacoEnvironment = {
   },
 };
 
-
-async function enableMocking() {
-  if (import.meta.env.VITE_USE_MOCK_SERVER !== 'true') {
-    return;
-  }
-  const { worker } = await import('./mocks/browser');
-  return worker.start({ onUnhandledRequest: 'bypass' });
-}
-
-enableMocking().then(() => {
-  ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-    <App />
-  );
-});
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+  <App />
+);
