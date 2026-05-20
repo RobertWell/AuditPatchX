@@ -63,58 +63,77 @@ function App() {
     setSqlReview({ isOpen: false, rowId: '', column: '', sourceValue: '', targetValue: '' });
   };
 
-  const handleSubmitSqlReview = (review: {
+  const handleSubmitSqlReview = async (review: {
     rowId: string;
     column: string;
     decision: 'approved' | 'rejected';
     comment: string;
   }) => {
-    const reviewStatus = review.decision === 'approved' ? 'APPROVED' : 'REJECTED';
-
-    setCompareData((rows) =>
-      rows.map((row) =>
-        row.pk === review.rowId
-          ? { ...row, reviewStatus }
-          : row
-      )
-    );
-    message.success(`${review.column} review ${review.decision}`);
-    handleCloseSqlReview();
+    const status = review.decision === 'approved' ? 'APPROVED' : 'REJECTED';
+    try {
+      await apiClient.reviewCompareRow({ pk: review.rowId, status });
+      setCompareData((rows) =>
+        rows.map((row) =>
+          row.pk === review.rowId ? { ...row, reviewStatus: status } : row
+        )
+      );
+      message.success(`${review.column} review ${review.decision}`);
+      handleCloseSqlReview();
+    } catch (error: any) {
+      message.error(`Review submit failed: ${error.response?.data?.error || error.message}`);
+    }
   };
 
   const handleReviewSelected = (row: CompareJobDiffRow, column: string) => {
     handleOpenSqlReview(row, column);
   };
 
-  const handleBulkApproveSelected = (selectedRows: CompareJobDiffRow[]) => {
+  const handleBulkApproveSelected = async (selectedRows: CompareJobDiffRow[]) => {
     if (selectedRows.length === 0) {
       message.warning('No rows selected');
       return;
     }
-
-    setCompareData((rows) =>
-      rows.map((row) =>
-        selectedRows.some((selected) => selected.pk === row.pk)
-          ? { ...row, reviewStatus: 'APPROVED' }
-          : row
-      )
-    );
-
-    message.success(`Approved ${selectedRows.length} selected item(s)`);
+    try {
+      await Promise.all(
+        selectedRows.map((row) =>
+          apiClient.reviewCompareRow({ pk: row.pk, status: 'APPROVED' })
+        )
+      );
+      setCompareData((rows) =>
+        rows.map((row) =>
+          selectedRows.some((s) => s.pk === row.pk)
+            ? { ...row, reviewStatus: 'APPROVED' }
+            : row
+        )
+      );
+      message.success(`Approved ${selectedRows.length} selected item(s)`);
+    } catch (error: any) {
+      message.error(`Approve failed: ${error.response?.data?.error || error.message}`);
+    }
   };
 
-  const handleRowApprove = (row: CompareJobDiffRow) => {
-    setCompareData((rows) =>
-      rows.map((r) => r.pk === row.pk ? { ...r, reviewStatus: 'APPROVED' } : r)
-    );
-    message.success(`Row ${row.pk} approved`);
+  const handleRowApprove = async (row: CompareJobDiffRow) => {
+    try {
+      await apiClient.reviewCompareRow({ pk: row.pk, status: 'APPROVED' });
+      setCompareData((rows) =>
+        rows.map((r) => r.pk === row.pk ? { ...r, reviewStatus: 'APPROVED' } : r)
+      );
+      message.success(`Row ${row.pk} approved`);
+    } catch (error: any) {
+      message.error(`Approve failed: ${error.response?.data?.error || error.message}`);
+    }
   };
 
-  const handleRowReject = (row: CompareJobDiffRow) => {
-    setCompareData((rows) =>
-      rows.map((r) => r.pk === row.pk ? { ...r, reviewStatus: 'REJECTED' } : r)
-    );
-    message.info(`Row ${row.pk} rejected`);
+  const handleRowReject = async (row: CompareJobDiffRow) => {
+    try {
+      await apiClient.reviewCompareRow({ pk: row.pk, status: 'REJECTED' });
+      setCompareData((rows) =>
+        rows.map((r) => r.pk === row.pk ? { ...r, reviewStatus: 'REJECTED' } : r)
+      );
+      message.info(`Row ${row.pk} rejected`);
+    } catch (error: any) {
+      message.error(`Reject failed: ${error.response?.data?.error || error.message}`);
+    }
   };
 
   const handleRunComparison = async (config: CompareJobRequest) => {

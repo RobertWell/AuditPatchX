@@ -15,6 +15,8 @@ import type {
   CompareValidationRequest,
   CompareValidationResponse,
   SyncPairConfigInfo,
+  CompareReviewRequest,
+  CompareReviewResponse,
 } from '../types/api';
 
 
@@ -73,6 +75,11 @@ class ApiClient {
 
   async getCompareConfig(): Promise<SyncPairConfigInfo[]> {
     const response = await this.client.get<SyncPairConfigInfo[]>('/compare/config');
+    return response.data;
+  }
+
+  async reviewCompareRow(request: CompareReviewRequest): Promise<CompareReviewResponse> {
+    const response = await this.client.post<CompareReviewResponse>('/compare/review', request);
     return response.data;
   }
 

@@ -101,6 +101,7 @@ export interface CompareJobChange {
 
 export interface CompareJobDiffRow {
   pk: string;
+  pkMap: Record<string, string>;
   status: 'INSERT' | 'UPDATE' | 'DELETE' | 'CONFLICT' | 'IGNORED';
   changedColumns: number;
   updatedBy: string;
@@ -141,4 +142,14 @@ export interface SyncPairConfigInfo {
   pkColumns: string[];
   excludeColumns: string[];
   validation: CompareValidationResponse;
+}
+
+export interface CompareReviewRequest {
+  pk: string;
+  status: 'APPROVED' | 'REJECTED';
+}
+
+export interface CompareReviewResponse {
+  pk: string;
+  status: string;
 }
