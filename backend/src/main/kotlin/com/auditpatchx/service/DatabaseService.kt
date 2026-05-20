@@ -752,6 +752,10 @@ class DatabaseService(
             val allowedCols1 = securityService.validateAndGetColumns(schema1, table1)
             val allowedCols2 = securityService.validateAndGetColumns(schema2, table2)
 
+            // Validate syncPk columns against both table allowlists
+            securityService.validateColumns(allowedCols1, request.syncPk)
+            securityService.validateColumns(allowedCols2, request.syncPk)
+
             val syncPkUpper = request.syncPk.map { it.uppercase() }.toSet()
             val ignoreUpper = request.ignoreColumns.map { it.uppercase() }.toSet()
 
@@ -762,6 +766,8 @@ class DatabaseService(
             val dataColumns = syncColumns.filter { it !in syncPkUpper }
 
             // PK type metadata for proper binding
+            val columnTypeMap1 = securityService.getDetailedColumnMetadata(schema1, table1)
+                .associate { it.name.uppercase() to it.type }
             val columnTypeMap2 = securityService.getDetailedColumnMetadata(schema2, table2)
                 .associate { it.name.uppercase() to it.type }
 
@@ -770,6 +776,17 @@ class DatabaseService(
             val whereClause = syncPkUpper.joinToString(" AND ") { "$it = :pk_$it" }
 
             jdbi.inTransaction<Unit, Exception> { handle ->
+                // Verify source row exists before attempting write
+                val countSql = "SELECT COUNT(*) FROM $src WHERE $whereClause"
+                var countQuery = handle.createQuery(countSql)
+                request.pkMap.forEach { (col, value) ->
+                    countQuery = countQuery.bind("pk_$col", convertValueForBinding(value, columnTypeMap1[col.uppercase()]))
+                }
+                val sourceCount = countQuery.mapTo(Long::class.java).one()
+                if (sourceCount == 0L) {
+                    throw NotFoundException("Source row not found in $src: ${request.pkMap}")
+                }
+
                 val rows = when (request.rowStatus) {
                     "UPDATE" -> {
                         if (dataColumns.isEmpty()) {

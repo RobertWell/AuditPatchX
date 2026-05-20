@@ -40,6 +40,14 @@ allowlist:
       table: COMPARE_TARGET
       pk-columns:
         - ID
+    - schema: TESTUSER
+      table: ALLTYPE_SOURCE
+      pk-columns:
+        - ID
+    - schema: TESTUSER
+      table: ALLTYPE_TARGET
+      pk-columns:
+        - ID
 
 sync-tables:
   pairs:
@@ -61,3 +69,11 @@ sync-tables:
         - ID
       exclude-columns:
         - UPDATED_BY
+    - pair-name: AllType Source Target
+      db: TEST_ORACLE
+      tables:
+        table-a: TESTUSER.ALLTYPE_SOURCE
+        table-b: TESTUSER.ALLTYPE_TARGET
+      pk-columns:
+        - ID
+      exclude-columns: []
