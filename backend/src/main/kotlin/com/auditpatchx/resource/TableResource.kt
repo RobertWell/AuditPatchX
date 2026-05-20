@@ -221,4 +221,25 @@ class TableResource(
                 .build()
         }
     }
+
+    /**
+     * POST /api/compare/review - Persist a review decision for a compare diff row
+     */
+    @POST
+    @Path("/compare/review")
+    fun reviewCompareRow(request: CompareReviewRequest): Response {
+        return try {
+            val result = databaseService.reviewCompareRow(request)
+            Response.ok(result).build()
+        } catch (e: IllegalArgumentException) {
+            Response.status(Response.Status.BAD_REQUEST)
+                .entity(ErrorResponse(e.message ?: "Invalid request"))
+                .build()
+        } catch (e: Exception) {
+            logger.error("Review failed", e)
+            Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(ErrorResponse("Review failed"))
+                .build()
+        }
+    }
 }
