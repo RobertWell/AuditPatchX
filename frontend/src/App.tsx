@@ -82,6 +82,27 @@ function App() {
     handleCloseSqlReview();
   };
 
+  const handleReviewSelected = (row: CompareJobDiffRow, column: string) => {
+    handleOpenSqlReview(row, column);
+  };
+
+  const handleBulkApproveSelected = (selectedRows: CompareJobDiffRow[]) => {
+    if (selectedRows.length === 0) {
+      message.warning('No rows selected');
+      return;
+    }
+
+    setCompareData((rows) =>
+      rows.map((row) =>
+        selectedRows.some((selected) => selected.pk === row.pk)
+          ? { ...row, reviewStatus: 'APPROVED' }
+          : row
+      )
+    );
+
+    message.success(`Approved ${selectedRows.length} selected item(s)`);
+  };
+
   const handleRunComparison = async (config: CompareJobRequest) => {
     setLoading(true);
     try {
@@ -331,12 +352,11 @@ function App() {
                 </div>
               ) : null}
               {compareData.length > 0 ? (
-                <DiffResult 
-                  data={compareData} 
-                  onOpenSqlReview={handleOpenSqlReview} 
-                  onReviewSelected={(pks) => {
-                    message.success(`Successfully queued ${pks.length} item(s) for review.`);
-                  }}
+              <DiffResult
+                  data={compareData}
+                  onOpenSqlReview={handleOpenSqlReview}
+                  onReviewSelected={handleReviewSelected}
+                  onBulkApproveSelected={handleBulkApproveSelected}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
