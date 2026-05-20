@@ -269,4 +269,233 @@ class CompareReviewServiceTest {
             assertThat(tgtAfter).isEqualTo(tgtBefore)
         }
     }
+
+    // -----------------------------------------------------------------------
+    // Composite PK
+    // -----------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Composite PK (number + varchar2)")
+    inner class CompositePkTests {
+
+        @Test
+        @DisplayName("UPDATE with composite PK copies all data columns")
+        fun testApproveUpdateCompositePk() {
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = "1-EAST",
+                    status = "APPROVED",
+                    tableOne = "TESTUSER.COMPOSITE_SOURCE",
+                    tableTwo = "TESTUSER.COMPOSITE_TARGET",
+                    rowStatus = "UPDATE",
+                    syncPk = listOf("REGION_ID", "DEPT_CODE"),
+                    ignoreColumns = emptyList(),
+                    pkMap = mapOf("REGION_ID" to "1", "DEPT_CODE" to "EAST")
+                )
+            )
+
+            val src = databaseService.getByPk(
+                GetByPkRequest("TESTUSER", "COMPOSITE_SOURCE", mapOf("REGION_ID" to 1, "DEPT_CODE" to "EAST"))
+            ).row
+            val tgt = databaseService.getByPk(
+                GetByPkRequest("TESTUSER", "COMPOSITE_TARGET", mapOf("REGION_ID" to 1, "DEPT_CODE" to "EAST"))
+            ).row
+
+            assertThat(tgt["VALUE"]).isEqualTo(src["VALUE"])
+            assertThat(tgt["AMOUNT"]).isEqualTo(src["AMOUNT"])
+        }
+
+        @Test
+        @DisplayName("INSERT with composite PK creates row in target")
+        fun testApproveInsertCompositePk() {
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = "2-WEST",
+                    status = "APPROVED",
+                    tableOne = "TESTUSER.COMPOSITE_SOURCE",
+                    tableTwo = "TESTUSER.COMPOSITE_TARGET",
+                    rowStatus = "INSERT",
+                    syncPk = listOf("REGION_ID", "DEPT_CODE"),
+                    ignoreColumns = emptyList(),
+                    pkMap = mapOf("REGION_ID" to "2", "DEPT_CODE" to "WEST")
+                )
+            )
+
+            val src = databaseService.getByPk(
+                GetByPkRequest("TESTUSER", "COMPOSITE_SOURCE", mapOf("REGION_ID" to 2, "DEPT_CODE" to "WEST"))
+            ).row
+            val tgt = databaseService.getByPk(
+                GetByPkRequest("TESTUSER", "COMPOSITE_TARGET", mapOf("REGION_ID" to 2, "DEPT_CODE" to "WEST"))
+            ).row
+
+            assertThat(tgt["VALUE"]).isEqualTo(src["VALUE"])
+            assertThat(tgt["AMOUNT"]).isEqualTo(src["AMOUNT"])
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Composite PK containing TIMESTAMP(6)
+    // -----------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Composite PK with TIMESTAMP(6)")
+    inner class TimestampPkTests {
+
+        private val compareRequest = CompareJobRequest(
+            tableOne = "TESTUSER.TSPK_SOURCE",
+            tableTwo = "TESTUSER.TSPK_TARGET",
+            syncPk = listOf("EVENT_ID", "EVENT_TS"),
+            ignoreColumns = emptyList(),
+            limit = 100
+        )
+
+        @Test
+        @DisplayName("UPDATE with TIMESTAMP(6) PK column copies payload correctly")
+        fun testApproveUpdateTimestampPk() {
+            val diff = databaseService.compareTables(compareRequest)
+                .differences.first { it.status == "UPDATE" }
+
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = diff.pk,
+                    status = "APPROVED",
+                    tableOne = "TESTUSER.TSPK_SOURCE",
+                    tableTwo = "TESTUSER.TSPK_TARGET",
+                    rowStatus = "UPDATE",
+                    syncPk = listOf("EVENT_ID", "EVENT_TS"),
+                    ignoreColumns = emptyList(),
+                    pkMap = diff.pkMap
+                )
+            )
+
+            // After approval the row must no longer appear as a diff
+            val diffsAfter = databaseService.compareTables(compareRequest).differences
+            assertThat(diffsAfter.none { it.pk == diff.pk && it.status == "UPDATE" }).isTrue()
+        }
+
+        @Test
+        @DisplayName("INSERT with TIMESTAMP(6) PK column creates row in target")
+        fun testApproveInsertTimestampPk() {
+            val diff = databaseService.compareTables(compareRequest)
+                .differences.first { it.status == "INSERT" }
+
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = diff.pk,
+                    status = "APPROVED",
+                    tableOne = "TESTUSER.TSPK_SOURCE",
+                    tableTwo = "TESTUSER.TSPK_TARGET",
+                    rowStatus = "INSERT",
+                    syncPk = listOf("EVENT_ID", "EVENT_TS"),
+                    ignoreColumns = emptyList(),
+                    pkMap = diff.pkMap
+                )
+            )
+
+            val diffsAfter = databaseService.compareTables(compareRequest).differences
+            assertThat(diffsAfter.none { it.pk == diff.pk && it.status == "INSERT" }).isTrue()
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Composite PK containing TIMESTAMP WITH TIME ZONE (UTC+0 and UTC+8)
+    // -----------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Composite PK with TIMESTAMP WITH TIME ZONE")
+    inner class TimezoneTimestampPkTests {
+
+        private val compareRequest = CompareJobRequest(
+            tableOne = "TESTUSER.TZPK_SOURCE",
+            tableTwo = "TESTUSER.TZPK_TARGET",
+            syncPk = listOf("EVENT_ID", "EVENT_TS"),
+            ignoreColumns = emptyList(),
+            limit = 100
+        )
+
+        @Test
+        @DisplayName("compareTables identifies UTC+0 and UTC+8 rows as distinct diffs")
+        fun testDistinctTimezoneRowsAreDistinctDiffs() {
+            val diffs = databaseService.compareTables(compareRequest).differences
+
+            // Both UTC+0 (event 1) and UTC+8 (event 2) UPDATE rows must appear as separate diffs
+            val updatePks = diffs.filter { it.status == "UPDATE" }.map { it.pkMap["EVENT_ID"] }
+            assertThat(updatePks).containsExactlyInAnyOrder("1", "2")
+
+            // Timezone offset preserved in pkMap — UTC+0 and UTC+8 are non-equal strings
+            val tsPks = diffs.filter { it.status == "UPDATE" }.map { it.pkMap["EVENT_TS"] }
+            assertThat(tsPks[0]).isNotEqualTo(tsPks[1])
+            assertThat(tsPks.any { it!!.contains("+00:00") || it.contains("Z") }).isTrue()
+            assertThat(tsPks.any { it!!.contains("+08:00") }).isTrue()
+        }
+
+        @Test
+        @DisplayName("UPDATE with UTC+0 TIMESTAMP WITH TIME ZONE PK applies payload to target")
+        fun testApproveUpdateUtcZero() {
+            val diff = databaseService.compareTables(compareRequest)
+                .differences.first { it.status == "UPDATE" && it.pkMap["EVENT_ID"] == "1" }
+
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = diff.pk,
+                    status = "APPROVED",
+                    tableOne = "TESTUSER.TZPK_SOURCE",
+                    tableTwo = "TESTUSER.TZPK_TARGET",
+                    rowStatus = "UPDATE",
+                    syncPk = listOf("EVENT_ID", "EVENT_TS"),
+                    ignoreColumns = emptyList(),
+                    pkMap = diff.pkMap
+                )
+            )
+
+            val diffsAfter = databaseService.compareTables(compareRequest).differences
+            assertThat(diffsAfter.none { it.pkMap["EVENT_ID"] == "1" && it.status == "UPDATE" }).isTrue()
+        }
+
+        @Test
+        @DisplayName("UPDATE with UTC+8 TIMESTAMP WITH TIME ZONE PK applies payload to target")
+        fun testApproveUpdateUtcPlusEight() {
+            val diff = databaseService.compareTables(compareRequest)
+                .differences.first { it.status == "UPDATE" && it.pkMap["EVENT_ID"] == "2" }
+
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = diff.pk,
+                    status = "APPROVED",
+                    tableOne = "TESTUSER.TZPK_SOURCE",
+                    tableTwo = "TESTUSER.TZPK_TARGET",
+                    rowStatus = "UPDATE",
+                    syncPk = listOf("EVENT_ID", "EVENT_TS"),
+                    ignoreColumns = emptyList(),
+                    pkMap = diff.pkMap
+                )
+            )
+
+            val diffsAfter = databaseService.compareTables(compareRequest).differences
+            assertThat(diffsAfter.none { it.pkMap["EVENT_ID"] == "2" && it.status == "UPDATE" }).isTrue()
+        }
+
+        @Test
+        @DisplayName("INSERT with UTC+0 TIMESTAMP WITH TIME ZONE PK creates row in target")
+        fun testApproveInsertTimezoneRow() {
+            val diff = databaseService.compareTables(compareRequest)
+                .differences.first { it.status == "INSERT" && it.pkMap["EVENT_ID"] == "3" }
+
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = diff.pk,
+                    status = "APPROVED",
+                    tableOne = "TESTUSER.TZPK_SOURCE",
+                    tableTwo = "TESTUSER.TZPK_TARGET",
+                    rowStatus = "INSERT",
+                    syncPk = listOf("EVENT_ID", "EVENT_TS"),
+                    ignoreColumns = emptyList(),
+                    pkMap = diff.pkMap
+                )
+            )
+
+            val diffsAfter = databaseService.compareTables(compareRequest).differences
+            assertThat(diffsAfter.none { it.pkMap["EVENT_ID"] == "3" && it.status == "INSERT" }).isTrue()
+        }
+    }
 }

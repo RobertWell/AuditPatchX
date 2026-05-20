@@ -36,6 +36,12 @@ allowlist:
       table: RECONCILE_LOG
       pk-columns:
         - LOG_ID
+    - schema: TRDMGMR
+      table: RECON_MULTI_PK
+      pk-columns:
+        - BATCH_ID
+        - REGION_CODE
+        - EFFECTIVE_TS
     - schema: TRDMGMR_UAT
       table: TRANSACTIONS
       pk-columns:
@@ -44,6 +50,12 @@ allowlist:
       table: RECONCILE_LOG
       pk-columns:
         - LOG_ID
+    - schema: TRDMGMR_UAT
+      table: RECON_MULTI_PK
+      pk-columns:
+        - BATCH_ID
+        - REGION_CODE
+        - EFFECTIVE_TS
     # - schema: HR
     #   table: JOB_HISTORY
     #   pk-columns:
@@ -80,6 +92,18 @@ sync-tables:
         table-b: TRDMGMR_UAT.RECONCILE_LOG
       pk-columns:
         - LOG_ID
+      exclude-columns:
+        - UPDATED_BY
+        - UPDATED_AT
+    - pair-name: Multi PK Reconcile Prod and UAT
+      db: ORACLE_MAIN
+      tables:
+        table-a: TRDMGMR.RECON_MULTI_PK
+        table-b: TRDMGMR_UAT.RECON_MULTI_PK
+      pk-columns:
+        - BATCH_ID
+        - REGION_CODE
+        - EFFECTIVE_TS
       exclude-columns:
         - UPDATED_BY
         - UPDATED_AT

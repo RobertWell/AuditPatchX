@@ -53,26 +53,34 @@ export const TableSelector = ({ onQuery }: TableSelectorProps) => {
 
   return (
     <Card className="mb-4" size="small">
-      <Form layout="inline" className="w-full">
-        <Form.Item label="Table" className="flex-1">
+      <Form layout="vertical" className="w-full">
+        <Form.Item label="Table" className="mb-3 w-full">
           <Select
             placeholder="Select a table"
             onChange={handleTableChange}
             value={selectedTable ? `${selectedTable.schema}.${selectedTable.table}` : undefined}
-            className="w-64"
+            className="w-full"
+            popupMatchSelectWidth={false}
+            optionLabelProp="label"
           >
             {tables.map((table) => (
-              <Select.Option key={`${table.schema}.${table.table}`} value={`${table.schema}.${table.table}`}>
-                {table.schema}.{table.table}
+              <Select.Option
+                key={`${table.schema}.${table.table}`}
+                value={`${table.schema}.${table.table}`}
+                label={`${table.schema}.${table.table}`}
+              >
+                <div className="min-w-[28rem] font-mono text-sm">
+                  {table.schema}.{table.table}
+                </div>
               </Select.Option>
             ))}
           </Select>
         </Form.Item>
 
         {selectedTable && (
-          <>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-gray-500">PRIMARY KEY:</span>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-end gap-2">
+              <span className="mb-1 w-full text-xs font-semibold uppercase text-gray-500">Primary Key</span>
               {selectedTable.pkColumns.map((col) => (
                 <Form.Item key={col} label={col} className="mb-0">
                   <Input
@@ -86,7 +94,7 @@ export const TableSelector = ({ onQuery }: TableSelectorProps) => {
               ))}
             </div>
 
-            <Form.Item>
+            <Form.Item className="mb-0">
               <Button
                 type="primary"
                 icon={<SearchOutlined />}
@@ -97,7 +105,7 @@ export const TableSelector = ({ onQuery }: TableSelectorProps) => {
                 FETCH
               </Button>
             </Form.Item>
-          </>
+          </div>
         )}
       </Form>
     </Card>

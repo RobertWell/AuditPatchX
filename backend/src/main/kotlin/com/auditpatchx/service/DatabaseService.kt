@@ -659,9 +659,10 @@ class DatabaseService(
                 .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             is java.sql.Date -> value.toLocalDate()
                 .format(DateTimeFormatter.ISO_LOCAL_DATE)
+            is oracle.sql.TIMESTAMPTZ -> value.toOffsetDateTime()
+                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
             else -> {
                 when (value.javaClass.name) {
-                    "oracle.sql.TIMESTAMPTZ",
                     "oracle.sql.TIMESTAMPLTZ" -> value.toString()
                     else -> value
                 }
