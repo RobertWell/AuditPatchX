@@ -20,6 +20,7 @@ interface DiffResultProps {
   onBulkApproveSelected?: (selectedRows: CompareJobDiffRow[]) => void;
   onRowApprove?: (row: CompareJobDiffRow) => void;
   onRowReject?: (row: CompareJobDiffRow) => void;
+  onExportSql?: () => void;
 }
 
 export function DiffResult({
@@ -29,6 +30,7 @@ export function DiffResult({
   onBulkApproveSelected,
   onRowApprove,
   onRowReject,
+  onExportSql,
 }: DiffResultProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -156,7 +158,7 @@ export function DiffResult({
               </div>
             </PopoverContent>
           </Popover>
-          <Button variant="outline">Export SQL</Button>
+          <Button variant="outline" onClick={() => onExportSql?.()}>Export SQL</Button>
           <Button
             disabled={!selectionState.canReviewSingle || !singleSelection || !singleReviewColumn}
             onClick={handleReviewSelected}
