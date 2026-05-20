@@ -147,10 +147,12 @@ export interface SyncPairConfigInfo {
 export interface CompareReviewRequest {
   pk: string;
   status: 'APPROVED' | 'REJECTED';
+  tableOne: string;
   tableTwo: string;
   rowStatus: string;
+  syncPk: string[];
+  ignoreColumns: string[];
   pkMap: Record<string, string>;
-  changes: CompareJobChange[];
 }
 
 export interface CompareReviewResponse {

@@ -746,90 +746,61 @@ class DatabaseService(
         logger.info("REVIEW_DECISION pk=${request.pk} status=${request.status}")
 
         if (request.status == "APPROVED") {
+            val (schema1, table1) = parseSchemaTable(request.tableOne)
             val (schema2, table2) = parseSchemaTable(request.tableTwo)
-            securityService.validateAndGetColumns(schema2, table2)
-            val columnMetadata = securityService.getDetailedColumnMetadata(schema2, table2)
-            val columnTypeMap = columnMetadata.associate { it.name.uppercase() to it.type }
-            when (request.rowStatus) {
-                "UPDATE" -> applyApproveUpdate(schema2, table2, request.pkMap, request.changes, columnTypeMap)
-                "INSERT" -> applyApproveInsert(schema2, table2, request.pkMap, request.changes, columnTypeMap)
-                else -> throw IllegalArgumentException("Unsupported rowStatus: ${request.rowStatus}")
+
+            val allowedCols1 = securityService.validateAndGetColumns(schema1, table1)
+            val allowedCols2 = securityService.validateAndGetColumns(schema2, table2)
+
+            val syncPkUpper = request.syncPk.map { it.uppercase() }.toSet()
+            val ignoreUpper = request.ignoreColumns.map { it.uppercase() }.toSet()
+
+            // Columns present in both tables, minus ignored
+            val cols2Set = allowedCols2.map { it.uppercase() }.toSet()
+            val syncColumns = allowedCols1.map { it.uppercase() }
+                .filter { it in cols2Set && it !in ignoreUpper }
+            val dataColumns = syncColumns.filter { it !in syncPkUpper }
+
+            // PK type metadata for proper binding
+            val columnTypeMap2 = securityService.getDetailedColumnMetadata(schema2, table2)
+                .associate { it.name.uppercase() to it.type }
+
+            val src = "${schema1.uppercase()}.${table1.uppercase()}"
+            val tgt = "${schema2.uppercase()}.${table2.uppercase()}"
+            val whereClause = syncPkUpper.joinToString(" AND ") { "$it = :pk_$it" }
+
+            jdbi.inTransaction<Unit, Exception> { handle ->
+                val rows = when (request.rowStatus) {
+                    "UPDATE" -> {
+                        if (dataColumns.isEmpty()) {
+                            logger.warn("APPROVE_UPDATE nothing to set pk=${request.pkMap}")
+                            0
+                        } else {
+                            val colsList = dataColumns.joinToString(", ")
+                            val sql = "UPDATE $tgt SET ($colsList) = (SELECT $colsList FROM $src WHERE $whereClause) WHERE $whereClause"
+                            var stmt = handle.createUpdate(sql)
+                            request.pkMap.forEach { (col, value) ->
+                                stmt = stmt.bind("pk_$col", convertValueForBinding(value, columnTypeMap2[col.uppercase()]))
+                            }
+                            stmt.execute()
+                        }
+                    }
+                    "INSERT" -> {
+                        val colsList = syncColumns.joinToString(", ")
+                        val sql = "INSERT INTO $tgt ($colsList) SELECT $colsList FROM $src WHERE $whereClause"
+                        var stmt = handle.createUpdate(sql)
+                        request.pkMap.forEach { (col, value) ->
+                            stmt = stmt.bind("pk_$col", convertValueForBinding(value, columnTypeMap2[col.uppercase()]))
+                        }
+                        stmt.execute()
+                    }
+                    else -> throw IllegalArgumentException("Unsupported rowStatus: ${request.rowStatus}")
+                }
+                logger.info("APPROVE_${request.rowStatus} $tgt pk=${request.pkMap} rows=$rows")
             }
         }
 
         return CompareReviewResponse(pk = request.pk, status = request.status)
-    }
-
-    private fun applyApproveUpdate(
-        schema: String,
-        table: String,
-        pkMap: Map<String, String>,
-        changes: List<CompareJobChange>,
-        columnTypeMap: Map<String, String>
-    ) {
-        val setValues: Map<String, Any?> = changes.associate { change ->
-            change.column to (if (change.sourceValue == "NULL") null else change.sourceValue)
-        }
-        val updateStatement = buildUpdateStatement(schema, table, setValues, pkMap.keys, columnTypeMap)
-        jdbi.inTransaction<Unit, Exception> { handle ->
-            var update = handle.createUpdate(updateStatement.sql)
-            updateStatement.bindings.forEach { (key, value) -> update = update.bind(key, value) }
-            pkMap.forEach { (col, value) ->
-                val convertedValue = convertValueForBinding(value, columnTypeMap[col.uppercase()])
-                update = update.bind("pk_$col", convertedValue)
-            }
-            val rows = update.execute()
-            logger.info("APPROVE_UPDATE schema=$schema table=$table pk=$pkMap rows=$rows")
-        }
-    }
-
-    private fun applyApproveInsert(
-        schema: String,
-        table: String,
-        pkMap: Map<String, String>,
-        changes: List<CompareJobChange>,
-        columnTypeMap: Map<String, String>
-    ) {
-        val bindings = mutableMapOf<String, Any?>()
-        val columnValuePairs = mutableListOf<Pair<String, String>>()
-
-        pkMap.forEach { (col, value) ->
-            val colUpper = col.uppercase()
-            val colType = columnTypeMap[colUpper]
-            if (isClobColumn(colType)) {
-                columnValuePairs.add(colUpper to buildClobUpdateExpression(value))
-            } else {
-                val bindKey = "pk_$colUpper"
-                bindings[bindKey] = convertValueForBinding(value, colType)
-                columnValuePairs.add(colUpper to ":$bindKey")
-            }
-        }
-
-        changes.forEach { change ->
-            val colUpper = change.column.uppercase()
-            val colType = columnTypeMap[colUpper]
-            val rawValue = if (change.sourceValue == "NULL") null else change.sourceValue
-            when {
-                isClobColumn(colType) && rawValue != null -> columnValuePairs.add(colUpper to buildClobUpdateExpression(rawValue))
-                isClobColumn(colType) && rawValue == null -> columnValuePairs.add(colUpper to "NULL")
-                else -> {
-                    val bindKey = "col_$colUpper"
-                    bindings[bindKey] = convertValueForBinding(rawValue, colType)
-                    columnValuePairs.add(colUpper to ":$bindKey")
-                }
-            }
-        }
-
-        val colsList = columnValuePairs.joinToString(", ") { it.first }
-        val valsList = columnValuePairs.joinToString(", ") { it.second }
-        val sql = "INSERT INTO ${schema.uppercase()}.${table.uppercase()} ($colsList) VALUES ($valsList)"
-
-        jdbi.inTransaction<Unit, Exception> { handle ->
-            var insert = handle.createUpdate(sql)
-            bindings.forEach { (key, value) -> insert = insert.bind(key, value) }
-            val rows = insert.execute()
-            logger.info("APPROVE_INSERT schema=$schema table=$table pk=$pkMap rows=$rows")
-        }
     }
 }
 
