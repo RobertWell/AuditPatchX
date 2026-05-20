@@ -9,6 +9,7 @@ import org.jdbi.v3.core.kotlin.KotlinPlugin
 import org.slf4j.LoggerFactory
 import java.time.format.DateTimeFormatter
 import java.sql.Clob
+import java.util.concurrent.ConcurrentHashMap
 import javax.sql.DataSource
 
 @ApplicationScoped
@@ -21,6 +22,7 @@ class DatabaseService(
 ) {
     private val logger = LoggerFactory.getLogger(DatabaseService::class.java)
     private val jdbi: Jdbi = Jdbi.create(dataSource).installPlugin(KotlinPlugin())
+    private val reviewStore = ConcurrentHashMap<String, String>()
 
     /**
      * Execute query with filters
@@ -290,7 +292,7 @@ class DatabaseService(
                             status = "INSERT",
                             changedColumns = insertChanges.size,
                             updatedBy = "system",
-                            reviewStatus = "PENDING",
+                            reviewStatus = reviewStore.getOrDefault(pkString, "PENDING"),
                             changes = insertChanges
                         )
                     )
@@ -324,7 +326,7 @@ class DatabaseService(
                                 status = "UPDATE",
                                 changedColumns = changes.size,
                                 updatedBy = "system",
-                                reviewStatus = "PENDING",
+                                reviewStatus = reviewStore.getOrDefault(pkString, "PENDING"),
                                 changes = changes
                             )
                         )
@@ -737,6 +739,14 @@ class DatabaseService(
      */
     private fun Map<String, Any?>.toUppercaseKeys(): Map<String, Any?> {
         return this.entries.associate { (key, value) -> key.uppercase() to value }
+    }
+
+    fun reviewCompareRow(request: CompareReviewRequest): CompareReviewResponse {
+        if (request.status !in setOf("APPROVED", "REJECTED")) {
+            throw IllegalArgumentException("status must be APPROVED or REJECTED")
+        }
+        reviewStore[request.pk] = request.status
+        return CompareReviewResponse(pk = request.pk, status = request.status)
     }
 }
 

@@ -154,3 +154,13 @@ data class SyncPairConfigInfo(
     val excludeColumns: List<String>,
     val validation: CompareValidationResponse
 )
+
+data class CompareReviewRequest(
+    val pk: String,
+    val status: String  // "APPROVED" or "REJECTED"
+)
+
+data class CompareReviewResponse(
+    val pk: String,
+    val status: String
+)
