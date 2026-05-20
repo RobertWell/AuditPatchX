@@ -9,7 +9,6 @@ import org.jdbi.v3.core.kotlin.KotlinPlugin
 import org.slf4j.LoggerFactory
 import java.time.format.DateTimeFormatter
 import java.sql.Clob
-import java.util.concurrent.ConcurrentHashMap
 import javax.sql.DataSource
 
 @ApplicationScoped
@@ -22,7 +21,6 @@ class DatabaseService(
 ) {
     private val logger = LoggerFactory.getLogger(DatabaseService::class.java)
     private val jdbi: Jdbi = Jdbi.create(dataSource).installPlugin(KotlinPlugin())
-    private val reviewStore = ConcurrentHashMap<String, String>()
 
     /**
      * Execute query with filters
@@ -292,7 +290,7 @@ class DatabaseService(
                             status = "INSERT",
                             changedColumns = insertChanges.size,
                             updatedBy = "system",
-                            reviewStatus = reviewStore.getOrDefault(pkString, "PENDING"),
+                            reviewStatus = "PENDING",
                             changes = insertChanges
                         )
                     )
@@ -326,7 +324,7 @@ class DatabaseService(
                                 status = "UPDATE",
                                 changedColumns = changes.size,
                                 updatedBy = "system",
-                                reviewStatus = reviewStore.getOrDefault(pkString, "PENDING"),
+                                reviewStatus = "PENDING",
                                 changes = changes
                             )
                         )
@@ -745,7 +743,7 @@ class DatabaseService(
         if (request.status !in setOf("APPROVED", "REJECTED")) {
             throw IllegalArgumentException("status must be APPROVED or REJECTED")
         }
-        reviewStore[request.pk] = request.status
+        logger.info("REVIEW_DECISION pk=${request.pk} status=${request.status}")
         return CompareReviewResponse(pk = request.pk, status = request.status)
     }
 }

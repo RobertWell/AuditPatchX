@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { CompareJobRequest, SyncPairConfigInfo } from '../types/api';
 import apiClient from '../services/api';
 
@@ -18,6 +19,15 @@ export function CompareJob({ onStartReview }: CompareJobProps) {
   const [ignoreColumn, setIgnoreColumn] = useState('update_time, modified_by');
   const [limit, setLimit] = useState(100);
   const [syncPairs, setSyncPairs] = useState<SyncPairConfigInfo[]>([]);
+  const [selectedPairName, setSelectedPairName] = useState('');
+
+  const applyPair = (pair: SyncPairConfigInfo) => {
+    setSelectedPairName(pair.pairName);
+    setTableOne(pair.tableA);
+    setTableTwo(pair.tableB);
+    setSyncPk(pair.pkColumns.join(', '));
+    setIgnoreColumn(pair.excludeColumns.join(', '));
+  };
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -25,11 +35,7 @@ export function CompareJob({ onStartReview }: CompareJobProps) {
         const pairs = await apiClient.getCompareConfig();
         setSyncPairs(pairs);
         if (pairs.length > 0) {
-          const first = pairs[0];
-          setTableOne(first.tableA);
-          setTableTwo(first.tableB);
-          setSyncPk(first.pkColumns.join(', '));
-          setIgnoreColumn(first.excludeColumns.join(', '));
+          applyPair(pairs[0]);
         }
       } catch {
         // Keep manual input mode if compare config API is unavailable.
@@ -37,6 +43,13 @@ export function CompareJob({ onStartReview }: CompareJobProps) {
     };
     loadConfig();
   }, []);
+
+  const handlePairChange = (pairName: string) => {
+    const pair = syncPairs.find(item => item.pairName === pairName);
+    if (pair) {
+      applyPair(pair);
+    }
+  };
 
   const handleRun = () => {
     onStartReview({
@@ -52,6 +65,7 @@ export function CompareJob({ onStartReview }: CompareJobProps) {
     const temp = tableOne;
     setTableOne(tableTwo);
     setTableTwo(temp);
+    setSelectedPairName('');
   };
 
   return (
@@ -71,6 +85,23 @@ export function CompareJob({ onStartReview }: CompareJobProps) {
             <CardTitle className="text-sm">Sync Specification</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pb-4">
+            {syncPairs.length > 0 && (
+              <div>
+                <Label className="text-xs">Configured Pair</Label>
+                <Select value={selectedPairName} onValueChange={handlePairChange}>
+                  <SelectTrigger className="mt-1 bg-input-background">
+                    <SelectValue placeholder="Select a configured pair" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {syncPairs.map(pair => (
+                      <SelectItem key={pair.pairName} value={pair.pairName}>
+                        {pair.pairName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
               <div className="md:col-span-2 flex items-center gap-2">
                 <div className="flex-1">

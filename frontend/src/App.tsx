@@ -14,7 +14,7 @@ import { Sidebar } from './components/Sidebar';
 import { CompareJob } from './components/CompareJob';
 import { DiffResult } from './components/DiffResult';
 import { SqlReviewPanel } from './components/SqlReviewPanel';
-import { SyncHistory } from './components/SyncHistory';
+
 
 const { Title } = Typography;
 
@@ -415,8 +415,6 @@ function App() {
             </div>
           </div>
         );
-      case 'history':
-        return <SyncHistory />;
       case 'conflicts':
         return <PlaceholderPage title="Conflict Review" />;
       case 'rules':
