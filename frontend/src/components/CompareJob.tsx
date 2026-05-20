@@ -10,9 +10,10 @@ import apiClient from '../services/api';
 
 interface CompareJobProps {
   onStartReview: (config: CompareJobRequest) => void;
+  onConfigChange?: () => void;
 }
 
-export function CompareJob({ onStartReview }: CompareJobProps) {
+export function CompareJob({ onStartReview, onConfigChange }: CompareJobProps) {
   const [tableOne, setTableOne] = useState('');
   const [tableTwo, setTableTwo] = useState('');
   const [syncPk, setSyncPk] = useState('');
@@ -69,6 +70,7 @@ export function CompareJob({ onStartReview }: CompareJobProps) {
     const temp = tableOne;
     setTableOne(tableTwo);
     setTableTwo(temp);
+    onConfigChange?.();
   };
 
   const canRun = tableOne.trim() !== '' && tableTwo.trim() !== '' && syncPk.trim() !== '';
