@@ -5,18 +5,27 @@ import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '../lib/utils';
-
-
-
 import { CompareJobDiffRow } from '../types/api';
+import {
+  getReviewTargetColumn,
+  getSelectionState,
+  setAllSelection,
+  toggleSelection,
+} from './diffResultSelection';
 
 interface DiffResultProps {
   data: CompareJobDiffRow[];
   onOpenSqlReview: (row: CompareJobDiffRow, column: string) => void;
-  onReviewSelected?: (selectedPks: string[]) => void;
+  onReviewSelected?: (row: CompareJobDiffRow, column: string) => void;
+  onBulkApproveSelected?: (selectedRows: CompareJobDiffRow[]) => void;
 }
 
-export function DiffResult({ data, onOpenSqlReview, onReviewSelected }: DiffResultProps) {
+export function DiffResult({
+  data,
+  onOpenSqlReview,
+  onReviewSelected,
+  onBulkApproveSelected,
+}: DiffResultProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
 
@@ -32,6 +41,13 @@ export function DiffResult({ data, onOpenSqlReview, onReviewSelected }: DiffResu
       const newVisible = new Set(prev);
       allColumns.forEach(col => newVisible.add(col));
       return newVisible;
+    });
+  }, [data]);
+
+  useEffect(() => {
+    setSelectedRows((prev) => {
+      const next = new Set(Array.from(prev).filter((pk) => data.some((row) => row.pk === pk)));
+      return next.size === prev.size ? prev : next;
     });
   }, [data]);
 
@@ -56,13 +72,26 @@ export function DiffResult({ data, onOpenSqlReview, onReviewSelected }: DiffResu
   };
 
   const toggleSelectRow = (pk: string) => {
-    const newSelected = new Set(selectedRows);
-    if (newSelected.has(pk)) {
-      newSelected.delete(pk);
-    } else {
-      newSelected.add(pk);
-    }
-    setSelectedRows(newSelected);
+    setSelectedRows((current) => toggleSelection(current, pk));
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    setSelectedRows(setAllSelection(data, checked));
+  };
+
+  const selectedRowData = data.filter((row) => selectedRows.has(row.pk));
+  const selectionState = getSelectionState(data.length, selectedRows.size);
+  const singleSelection = selectedRowData.length === 1 ? selectedRowData[0] : null;
+  const singleReviewColumn = singleSelection ? getReviewTargetColumn(singleSelection) : null;
+
+  const handleReviewSelected = () => {
+    if (!singleSelection || !singleReviewColumn) return;
+    onReviewSelected?.(singleSelection, singleReviewColumn);
+  };
+
+  const handleBulkApproveSelected = () => {
+    if (selectedRowData.length <= 1) return;
+    onBulkApproveSelected?.(selectedRowData);
   };
 
   const getStatusBadge = (status: CompareJobDiffRow['status']) => {
@@ -124,11 +153,18 @@ export function DiffResult({ data, onOpenSqlReview, onReviewSelected }: DiffResu
             </PopoverContent>
           </Popover>
           <Button variant="outline">Export SQL</Button>
-          <Button 
-            disabled={selectedRows.size === 0}
-            onClick={() => onReviewSelected?.(Array.from(selectedRows))}
+          <Button
+            disabled={!selectionState.canReviewSingle || !singleSelection || !singleReviewColumn}
+            onClick={handleReviewSelected}
           >
             Review Selected ({selectedRows.size})
+          </Button>
+          <Button
+            disabled={!selectionState.canBulkApprove}
+            onClick={handleBulkApproveSelected}
+            variant="secondary"
+          >
+            Approve Selected ({selectedRows.size})
           </Button>
         </div>
       </div>
@@ -140,7 +176,11 @@ export function DiffResult({ data, onOpenSqlReview, onReviewSelected }: DiffResu
               <tr>
                 <th className="w-10 p-3"></th>
                 <th className="w-10 p-3">
-                  <Checkbox />
+                  <Checkbox
+                    aria-label="Select all rows"
+                    checked={selectionState.checked ? true : selectionState.indeterminate ? 'indeterminate' : false}
+                    onCheckedChange={(checked) => toggleSelectAll(checked === true)}
+                  />
                 </th>
                 <th className="text-left p-3">Primary Key</th>
                 <th className="text-left p-3">Status</th>
@@ -174,6 +214,7 @@ export function DiffResult({ data, onOpenSqlReview, onReviewSelected }: DiffResu
                       </td>
                       <td className="p-3">
                         <Checkbox
+                          aria-label={`Select row ${row.pk}`}
                           checked={isSelected}
                           onCheckedChange={() => toggleSelectRow(row.pk)}
                         />
