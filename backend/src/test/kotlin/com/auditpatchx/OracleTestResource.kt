@@ -1,7 +1,7 @@
 package com.auditpatchx
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager
-import org.testcontainers.containers.OracleContainer
+import org.testcontainers.oracle.OracleContainer
 import org.testcontainers.utility.DockerImageName
 import java.sql.Connection
 import java.sql.DriverManager
@@ -15,7 +15,6 @@ class OracleTestResource : QuarkusTestResourceLifecycleManager {
 
     companion object {
         private val ORACLE_IMAGE = DockerImageName.parse("gvenzl/oracle-free:23-slim-faststart")
-            .asCompatibleSubstituteFor("gvenzl/oracle-xe")
         private var container: OracleContainer? = null
     }
 

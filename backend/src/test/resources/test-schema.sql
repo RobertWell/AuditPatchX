@@ -217,36 +217,34 @@ INSERT INTO TESTUSER.TSPK_SOURCE (EVENT_ID, EVENT_TS, PAYLOAD)
 VALUES (2, TIMESTAMP '2023-06-16 12:00:00', 'new event payload');
 
 -- Timezone-aware PK tables (EVENT_ID + EVENT_TS TIMESTAMP WITH TIME ZONE)
--- Row 1 is at UTC+0, row 2 is the same local time at UTC+8 — different UTC instants,
+-- Row 1 is at UTC+1, row 2 is the same local time at UTC+8 — different UTC instants,
 -- so they are distinct PK values and test that timezone offset survives the approve flow.
 CREATE TABLE TESTUSER.TZPK_SOURCE (
     EVENT_ID    NUMBER(10),
     EVENT_TS    TIMESTAMP(6) WITH TIME ZONE,
-    PAYLOAD     VARCHAR2(200),
-    CONSTRAINT pk_tzpk_src PRIMARY KEY (EVENT_ID, EVENT_TS)
+    PAYLOAD     VARCHAR2(200)
 );
 
 CREATE TABLE TESTUSER.TZPK_TARGET (
     EVENT_ID    NUMBER(10),
     EVENT_TS    TIMESTAMP(6) WITH TIME ZONE,
-    PAYLOAD     VARCHAR2(200),
-    CONSTRAINT pk_tzpk_tgt PRIMARY KEY (EVENT_ID, EVENT_TS)
+    PAYLOAD     VARCHAR2(200)
 );
 
--- Row 1: UTC+0 timestamp, UPDATE
+-- Row 1: UTC+1 timestamp, UPDATE
 INSERT INTO TESTUSER.TZPK_SOURCE (EVENT_ID, EVENT_TS, PAYLOAD)
-VALUES (1, TIMESTAMP '2023-06-15 10:30:00 +00:00', 'utc source payload');
+VALUES (1, TO_TIMESTAMP_TZ('2023-06-15 10:30:00 +01:00', 'YYYY-MM-DD HH24:MI:SS TZH:TZM'), 'utc1 source payload');
 INSERT INTO TESTUSER.TZPK_TARGET (EVENT_ID, EVENT_TS, PAYLOAD)
-VALUES (1, TIMESTAMP '2023-06-15 10:30:00 +00:00', 'utc old payload');
+VALUES (1, TO_TIMESTAMP_TZ('2023-06-15 10:30:00 +01:00', 'YYYY-MM-DD HH24:MI:SS TZH:TZM'), 'utc1 old payload');
 
 -- Row 2: UTC+8 timestamp (same local time, different UTC instant), UPDATE
 INSERT INTO TESTUSER.TZPK_SOURCE (EVENT_ID, EVENT_TS, PAYLOAD)
-VALUES (2, TIMESTAMP '2023-06-15 10:30:00 +08:00', 'utc8 source payload');
+VALUES (2, TO_TIMESTAMP_TZ('2023-06-15 10:30:00 +08:00', 'YYYY-MM-DD HH24:MI:SS TZH:TZM'), 'utc8 source payload');
 INSERT INTO TESTUSER.TZPK_TARGET (EVENT_ID, EVENT_TS, PAYLOAD)
-VALUES (2, TIMESTAMP '2023-06-15 10:30:00 +08:00', 'utc8 old payload');
+VALUES (2, TO_TIMESTAMP_TZ('2023-06-15 10:30:00 +08:00', 'YYYY-MM-DD HH24:MI:SS TZH:TZM'), 'utc8 old payload');
 
--- Row 3: UTC+0, INSERT (source only)
+-- Row 3: UTC+8, INSERT (source only)
 INSERT INTO TESTUSER.TZPK_SOURCE (EVENT_ID, EVENT_TS, PAYLOAD)
-VALUES (3, TIMESTAMP '2023-06-16 08:00:00 +00:00', 'utc insert payload');
+VALUES (3, TO_TIMESTAMP_TZ('2023-06-16 08:00:00 +08:00', 'YYYY-MM-DD HH24:MI:SS TZH:TZM'), 'utc8 insert payload');
 
 COMMIT;

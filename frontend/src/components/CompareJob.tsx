@@ -167,6 +167,11 @@ export function CompareJob({ onStartReview, onConfigChange }: CompareJobProps) {
                   onChange={(e) => setIgnoreColumn(e.target.value)}
                   className="mt-1 bg-input-background"
                 />
+                {ignoreColumn.trim() !== '' && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Ignored during diff display; still copied on approve.
+                  </p>
+                )}
               </div>
 
               <div>

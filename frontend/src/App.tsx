@@ -145,6 +145,11 @@ function App() {
           <p className="text-sm text-muted-foreground">
             Changed columns: {rowsToApprove.reduce((total, row) => total + row.changedColumns, 0)}
           </p>
+          {currentCompareConfig?.ignoreColumns.length ? (
+            <p className="text-sm text-muted-foreground">
+              Ignored columns are hidden from the diff but will still be copied: {currentCompareConfig.ignoreColumns.join(', ')}
+            </p>
+          ) : null}
         </div>
       ),
       onOk: async () => {

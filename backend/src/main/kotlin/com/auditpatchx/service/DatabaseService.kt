@@ -407,7 +407,7 @@ class DatabaseService(
                 tableA = pair.tables().tableA(),
                 tableB = pair.tables().tableB(),
                 pkColumns = pair.pkColumns().map { it.uppercase() },
-                excludeColumns = pair.excludeColumns().map { it.uppercase() },
+                excludeColumns = pair.excludeColumns().orElse(emptyList()).map { it.uppercase() },
                 validation = validation
             )
         }
@@ -758,12 +758,11 @@ class DatabaseService(
             securityService.validateColumns(allowedCols2, request.syncPk)
 
             val syncPkUpper = request.syncPk.map { it.uppercase() }.toSet()
-            val ignoreUpper = request.ignoreColumns.map { it.uppercase() }.toSet()
-
-            // Columns present in both tables, minus ignored
+            // Columns present in both tables. Ignore columns are excluded from diff detection,
+            // but approval must still copy them so audit/update/hash fields stay current.
             val cols2Set = allowedCols2.map { it.uppercase() }.toSet()
             val syncColumns = allowedCols1.map { it.uppercase() }
-                .filter { it in cols2Set && it !in ignoreUpper }
+                .filter { it in cols2Set }
             val dataColumns = syncColumns.filter { it !in syncPkUpper }
 
             // PK type metadata for proper binding

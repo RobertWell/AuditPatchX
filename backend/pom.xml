@@ -12,7 +12,7 @@
         <kotlin.version>1.9.22</kotlin.version>
         <quarkus.version>3.6.4</quarkus.version>
         <jdbi.version>3.42.0</jdbi.version>
-        <testcontainers.version>1.19.3</testcontainers.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
@@ -108,7 +108,7 @@
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>oracle-xe</artifactId>
+            <artifactId>oracle-free</artifactId>
             <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
