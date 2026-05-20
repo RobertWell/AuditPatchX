@@ -18,6 +18,8 @@ interface DiffResultProps {
   onOpenSqlReview: (row: CompareJobDiffRow, column: string) => void;
   onReviewSelected?: (row: CompareJobDiffRow, column: string) => void;
   onBulkApproveSelected?: (selectedRows: CompareJobDiffRow[]) => void;
+  onRowApprove?: (row: CompareJobDiffRow) => void;
+  onRowReject?: (row: CompareJobDiffRow) => void;
 }
 
 export function DiffResult({
@@ -25,6 +27,8 @@ export function DiffResult({
   onOpenSqlReview,
   onReviewSelected,
   onBulkApproveSelected,
+  onRowApprove,
+  onRowReject,
 }: DiffResultProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -230,8 +234,22 @@ export function DiffResult({
                       </td>
                       <td className="p-3">
                         <div className="flex gap-1">
-                          <Button size="sm" variant="ghost">Approve</Button>
-                          <Button size="sm" variant="ghost">Reject</Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-green-600 hover:text-green-700"
+                            onClick={() => onRowApprove?.(row)}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => onRowReject?.(row)}
+                          >
+                            Reject
+                          </Button>
                         </div>
                       </td>
                     </tr>
