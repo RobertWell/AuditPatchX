@@ -1,4 +1,4 @@
-import { Database, FileText, History, GitCompare, AlertTriangle, Settings } from 'lucide-react';
+import { FileText, GitCompare } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface SidebarProps {
@@ -18,7 +18,6 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       title: 'Database Sync',
       items: [
         { id: 'compare', label: 'Compare Job', icon: GitCompare },
-        { id: 'history', label: 'Sync History', icon: History },
       ]
     }
   ];

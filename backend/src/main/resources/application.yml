@@ -32,10 +32,18 @@ allowlist:
       table: TRANSACTIONS
       pk-columns:
         - TRANSACTION_ID
+    - schema: TRDMGMR
+      table: RECONCILE_LOG
+      pk-columns:
+        - LOG_ID
     - schema: TRDMGMR_UAT
       table: TRANSACTIONS
       pk-columns:
         - TRANSACTION_ID
+    - schema: TRDMGMR_UAT
+      table: RECONCILE_LOG
+      pk-columns:
+        - LOG_ID
     # - schema: HR
     #   table: JOB_HISTORY
     #   pk-columns:
@@ -62,6 +70,16 @@ sync-tables:
       pk-columns:
         - TRANSACTION_ID
       # Optional list ignored for row comparison when deciding identical rows.
+      exclude-columns:
+        - UPDATED_BY
+        - UPDATED_AT
+    - pair-name: Reconcile Log Prod and UAT
+      db: ORACLE_MAIN
+      tables:
+        table-a: TRDMGMR.RECONCILE_LOG
+        table-b: TRDMGMR_UAT.RECONCILE_LOG
+      pk-columns:
+        - LOG_ID
       exclude-columns:
         - UPDATED_BY
         - UPDATED_AT
