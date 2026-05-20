@@ -73,8 +73,16 @@ function App() {
     comment: string;
   }) => {
     const status = review.decision === 'approved' ? 'APPROVED' : 'REJECTED';
+    const row = compareData.find((r) => r.pk === review.rowId);
     try {
-      await apiClient.reviewCompareRow({ pk: review.rowId, status });
+      await apiClient.reviewCompareRow({
+        pk: review.rowId,
+        status,
+        tableTwo: currentCompareConfig?.tableTwo ?? '',
+        rowStatus: row?.status ?? '',
+        pkMap: row?.pkMap ?? {},
+        changes: row?.changes ?? [],
+      });
       setCompareData((rows) =>
         rows.map((row) =>
           row.pk === review.rowId ? { ...row, reviewStatus: status } : row
@@ -99,7 +107,14 @@ function App() {
     try {
       await Promise.all(
         selectedRows.map((row) =>
-          apiClient.reviewCompareRow({ pk: row.pk, status: 'APPROVED' })
+          apiClient.reviewCompareRow({
+            pk: row.pk,
+            status: 'APPROVED',
+            tableTwo: currentCompareConfig?.tableTwo ?? '',
+            rowStatus: row.status,
+            pkMap: row.pkMap,
+            changes: row.changes,
+          })
         )
       );
       setCompareData((rows) =>
@@ -117,7 +132,14 @@ function App() {
 
   const handleRowApprove = async (row: CompareJobDiffRow) => {
     try {
-      await apiClient.reviewCompareRow({ pk: row.pk, status: 'APPROVED' });
+      await apiClient.reviewCompareRow({
+        pk: row.pk,
+        status: 'APPROVED',
+        tableTwo: currentCompareConfig?.tableTwo ?? '',
+        rowStatus: row.status,
+        pkMap: row.pkMap,
+        changes: row.changes,
+      });
       setCompareData((rows) =>
         rows.map((r) => r.pk === row.pk ? { ...r, reviewStatus: 'APPROVED' } : r)
       );
@@ -129,7 +151,14 @@ function App() {
 
   const handleRowReject = async (row: CompareJobDiffRow) => {
     try {
-      await apiClient.reviewCompareRow({ pk: row.pk, status: 'REJECTED' });
+      await apiClient.reviewCompareRow({
+        pk: row.pk,
+        status: 'REJECTED',
+        tableTwo: currentCompareConfig?.tableTwo ?? '',
+        rowStatus: row.status,
+        pkMap: row.pkMap,
+        changes: row.changes,
+      });
       setCompareData((rows) =>
         rows.map((r) => r.pk === row.pk ? { ...r, reviewStatus: 'REJECTED' } : r)
       );
