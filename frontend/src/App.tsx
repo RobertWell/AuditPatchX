@@ -103,6 +103,20 @@ function App() {
     message.success(`Approved ${selectedRows.length} selected item(s)`);
   };
 
+  const handleRowApprove = (row: CompareJobDiffRow) => {
+    setCompareData((rows) =>
+      rows.map((r) => r.pk === row.pk ? { ...r, reviewStatus: 'APPROVED' } : r)
+    );
+    message.success(`Row ${row.pk} approved`);
+  };
+
+  const handleRowReject = (row: CompareJobDiffRow) => {
+    setCompareData((rows) =>
+      rows.map((r) => r.pk === row.pk ? { ...r, reviewStatus: 'REJECTED' } : r)
+    );
+    message.info(`Row ${row.pk} rejected`);
+  };
+
   const handleRunComparison = async (config: CompareJobRequest) => {
     setLoading(true);
     try {
@@ -357,6 +371,8 @@ function App() {
                   onOpenSqlReview={handleOpenSqlReview}
                   onReviewSelected={handleReviewSelected}
                   onBulkApproveSelected={handleBulkApproveSelected}
+                  onRowApprove={handleRowApprove}
+                  onRowReject={handleRowReject}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
