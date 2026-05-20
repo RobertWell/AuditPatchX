@@ -10,6 +10,7 @@ import type { CompareJobDiffRow } from '../types/api';
 const sampleRows: CompareJobDiffRow[] = [
   {
     pk: '1001',
+    pkMap: { ID: '1001' },
     status: 'UPDATE',
     changedColumns: 2,
     updatedBy: 'alice',
@@ -21,6 +22,7 @@ const sampleRows: CompareJobDiffRow[] = [
   },
   {
     pk: '1002',
+    pkMap: { ID: '1002' },
     status: 'INSERT',
     changedColumns: 1,
     updatedBy: 'bob',
