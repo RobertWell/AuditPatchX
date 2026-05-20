@@ -140,10 +140,10 @@ function App() {
 
   const handleRunComparison = async (config: CompareJobRequest) => {
     setLoading(true);
-    setCurrentCompareConfig(config);
     try {
       const response = await apiClient.compareJob(config);
       setCompareData(response.differences);
+      setCurrentCompareConfig(config);
     } catch (error: any) {
       message.error(`Compare failed: ${error.response?.data?.error || error.message}`);
     } finally {
