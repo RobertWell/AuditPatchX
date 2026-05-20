@@ -744,7 +744,92 @@ class DatabaseService(
             throw IllegalArgumentException("status must be APPROVED or REJECTED")
         }
         logger.info("REVIEW_DECISION pk=${request.pk} status=${request.status}")
+
+        if (request.status == "APPROVED") {
+            val (schema2, table2) = parseSchemaTable(request.tableTwo)
+            securityService.validateAndGetColumns(schema2, table2)
+            val columnMetadata = securityService.getDetailedColumnMetadata(schema2, table2)
+            val columnTypeMap = columnMetadata.associate { it.name.uppercase() to it.type }
+            when (request.rowStatus) {
+                "UPDATE" -> applyApproveUpdate(schema2, table2, request.pkMap, request.changes, columnTypeMap)
+                "INSERT" -> applyApproveInsert(schema2, table2, request.pkMap, request.changes, columnTypeMap)
+                else -> throw IllegalArgumentException("Unsupported rowStatus: ${request.rowStatus}")
+            }
+        }
+
         return CompareReviewResponse(pk = request.pk, status = request.status)
+    }
+
+    private fun applyApproveUpdate(
+        schema: String,
+        table: String,
+        pkMap: Map<String, String>,
+        changes: List<CompareJobChange>,
+        columnTypeMap: Map<String, String>
+    ) {
+        val setValues: Map<String, Any?> = changes.associate { change ->
+            change.column to (if (change.sourceValue == "NULL") null else change.sourceValue)
+        }
+        val updateStatement = buildUpdateStatement(schema, table, setValues, pkMap.keys, columnTypeMap)
+        jdbi.inTransaction<Unit, Exception> { handle ->
+            var update = handle.createUpdate(updateStatement.sql)
+            updateStatement.bindings.forEach { (key, value) -> update = update.bind(key, value) }
+            pkMap.forEach { (col, value) ->
+                val convertedValue = convertValueForBinding(value, columnTypeMap[col.uppercase()])
+                update = update.bind("pk_$col", convertedValue)
+            }
+            val rows = update.execute()
+            logger.info("APPROVE_UPDATE schema=$schema table=$table pk=$pkMap rows=$rows")
+        }
+    }
+
+    private fun applyApproveInsert(
+        schema: String,
+        table: String,
+        pkMap: Map<String, String>,
+        changes: List<CompareJobChange>,
+        columnTypeMap: Map<String, String>
+    ) {
+        val bindings = mutableMapOf<String, Any?>()
+        val columnValuePairs = mutableListOf<Pair<String, String>>()
+
+        pkMap.forEach { (col, value) ->
+            val colUpper = col.uppercase()
+            val colType = columnTypeMap[colUpper]
+            if (isClobColumn(colType)) {
+                columnValuePairs.add(colUpper to buildClobUpdateExpression(value))
+            } else {
+                val bindKey = "pk_$colUpper"
+                bindings[bindKey] = convertValueForBinding(value, colType)
+                columnValuePairs.add(colUpper to ":$bindKey")
+            }
+        }
+
+        changes.forEach { change ->
+            val colUpper = change.column.uppercase()
+            val colType = columnTypeMap[colUpper]
+            val rawValue = if (change.sourceValue == "NULL") null else change.sourceValue
+            when {
+                isClobColumn(colType) && rawValue != null -> columnValuePairs.add(colUpper to buildClobUpdateExpression(rawValue))
+                isClobColumn(colType) && rawValue == null -> columnValuePairs.add(colUpper to "NULL")
+                else -> {
+                    val bindKey = "col_$colUpper"
+                    bindings[bindKey] = convertValueForBinding(rawValue, colType)
+                    columnValuePairs.add(colUpper to ":$bindKey")
+                }
+            }
+        }
+
+        val colsList = columnValuePairs.joinToString(", ") { it.first }
+        val valsList = columnValuePairs.joinToString(", ") { it.second }
+        val sql = "INSERT INTO ${schema.uppercase()}.${table.uppercase()} ($colsList) VALUES ($valsList)"
+
+        jdbi.inTransaction<Unit, Exception> { handle ->
+            var insert = handle.createUpdate(sql)
+            bindings.forEach { (key, value) -> insert = insert.bind(key, value) }
+            val rows = insert.execute()
+            logger.info("APPROVE_INSERT schema=$schema table=$table pk=$pkMap rows=$rows")
+        }
     }
 }
 

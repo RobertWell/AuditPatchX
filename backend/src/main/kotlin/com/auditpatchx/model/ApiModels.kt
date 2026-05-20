@@ -157,7 +157,11 @@ data class SyncPairConfigInfo(
 
 data class CompareReviewRequest(
     val pk: String,
-    val status: String  // "APPROVED" or "REJECTED"
+    val status: String,  // "APPROVED" or "REJECTED"
+    val tableTwo: String,
+    val rowStatus: String,  // "UPDATE" or "INSERT"
+    val pkMap: Map<String, String>,
+    val changes: List<CompareJobChange>
 )
 
 data class CompareReviewResponse(
