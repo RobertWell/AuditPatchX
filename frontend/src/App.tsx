@@ -5,6 +5,7 @@ import { DataGrid } from './components/DataGrid';
 import { DiffView } from './components/DiffView';
 import apiClient from './services/api';
 import { getChangedFields } from './services/diffUtils';
+import { generateExportSql, downloadSqlFile } from './services/exportSql';
 import { TableMetadataResponse, CompareJobRequest, CompareJobDiffRow } from './types/api';
 import { ThemeMode } from './types/theme';
 
@@ -41,6 +42,7 @@ function App() {
   // === Figma App State ===
   const [currentPage, setCurrentPage] = useState<Page>('patches');
   const [compareData, setCompareData] = useState<CompareJobDiffRow[]>([]);
+  const [currentCompareConfig, setCurrentCompareConfig] = useState<CompareJobRequest | null>(null);
   const [sqlReview, setSqlReview] = useState<SqlReviewState>({
     isOpen: false,
     rowId: '',
@@ -138,6 +140,7 @@ function App() {
 
   const handleRunComparison = async (config: CompareJobRequest) => {
     setLoading(true);
+    setCurrentCompareConfig(config);
     try {
       const response = await apiClient.compareJob(config);
       setCompareData(response.differences);
@@ -146,6 +149,15 @@ function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExportSql = () => {
+    if (!currentCompareConfig || compareData.length === 0) {
+      message.warning('No comparison data to export');
+      return;
+    }
+    const sql = generateExportSql(compareData, currentCompareConfig);
+    downloadSqlFile(sql, `export-${Date.now()}.sql`);
   };
 
   // === Old AuditPatchX State ===
@@ -392,6 +404,7 @@ function App() {
                   onBulkApproveSelected={handleBulkApproveSelected}
                   onRowApprove={handleRowApprove}
                   onRowReject={handleRowReject}
+                  onExportSql={handleExportSql}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
