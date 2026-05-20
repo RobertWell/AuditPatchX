@@ -2,6 +2,7 @@ package com.auditpatchx.config
 
 import io.smallrye.config.ConfigMapping
 import io.smallrye.config.WithName
+import java.util.Optional
 
 @ConfigMapping(prefix = "sync-tables")
 interface SyncTableConfig {
@@ -16,7 +17,7 @@ interface SyncPairConfig {
     @WithName("pk-columns")
     fun pkColumns(): List<String>
     @WithName("exclude-columns")
-    fun excludeColumns(): List<String>
+    fun excludeColumns(): Optional<List<String>>
 }
 
 interface SyncTablesConfig {
@@ -25,4 +26,3 @@ interface SyncTablesConfig {
     @WithName("table-b")
     fun tableB(): String
 }
-
