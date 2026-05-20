@@ -110,4 +110,58 @@ VALUES (2, 'MATCHED', 'TARGET_USER', 'same text');
 INSERT INTO TESTUSER.COMPARE_SOURCE (ID, STATUS, UPDATED_BY, DESCRIPTION)
 VALUES (3, 'NEW', 'SOURCE_USER', 'source-only row');
 
+-- Comprehensive type tables for review approve integration tests
+CREATE TABLE TESTUSER.ALLTYPE_SOURCE (
+    ID          NUMBER(10)   PRIMARY KEY,
+    INT_VAL     NUMBER(10),
+    DEC_VAL     NUMBER(15,6),
+    STR_VAL     VARCHAR2(200),
+    DATE_VAL    DATE,
+    TS_VAL      TIMESTAMP(6),
+    CLOB_VAL    CLOB,
+    NULL_VAL    VARCHAR2(100)
+);
+
+CREATE TABLE TESTUSER.ALLTYPE_TARGET (
+    ID          NUMBER(10)   PRIMARY KEY,
+    INT_VAL     NUMBER(10),
+    DEC_VAL     NUMBER(15,6),
+    STR_VAL     VARCHAR2(200),
+    DATE_VAL    DATE,
+    TS_VAL      TIMESTAMP(6),
+    CLOB_VAL    CLOB,
+    NULL_VAL    VARCHAR2(100)
+);
+
+-- Row 10: UPDATE — source has rich values, target has stale values
+INSERT INTO TESTUSER.ALLTYPE_SOURCE (ID, INT_VAL, DEC_VAL, STR_VAL, DATE_VAL, TS_VAL, CLOB_VAL, NULL_VAL)
+VALUES (10, 42, 123.456789, 'source text',
+        TO_DATE('2023-06-15', 'YYYY-MM-DD'),
+        TIMESTAMP '2023-06-15 10:30:00.123456',
+        'short clob source', 'not null');
+
+INSERT INTO TESTUSER.ALLTYPE_TARGET (ID, INT_VAL, DEC_VAL, STR_VAL, DATE_VAL, TS_VAL, CLOB_VAL, NULL_VAL)
+VALUES (10, 1, 1.000000, 'old text',
+        TO_DATE('2020-01-01', 'YYYY-MM-DD'),
+        TIMESTAMP '2020-01-01 00:00:00.000000',
+        'old clob', 'old null value');
+
+-- Row 11: UPDATE NULL — source NULL_VAL is NULL, target has a value
+INSERT INTO TESTUSER.ALLTYPE_SOURCE (ID, STR_VAL, NULL_VAL)
+VALUES (11, 'source str', NULL);
+
+INSERT INTO TESTUSER.ALLTYPE_TARGET (ID, STR_VAL, NULL_VAL)
+VALUES (11, 'old str', 'has value');
+
+-- Row 12: UPDATE large CLOB — CLOB_VAL will be replaced with >4000 chars in test setup
+INSERT INTO TESTUSER.ALLTYPE_SOURCE (ID, CLOB_VAL)
+VALUES (12, 'placeholder');
+
+INSERT INTO TESTUSER.ALLTYPE_TARGET (ID, CLOB_VAL)
+VALUES (12, 'old clob');
+
+-- Row 20: INSERT — source only, no row in target
+INSERT INTO TESTUSER.ALLTYPE_SOURCE (ID, INT_VAL, STR_VAL, CLOB_VAL)
+VALUES (20, 99, 'insert me', 'clob to insert');
+
 COMMIT;
