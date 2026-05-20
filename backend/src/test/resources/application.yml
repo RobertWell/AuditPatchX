@@ -48,6 +48,36 @@ allowlist:
       table: ALLTYPE_TARGET
       pk-columns:
         - ID
+    - schema: TESTUSER
+      table: COMPOSITE_SOURCE
+      pk-columns:
+        - REGION_ID
+        - DEPT_CODE
+    - schema: TESTUSER
+      table: COMPOSITE_TARGET
+      pk-columns:
+        - REGION_ID
+        - DEPT_CODE
+    - schema: TESTUSER
+      table: TSPK_SOURCE
+      pk-columns:
+        - EVENT_ID
+        - EVENT_TS
+    - schema: TESTUSER
+      table: TSPK_TARGET
+      pk-columns:
+        - EVENT_ID
+        - EVENT_TS
+    - schema: TESTUSER
+      table: TZPK_SOURCE
+      pk-columns:
+        - EVENT_ID
+        - EVENT_TS
+    - schema: TESTUSER
+      table: TZPK_TARGET
+      pk-columns:
+        - EVENT_ID
+        - EVENT_TS
 
 sync-tables:
   pairs:
@@ -76,4 +106,31 @@ sync-tables:
         table-b: TESTUSER.ALLTYPE_TARGET
       pk-columns:
         - ID
+      exclude-columns: []
+    - pair-name: Composite Source Target
+      db: TEST_ORACLE
+      tables:
+        table-a: TESTUSER.COMPOSITE_SOURCE
+        table-b: TESTUSER.COMPOSITE_TARGET
+      pk-columns:
+        - REGION_ID
+        - DEPT_CODE
+      exclude-columns: []
+    - pair-name: TimestampPK Source Target
+      db: TEST_ORACLE
+      tables:
+        table-a: TESTUSER.TSPK_SOURCE
+        table-b: TESTUSER.TSPK_TARGET
+      pk-columns:
+        - EVENT_ID
+        - EVENT_TS
+      exclude-columns: []
+    - pair-name: TimezoneTimestampPK Source Target
+      db: TEST_ORACLE
+      tables:
+        table-a: TESTUSER.TZPK_SOURCE
+        table-b: TESTUSER.TZPK_TARGET
+      pk-columns:
+        - EVENT_ID
+        - EVENT_TS
       exclude-columns: []

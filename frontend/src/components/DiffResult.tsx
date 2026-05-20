@@ -118,6 +118,35 @@ export function DiffResult({
     );
   };
 
+  const renderPrimaryKey = (row: CompareJobDiffRow) => {
+    const pkEntries = Object.entries(row.pkMap || {});
+
+    if (pkEntries.length === 0) {
+      return <span className="font-mono text-sm">{row.pk}</span>;
+    }
+
+    if (pkEntries.length === 1) {
+      const [column, value] = pkEntries[0];
+      return (
+        <div className="inline-flex max-w-full items-center gap-2 rounded-md border bg-muted/30 px-2 py-1">
+          <span className="text-[10px] font-semibold uppercase text-muted-foreground">{column}</span>
+          <span className="truncate font-mono text-sm">{value}</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid min-w-[24rem] max-w-[34rem] grid-cols-1 gap-1.5 xl:grid-cols-3">
+        {pkEntries.map(([column, value]) => (
+          <div key={column} className="min-w-0 rounded-md border bg-muted/30 px-2 py-1">
+            <div className="text-[10px] font-semibold uppercase text-muted-foreground">{column}</div>
+            <div className="truncate font-mono text-xs" title={value}>{value}</div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 overflow-auto p-6 bg-background">
       <div className="mb-4 flex items-center justify-between">
@@ -188,7 +217,7 @@ export function DiffResult({
                     onCheckedChange={(checked) => toggleSelectAll(checked === true)}
                   />
                 </th>
-                <th className="text-left p-3">Primary Key</th>
+                <th className="min-w-[22rem] text-left p-3">Primary Key</th>
                 <th className="text-left p-3">Status</th>
                 <th className="text-left p-3">Changed</th>
                 <th className="text-left p-3">Updated By</th>
@@ -225,7 +254,7 @@ export function DiffResult({
                           onCheckedChange={() => toggleSelectRow(row.pk)}
                         />
                       </td>
-                      <td className="p-3 font-mono text-sm">{row.pk}</td>
+                      <td className="p-3">{renderPrimaryKey(row)}</td>
                       <td className="p-3">{getStatusBadge(row.status)}</td>
                       <td className="p-3">
                         <span className="text-sm">{row.changedColumns} columns</span>

@@ -18,7 +18,7 @@ import { SqlReviewPanel } from './components/SqlReviewPanel';
 
 const { Title } = Typography;
 
-type Page = 'patches' | 'audit' | 'compare' | 'review' | 'history' | 'conflicts' | 'rules';
+type Page = 'patches' | 'audit' | 'compare' | 'review' | 'conflicts' | 'rules';
 
 interface SqlReviewState {
   isOpen: boolean;
