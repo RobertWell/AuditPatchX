@@ -271,14 +271,25 @@ class DatabaseService(
                 val pkString = request.syncPk.joinToString("-") { pkValues[it].toString() }
 
                 if (!targetRowOpt.isPresent) {
+                    val insertChanges = sourceRow
+                        .filter { (col, _) -> !request.syncPk.map { it.uppercase() }.contains(col) }
+                        .map { (col, srcVal) ->
+                            CompareJobChange(
+                                column = col,
+                                sourceValue = srcVal?.toString() ?: "NULL",
+                                targetValue = "NULL",
+                                isLongText = (srcVal?.toString()?.length ?: 0) > 100
+                            )
+                        }
                     differences.add(
                         CompareJobDiffRow(
                             pk = pkString,
+                            pkMap = request.syncPk.associateWith { pkValues[it]?.toString() ?: "" },
                             status = "INSERT",
-                            changedColumns = sourceRow.size,
+                            changedColumns = insertChanges.size,
                             updatedBy = "system",
                             reviewStatus = "PENDING",
-                            changes = emptyList()
+                            changes = insertChanges
                         )
                     )
                 } else {
@@ -307,6 +318,7 @@ class DatabaseService(
                         differences.add(
                             CompareJobDiffRow(
                                 pk = pkString,
+                                pkMap = request.syncPk.associateWith { pkValues[it]?.toString() ?: "" },
                                 status = "UPDATE",
                                 changedColumns = changes.size,
                                 updatedBy = "system",

@@ -112,6 +112,7 @@ data class CompareJobChange(
 
 data class CompareJobDiffRow(
     val pk: String,
+    val pkMap: Map<String, String>,
     val status: String,
     val changedColumns: Int,
     val updatedBy: String,
