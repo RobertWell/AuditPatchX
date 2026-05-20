@@ -44,7 +44,7 @@ describe('diffResultSelection', () => {
       checked: false,
       indeterminate: true,
       canReviewSingle: true,
-      canBulkApprove: false,
+      canBulkApprove: true,
     });
 
     expect(getSelectionState(2, 2)).toEqual({

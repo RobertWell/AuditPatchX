@@ -90,7 +90,7 @@ export function DiffResult({
   };
 
   const handleBulkApproveSelected = () => {
-    if (selectedRowData.length <= 1) return;
+    if (selectedRowData.length === 0) return;
     onBulkApproveSelected?.(selectedRowData);
   };
 

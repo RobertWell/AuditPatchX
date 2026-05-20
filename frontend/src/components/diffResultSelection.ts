@@ -12,7 +12,7 @@ export function getSelectionState(totalRows: number, selectedRows: number): Sele
     checked: totalRows > 0 && selectedRows === totalRows,
     indeterminate: selectedRows > 0 && selectedRows < totalRows,
     canReviewSingle: selectedRows === 1,
-    canBulkApprove: selectedRows > 1,
+    canBulkApprove: selectedRows >= 1,
   };
 }
 
