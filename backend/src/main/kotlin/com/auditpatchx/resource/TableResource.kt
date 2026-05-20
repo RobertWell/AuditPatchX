@@ -237,8 +237,9 @@ class TableResource(
                 .build()
         } catch (e: Exception) {
             logger.error("Review failed", e)
+            val rootCause = generateSequence(e) { it.cause }.last()
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ErrorResponse("Review failed"))
+                .entity(ErrorResponse("Review failed: ${rootCause.javaClass.simpleName}: ${rootCause.message}"))
                 .build()
         }
     }
