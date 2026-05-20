@@ -78,10 +78,12 @@ function App() {
       await apiClient.reviewCompareRow({
         pk: review.rowId,
         status,
+        tableOne: currentCompareConfig?.tableOne ?? '',
         tableTwo: currentCompareConfig?.tableTwo ?? '',
         rowStatus: row?.status ?? '',
+        syncPk: currentCompareConfig?.syncPk ?? [],
+        ignoreColumns: currentCompareConfig?.ignoreColumns ?? [],
         pkMap: row?.pkMap ?? {},
-        changes: row?.changes ?? [],
       });
       setCompareData((rows) =>
         rows.map((row) =>
@@ -110,10 +112,12 @@ function App() {
           apiClient.reviewCompareRow({
             pk: row.pk,
             status: 'APPROVED',
+            tableOne: currentCompareConfig?.tableOne ?? '',
             tableTwo: currentCompareConfig?.tableTwo ?? '',
             rowStatus: row.status,
+            syncPk: currentCompareConfig?.syncPk ?? [],
+            ignoreColumns: currentCompareConfig?.ignoreColumns ?? [],
             pkMap: row.pkMap,
-            changes: row.changes,
           })
         )
       );
@@ -135,10 +139,12 @@ function App() {
       await apiClient.reviewCompareRow({
         pk: row.pk,
         status: 'APPROVED',
+        tableOne: currentCompareConfig?.tableOne ?? '',
         tableTwo: currentCompareConfig?.tableTwo ?? '',
         rowStatus: row.status,
+        syncPk: currentCompareConfig?.syncPk ?? [],
+        ignoreColumns: currentCompareConfig?.ignoreColumns ?? [],
         pkMap: row.pkMap,
-        changes: row.changes,
       });
       setCompareData((rows) =>
         rows.map((r) => r.pk === row.pk ? { ...r, reviewStatus: 'APPROVED' } : r)
@@ -154,10 +160,12 @@ function App() {
       await apiClient.reviewCompareRow({
         pk: row.pk,
         status: 'REJECTED',
+        tableOne: currentCompareConfig?.tableOne ?? '',
         tableTwo: currentCompareConfig?.tableTwo ?? '',
         rowStatus: row.status,
+        syncPk: currentCompareConfig?.syncPk ?? [],
+        ignoreColumns: currentCompareConfig?.ignoreColumns ?? [],
         pkMap: row.pkMap,
-        changes: row.changes,
       });
       setCompareData((rows) =>
         rows.map((r) => r.pk === row.pk ? { ...r, reviewStatus: 'REJECTED' } : r)
