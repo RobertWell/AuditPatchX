@@ -124,6 +124,19 @@
             <version>3.25.1</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- OIDC -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-oidc</artifactId>
+        </dependency>
+
+        <!-- Test security - @TestSecurity annotation -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-test-security</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
