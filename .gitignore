@@ -15,6 +15,17 @@
 Thumbs.db
 package-lock.json
 
+# Node / e2e
+node_modules/
+
+# Playwright test artifacts
+test-results/
+playwright-report/
+
+# Quarkus dev-mode generated sources (leak to project root during quarkus:dev)
+io/
+backend/io/
+
 # Local logs
 backend/logs/
 
