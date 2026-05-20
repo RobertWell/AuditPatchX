@@ -62,4 +62,38 @@ describe('generateExportSql', () => {
   it('returns empty string for empty input', () => {
     expect(generateExportSql([], config)).toBe('');
   });
+
+  it('renders NULL (not quoted) for NULL source values', () => {
+    const row: CompareJobDiffRow = {
+      ...updateRow,
+      changes: [{ column: 'DEPT', sourceValue: 'NULL', targetValue: 'Engineering', isLongText: false }],
+    };
+    const sql = generateExportSql([row], config);
+    expect(sql).toContain('DEPT = NULL');
+    expect(sql).not.toContain("'NULL'");
+  });
+
+  it('escapes single quotes in values', () => {
+    const row: CompareJobDiffRow = {
+      ...updateRow,
+      changes: [{ column: 'NAME', sourceValue: "O'Brien", targetValue: 'x', isLongText: false }],
+    };
+    const sql = generateExportSql([row], config);
+    expect(sql).toContain("NAME = 'O''Brien'");
+  });
+
+  it('generates DELETE statement for DELETE rows', () => {
+    const deleteRow: CompareJobDiffRow = {
+      pk: '55',
+      pkMap: { ID: '55' },
+      status: 'DELETE',
+      changedColumns: 0,
+      updatedBy: 'system',
+      reviewStatus: 'PENDING',
+      changes: [],
+    };
+    const sql = generateExportSql([deleteRow], config);
+    expect(sql).toContain('DELETE FROM schema2.employees');
+    expect(sql).toContain("WHERE ID = '55'");
+  });
 });
