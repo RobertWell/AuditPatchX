@@ -1,4 +1,6 @@
 quarkus:
+  oidc:
+    enabled: false
   datasource:
     db-kind: oracle
     jdbc:
@@ -78,6 +80,9 @@ allowlist:
       pk-columns:
         - EVENT_ID
         - EVENT_TS
+
+auth:
+  mode: mock
 
 sync-tables:
   pairs:

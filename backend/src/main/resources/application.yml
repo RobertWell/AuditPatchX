@@ -1,4 +1,11 @@
 quarkus:
+  oidc:
+    auth-server-url: ${KEYCLOAK_URL:https://keycloak.local.test}/realms/${KEYCLOAK_REALM:auditpatchx}
+    client-id: ${KEYCLOAK_CLIENT_ID:auditpatchx-app}
+    credentials:
+      secret: ${KEYCLOAK_CLIENT_SECRET:auditpatchx-secret}
+    application-type: service
+    enabled: ${OIDC_ENABLED:true}
   datasource:
     db-kind: oracle
     jdbc:
@@ -61,6 +68,9 @@ allowlist:
     #   pk-columns:
     #     - EMPLOYEE_ID
     #     - START_DATE
+
+auth:
+  mode: ${AUTH_MODE:oidc}
 
 ui:
   readonly:
