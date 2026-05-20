@@ -271,8 +271,10 @@ class DatabaseService(
                 val pkString = request.syncPk.joinToString("-") { pkValues[it].toString() }
 
                 if (!targetRowOpt.isPresent) {
+                    val syncPkUpper = request.syncPk.map { it.uppercase() }.toSet()
+                    val ignoreUpper = request.ignoreColumns.map { it.uppercase() }.toSet()
                     val insertChanges = sourceRow
-                        .filter { (col, _) -> !request.syncPk.map { it.uppercase() }.contains(col) }
+                        .filter { (col, _) -> !syncPkUpper.contains(col) && !ignoreUpper.contains(col) }
                         .map { (col, srcVal) ->
                             CompareJobChange(
                                 column = col,
@@ -284,7 +286,7 @@ class DatabaseService(
                     differences.add(
                         CompareJobDiffRow(
                             pk = pkString,
-                            pkMap = request.syncPk.associateWith { pkValues[it]?.toString() ?: "" },
+                            pkMap = request.syncPk.associate { it.uppercase() to (pkValues[it]?.toString() ?: "") },
                             status = "INSERT",
                             changedColumns = insertChanges.size,
                             updatedBy = "system",
@@ -318,7 +320,7 @@ class DatabaseService(
                         differences.add(
                             CompareJobDiffRow(
                                 pk = pkString,
-                                pkMap = request.syncPk.associateWith { pkValues[it]?.toString() ?: "" },
+                                pkMap = request.syncPk.associate { it.uppercase() to (pkValues[it]?.toString() ?: "") },
                                 status = "UPDATE",
                                 changedColumns = changes.size,
                                 updatedBy = "system",
