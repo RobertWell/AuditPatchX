@@ -101,58 +101,69 @@ function App() {
     handleOpenSqlReview(row, column);
   };
 
-  const handleBulkApproveSelected = async (selectedRows: CompareJobDiffRow[]) => {
-    if (selectedRows.length === 0) {
+  const approveCompareRows = async (rowsToApprove: CompareJobDiffRow[]) => {
+    await Promise.all(
+      rowsToApprove.map((row) =>
+        apiClient.reviewCompareRow({
+          pk: row.pk,
+          status: 'APPROVED',
+          tableOne: currentCompareConfig?.tableOne ?? '',
+          tableTwo: currentCompareConfig?.tableTwo ?? '',
+          rowStatus: row.status,
+          syncPk: currentCompareConfig?.syncPk ?? [],
+          ignoreColumns: currentCompareConfig?.ignoreColumns ?? [],
+          pkMap: row.pkMap,
+        })
+      )
+    );
+    setCompareData((rows) =>
+      rows.map((row) =>
+        rowsToApprove.some((approvedRow) => approvedRow.pk === row.pk)
+          ? { ...row, reviewStatus: 'APPROVED' }
+          : row
+      )
+    );
+    message.success(`Approved ${rowsToApprove.length} row(s)`);
+  };
+
+  const confirmApproveRows = (rowsToApprove: CompareJobDiffRow[]) => {
+    if (rowsToApprove.length === 0) {
       message.warning('No rows selected');
       return;
     }
-    try {
-      await Promise.all(
-        selectedRows.map((row) =>
-          apiClient.reviewCompareRow({
-            pk: row.pk,
-            status: 'APPROVED',
-            tableOne: currentCompareConfig?.tableOne ?? '',
-            tableTwo: currentCompareConfig?.tableTwo ?? '',
-            rowStatus: row.status,
-            syncPk: currentCompareConfig?.syncPk ?? [],
-            ignoreColumns: currentCompareConfig?.ignoreColumns ?? [],
-            pkMap: row.pkMap,
-          })
-        )
-      );
-      setCompareData((rows) =>
-        rows.map((row) =>
-          selectedRows.some((s) => s.pk === row.pk)
-            ? { ...row, reviewStatus: 'APPROVED' }
-            : row
-        )
-      );
-      message.success(`Approved ${selectedRows.length} selected item(s)`);
-    } catch (error: any) {
-      message.error(`Approve failed: ${error.response?.data?.error || error.message}`);
-    }
+
+    Modal.confirm({
+      title: 'Approve Changes',
+      okText: 'Approve',
+      cancelText: 'Cancel',
+      content: (
+        <div className="space-y-2">
+          <p className="font-mono text-sm">
+            {currentCompareConfig?.tableOne ?? '-'} -&gt; {currentCompareConfig?.tableTwo ?? '-'}
+          </p>
+          <p>This action will apply changes to {rowsToApprove.length} row(s).</p>
+          <p className="text-sm text-muted-foreground">
+            Changed columns: {rowsToApprove.reduce((total, row) => total + row.changedColumns, 0)}
+          </p>
+        </div>
+      ),
+      onOk: async () => {
+        try {
+          await approveCompareRows(rowsToApprove);
+        } catch (error: any) {
+          message.error(`Approve failed: ${error.response?.data?.error || error.message}`);
+          throw error;
+        }
+      },
+    });
   };
 
-  const handleRowApprove = async (row: CompareJobDiffRow) => {
-    try {
-      await apiClient.reviewCompareRow({
-        pk: row.pk,
-        status: 'APPROVED',
-        tableOne: currentCompareConfig?.tableOne ?? '',
-        tableTwo: currentCompareConfig?.tableTwo ?? '',
-        rowStatus: row.status,
-        syncPk: currentCompareConfig?.syncPk ?? [],
-        ignoreColumns: currentCompareConfig?.ignoreColumns ?? [],
-        pkMap: row.pkMap,
-      });
-      setCompareData((rows) =>
-        rows.map((r) => r.pk === row.pk ? { ...r, reviewStatus: 'APPROVED' } : r)
-      );
-      message.success(`Row ${row.pk} approved`);
-    } catch (error: any) {
-      message.error(`Approve failed: ${error.response?.data?.error || error.message}`);
-    }
+  const handleBulkApproveSelected = (selectedRows: CompareJobDiffRow[]) => {
+    confirmApproveRows(selectedRows);
+  };
+
+  const handleRowApprove = (row: CompareJobDiffRow) => {
+    confirmApproveRows([row]);
   };
 
   const handleRowReject = async (row: CompareJobDiffRow) => {
@@ -187,6 +198,11 @@ function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCompareConfigChange = () => {
+    setCompareData([]);
+    setCurrentCompareConfig(null);
   };
 
   const handleExportSql = () => {
@@ -426,7 +442,7 @@ function App() {
         return (
           <div className="flex flex-col h-full overflow-hidden bg-background">
             <div className="shrink-0 border-b border-border shadow-sm z-10 max-h-[50%] overflow-y-auto">
-              <CompareJob onStartReview={handleRunComparison} />
+              <CompareJob onStartReview={handleRunComparison} onConfigChange={handleCompareConfigChange} />
             </div>
             <div className="flex-1 overflow-hidden relative">
               {loading ? (
