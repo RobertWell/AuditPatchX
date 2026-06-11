@@ -95,6 +95,22 @@ class SecurityValidationService(
     }
 
     /**
+     * Returns the columns that actually exist in the DB — no allowlist check.
+     * Use this for read-only operations (compare, validate) where any accessible
+     * table is fine. Throws SecurityException if the table doesn't exist.
+     */
+    fun getColumnsFromDb(schema: String, table: String): Set<String> {
+        val key = "$schema.$table".uppercase()
+        columnMetadataCache[key]?.let { return it }
+        val columns = fetchColumnMetadata(schema, table)
+        if (columns.isEmpty()) {
+            throw SecurityException("Table $schema.$table does not exist or has no accessible columns")
+        }
+        columnMetadataCache[key] = columns
+        return columns
+    }
+
+    /**
      * Fetches column metadata from database using DatabaseMetaData
      */
     private fun fetchColumnMetadata(schema: String, table: String): Set<String> {

@@ -270,15 +270,15 @@ class DatabaseService(
         val (schema1, table1) = parseSchemaTable(request.tableOne)
         val (schema2, table2) = parseSchemaTable(request.tableTwo)
 
-        val allowedColumns1 = securityService.validateAndGetColumns(schema1, table1)
-        val allowedColumns2 = securityService.validateAndGetColumns(schema2, table2)
+        // Compare is read-only — validate column existence against real DB metadata,
+        // not the patch allowlist (which only governs write access).
+        val columns1 = securityService.getColumnsFromDb(schema1, table1)
+        val columns2 = securityService.getColumnsFromDb(schema2, table2)
 
-        securityService.validateColumns(allowedColumns1, request.syncPk)
-        securityService.validateColumns(allowedColumns2, request.syncPk)
-        securityService.validatePkColumns(schema1, table1, request.syncPk.toSet())
-        securityService.validatePkColumns(schema2, table2, request.syncPk.toSet())
-        securityService.validateColumns(allowedColumns1, request.ignoreColumns)
-        securityService.validateColumns(allowedColumns2, request.ignoreColumns)
+        securityService.validateColumns(columns1, request.syncPk)
+        securityService.validateColumns(columns2, request.syncPk)
+        securityService.validateColumns(columns1, request.ignoreColumns)
+        securityService.validateColumns(columns2, request.ignoreColumns)
 
         val columnMetadata1 = securityService.getDetailedColumnMetadata(schema1, table1)
         val columnTypeMap1 = columnMetadata1.associate { it.name.uppercase() to it.type }
@@ -294,7 +294,7 @@ class DatabaseService(
             .filter { (col, value) -> value.isNotBlank() }
 
         if (activeFilter.isNotEmpty()) {
-            securityService.validateColumns(allowedColumns1, activeFilter.keys)
+            securityService.validateColumns(columns1, activeFilter.keys)
         }
 
         return jdbi.inTransaction<CompareJobResponse, Exception> { handle ->
@@ -415,15 +415,15 @@ class DatabaseService(
         val (schema1, table1) = parseSchemaTable(request.tableOne)
         val (schema2, table2) = parseSchemaTable(request.tableTwo)
 
-        securityService.validateAndGetColumns(schema1, table1)
-        securityService.validateAndGetColumns(schema2, table2)
+        // Validation is read-only — check tables exist via DB metadata, not allowlist
+        securityService.getColumnsFromDb(schema1, table1)
+        securityService.getColumnsFromDb(schema2, table2)
 
+        // PKs come from the allowlist if registered, else empty (caller provides them at compare time)
         val pk1 = (allowlistService.getTableConfig(schema1, table1)?.pkColumns() ?: emptyList())
-            .map { it.uppercase() }
-            .toSet()
+            .map { it.uppercase() }.toSet()
         val pk2 = (allowlistService.getTableConfig(schema2, table2)?.pkColumns() ?: emptyList())
-            .map { it.uppercase() }
-            .toSet()
+            .map { it.uppercase() }.toSet()
 
         val tableOneColumns = loadOracleColumnTypes(schema1, table1)
         val tableTwoColumns = loadOracleColumnTypes(schema2, table2)
@@ -837,18 +837,19 @@ class DatabaseService(
             val (schema1, table1) = parseSchemaTable(request.tableOne)
             val (schema2, table2) = parseSchemaTable(request.tableTwo)
 
-            val allowedCols1 = securityService.validateAndGetColumns(schema1, table1)
-            val allowedCols2 = securityService.validateAndGetColumns(schema2, table2)
+            // Source (tableOne) is read-only — validate against DB metadata only.
+            // Target (tableTwo) gets written to — must be in the patch allowlist.
+            val sourceCols = securityService.getColumnsFromDb(schema1, table1)
+            val targetCols = securityService.validateAndGetColumns(schema2, table2)
 
-            // Validate syncPk columns against both table allowlists
-            securityService.validateColumns(allowedCols1, request.syncPk)
-            securityService.validateColumns(allowedCols2, request.syncPk)
+            securityService.validateColumns(sourceCols, request.syncPk)
+            securityService.validateColumns(targetCols, request.syncPk)
 
             val syncPkUpper = request.syncPk.map { it.uppercase() }.toSet()
             // Columns present in both tables. Ignore columns are excluded from diff detection,
             // but approval must still copy them so audit/update/hash fields stay current.
-            val cols2Set = allowedCols2.map { it.uppercase() }.toSet()
-            val syncColumns = allowedCols1.map { it.uppercase() }
+            val cols2Set = targetCols.map { it.uppercase() }.toSet()
+            val syncColumns = sourceCols.map { it.uppercase() }
                 .filter { it in cols2Set }
             val dataColumns = syncColumns.filter { it !in syncPkUpper }
 
