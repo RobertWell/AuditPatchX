@@ -1,4 +1,10 @@
 quarkus:
+  # External config overlay — ArgoCD mounts a ConfigMap here to inject
+  # environment-specific allowlist and sync-table pairs.
+  # Set CONFIG_LOCATIONS=/app/config/application.yaml in production.
+  config:
+    locations: ${CONFIG_LOCATIONS:}
+
   datasource:
     db-kind: oracle
     jdbc:
@@ -13,15 +19,14 @@ quarkus:
       methods: "GET,POST,PUT,DELETE,OPTIONS"
       headers: "*"
   log:
-    # Valid levels: OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL
-    # (Do not set to `false` — it will crash startup because it's not a log level.)
     level: ${LOG_LEVEL:INFO}
     console:
       enable: ${LOG_CONSOLE_ENABLE:true}
-      json: false
+      json: ${LOG_JSON:false}
       format: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%c{2.}] (%t) %s%e%n"
 
-# Table allowlist configuration
+# Table allowlist — override via CONFIG_LOCATIONS in production.
+# Provide a minimal valid default for local dev (adjust to your schema).
 allowlist:
   tables:
     - schema: TRDMGMR
@@ -32,78 +37,14 @@ allowlist:
       table: TRANSACTIONS
       pk-columns:
         - TRANSACTION_ID
-    - schema: TRDMGMR
-      table: RECONCILE_LOG
-      pk-columns:
-        - LOG_ID
-    - schema: TRDMGMR
-      table: RECON_MULTI_PK
-      pk-columns:
-        - BATCH_ID
-        - REGION_CODE
-        - EFFECTIVE_TS
-    - schema: TRDMGMR_UAT
-      table: TRANSACTIONS
-      pk-columns:
-        - TRANSACTION_ID
-    - schema: TRDMGMR_UAT
-      table: RECONCILE_LOG
-      pk-columns:
-        - LOG_ID
-    - schema: TRDMGMR_UAT
-      table: RECON_MULTI_PK
-      pk-columns:
-        - BATCH_ID
-        - REGION_CODE
-        - EFFECTIVE_TS
-    # - schema: HR
-    #   table: JOB_HISTORY
-    #   pk-columns:
-    #     - EMPLOYEE_ID
-    #     - START_DATE
 
 ui:
   readonly:
-    # Global readonly columns to protect from patch update.
     columns: UPDATED_AT,UPDATED_BY,CREATED_AT,CREATED_BY
   diff-policy:
-    # Optional column list ignored for row comparison in frontend diff workflow.
     exclude-columns: []
-    # Optional strict include list. Keep empty to include all non-excluded fields.
     include-columns: []
 
+# Sync pairs — override via CONFIG_LOCATIONS in production.
 sync-tables:
-  pairs:
-    - pair-name: Sync Prod and UAT
-      db: ORACLE_MAIN
-      tables:
-        table-a: TRDMGMR.TRANSACTIONS
-        table-b: TRDMGMR_UAT.TRANSACTIONS
-      pk-columns:
-        - TRANSACTION_ID
-      # Optional list ignored for row comparison when deciding identical rows.
-      exclude-columns:
-        - UPDATED_BY
-        - UPDATED_AT
-    - pair-name: Reconcile Log Prod and UAT
-      db: ORACLE_MAIN
-      tables:
-        table-a: TRDMGMR.RECONCILE_LOG
-        table-b: TRDMGMR_UAT.RECONCILE_LOG
-      pk-columns:
-        - LOG_ID
-      exclude-columns:
-        - UPDATED_BY
-        - UPDATED_AT
-    - pair-name: Multi PK Reconcile Prod and UAT
-      db: ORACLE_MAIN
-      tables:
-        table-a: TRDMGMR.RECON_MULTI_PK
-        table-b: TRDMGMR_UAT.RECON_MULTI_PK
-      pk-columns:
-        - BATCH_ID
-        - REGION_CODE
-        - EFFECTIVE_TS
-      exclude-columns:
-        - UPDATED_BY
-        - UPDATED_AT
+  pairs: []

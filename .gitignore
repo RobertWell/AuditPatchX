@@ -20,3 +20,8 @@ backend/logs/
 
 # Frontend build output copied into the backend during CI/deploy
 backend/src/main/resources/META-INF/resources/
+backend/io/
+io/
+test-results/
+.env
+config/

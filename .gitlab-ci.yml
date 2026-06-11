@@ -1,0 +1,86 @@
+default:
+  interruptible: true
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  DOCKER_IMAGE: roguerzzz123/auditpatchx
+
+stages:
+  - test
+  - build
+
+# ── Backend tests (Oracle Free testcontainer) ────────────────────────────────
+backend-tests:
+  stage: test
+  tags:
+    - privileged
+  image: maven:3.9-eclipse-temurin-21
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_TLS_VERIFY: 1
+    DOCKER_CERT_PATH: "/certs/client"
+    TESTCONTAINERS_RYUK_DISABLED: "true"
+  cache:
+    key: maven-$CI_COMMIT_REF_SLUG
+    paths:
+      - .m2/repository
+  before_script:
+    - cd backend
+  script:
+    - mvn test -B
+  artifacts:
+    when: always
+    reports:
+      junit: backend/target/surefire-reports/TEST-*.xml
+    paths:
+      - backend/target/surefire-reports/
+    expire_in: 7 days
+  timeout: 20 minutes
+
+# ── Frontend tests ────────────────────────────────────────────────────────────
+frontend-tests:
+  stage: test
+  image: node:20-alpine
+  cache:
+    key: node-$CI_COMMIT_REF_SLUG
+    paths:
+      - frontend/node_modules
+  before_script:
+    - cd frontend
+    - npm ci --prefer-offline
+  script:
+    - npx vitest run
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 1 day
+  timeout: 10 minutes
+
+# ── Docker image build & push ─────────────────────────────────────────────────
+build-image:
+  stage: build
+  tags:
+    - privileged
+  image: docker:24
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_TLS_VERIFY: 1
+    DOCKER_CERT_PATH: "/certs/client"
+  needs:
+    - backend-tests
+    - frontend-tests
+  script:
+    - docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_TOKEN"
+    - docker build -t $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA -t $DOCKER_IMAGE:latest .
+    - docker push $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker push $DOCKER_IMAGE:latest
+  only:
+    - main
+  timeout: 20 minutes
