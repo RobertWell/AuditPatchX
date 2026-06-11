@@ -49,6 +49,14 @@ allowlist:
       pk-columns:
         - ID
     - schema: TESTUSER
+      table: DIRECTION_A
+      pk-columns:
+        - ID
+    - schema: TESTUSER
+      table: DIRECTION_B
+      pk-columns:
+        - ID
+    - schema: TESTUSER
       table: COMPOSITE_SOURCE
       pk-columns:
         - REGION_ID

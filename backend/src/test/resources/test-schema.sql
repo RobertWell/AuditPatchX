@@ -248,3 +248,44 @@ INSERT INTO TESTUSER.TZPK_SOURCE (EVENT_ID, EVENT_TS, PAYLOAD)
 VALUES (3, TO_TIMESTAMP_TZ('2023-06-16 08:00:00 +08:00', 'YYYY-MM-DD HH24:MI:SS TZH:TZM'), 'utc8 insert payload');
 
 COMMIT;
+
+-- ============================================================
+-- Direction-sensitivity tables
+-- Used to verify A→B vs B→A produce different diffs and that
+-- approval writes to the correct target in each direction.
+-- ============================================================
+CREATE TABLE TESTUSER.DIRECTION_A (
+    ID    NUMBER(10) PRIMARY KEY,
+    VALUE VARCHAR2(100)
+);
+
+CREATE TABLE TESTUSER.DIRECTION_B (
+    ID    NUMBER(10) PRIMARY KEY,
+    VALUE VARCHAR2(100)
+);
+
+-- ID 1: exists in BOTH with DIFFERENT values
+--   A→B diff: sourceValue='a-val-1', targetValue='b-val-1'
+--   B→A diff: sourceValue='b-val-1', targetValue='a-val-1'
+INSERT INTO TESTUSER.DIRECTION_A VALUES (1, 'a-val-1');
+INSERT INTO TESTUSER.DIRECTION_B VALUES (1, 'b-val-1');
+
+-- ID 2: exists in BOTH with IDENTICAL values — must not appear in any diff
+INSERT INTO TESTUSER.DIRECTION_A VALUES (2, 'same-value');
+INSERT INTO TESTUSER.DIRECTION_B VALUES (2, 'same-value');
+
+-- ID 10: only in A — A→B shows INSERT; B→A does NOT show this row
+INSERT INTO TESTUSER.DIRECTION_A VALUES (10, 'a-only');
+
+-- ID 20: only in B — B→A shows INSERT; A→B does NOT show this row
+INSERT INTO TESTUSER.DIRECTION_B VALUES (20, 'b-only');
+
+-- ID 30: both present, different — dedicated to A→B UPDATE approve test
+INSERT INTO TESTUSER.DIRECTION_A VALUES (30, 'a-val-30');
+INSERT INTO TESTUSER.DIRECTION_B VALUES (30, 'b-val-30');
+
+-- ID 40: both present, different — dedicated to B→A UPDATE approve test
+INSERT INTO TESTUSER.DIRECTION_A VALUES (40, 'a-val-40');
+INSERT INTO TESTUSER.DIRECTION_B VALUES (40, 'b-val-40');
+
+COMMIT;

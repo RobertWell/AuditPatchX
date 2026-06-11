@@ -560,4 +560,186 @@ class CompareReviewServiceTest {
             assertThat(diffsAfter.none { it.pkMap["EVENT_ID"] == "3" && it.status == "INSERT" }).isTrue()
         }
     }
+
+    // -----------------------------------------------------------------------
+    // Direction-sensitivity: compare integrity and approve correctness
+    // -----------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Direction Sensitivity — A→B vs B→A")
+    inner class CompareDirectionTests {
+
+        private val aToB = CompareJobRequest(
+            tableOne = "TESTUSER.DIRECTION_A",
+            tableTwo = "TESTUSER.DIRECTION_B",
+            syncPk = listOf("ID"),
+            ignoreColumns = emptyList(),
+            limit = 100
+        )
+
+        private val bToA = CompareJobRequest(
+            tableOne = "TESTUSER.DIRECTION_B",
+            tableTwo = "TESTUSER.DIRECTION_A",
+            syncPk = listOf("ID"),
+            ignoreColumns = emptyList(),
+            limit = 100
+        )
+
+        private fun rowA(id: Int) =
+            databaseService.getByPk(GetByPkRequest("TESTUSER", "DIRECTION_A", mapOf("ID" to id))).row
+
+        private fun rowB(id: Int) =
+            databaseService.getByPk(GetByPkRequest("TESTUSER", "DIRECTION_B", mapOf("ID" to id))).row
+
+        // --- 1. Frontend signal: direction is captured in compare request ---
+
+        @Test
+        @DisplayName("A→B request has tableOne=A tableTwo=B; B→A is the exact inverse")
+        fun `compare request captures direction in tableOne and tableTwo`() {
+            assertThat(aToB.tableOne).isEqualTo("TESTUSER.DIRECTION_A")
+            assertThat(aToB.tableTwo).isEqualTo("TESTUSER.DIRECTION_B")
+            assertThat(bToA.tableOne).isEqualTo("TESTUSER.DIRECTION_B")
+            assertThat(bToA.tableTwo).isEqualTo("TESTUSER.DIRECTION_A")
+            assertThat(aToB.tableOne).isEqualTo(bToA.tableTwo)
+            assertThat(aToB.tableTwo).isEqualTo(bToA.tableOne)
+        }
+
+        // --- 2. Backend returns different result sets ---
+
+        @Test
+        @DisplayName("A→B and B→A produce different diff result sets")
+        fun `switching direction produces different diffs`() {
+            val atob = databaseService.compareTables(aToB).differences
+            val btoa = databaseService.compareTables(bToA).differences
+
+            val atobSignature = atob.map { it.pk to it.status }.toSet()
+            val btoaSignature = btoa.map { it.pk to it.status }.toSet()
+
+            assertThat(atobSignature).isNotEqualTo(btoaSignature)
+        }
+
+        @Test
+        @DisplayName("A→B shows A-only row as INSERT and not the B-only row")
+        fun `A to B shows only A-only rows as INSERT`() {
+            val diffs = databaseService.compareTables(aToB).differences
+            val insertPks = diffs.filter { it.status == "INSERT" }.map { it.pk }
+
+            assertThat(insertPks).contains("10")   // ID=10 exists only in A → INSERT into B
+            assertThat(insertPks).doesNotContain("20") // ID=20 only in B — not a source row
+        }
+
+        @Test
+        @DisplayName("B→A shows B-only row as INSERT and not the A-only row")
+        fun `B to A shows only B-only rows as INSERT`() {
+            val diffs = databaseService.compareTables(bToA).differences
+            val insertPks = diffs.filter { it.status == "INSERT" }.map { it.pk }
+
+            assertThat(insertPks).contains("20")   // ID=20 exists only in B → INSERT into A
+            assertThat(insertPks).doesNotContain("10") // ID=10 only in A — not a source row
+        }
+
+        @Test
+        @DisplayName("Identical rows never appear in either direction")
+        fun `identical rows are absent from both directions`() {
+            val atob = databaseService.compareTables(aToB).differences
+            val btoa = databaseService.compareTables(bToA).differences
+
+            assertThat(atob.map { it.pk }).doesNotContain("2")
+            assertThat(btoa.map { it.pk }).doesNotContain("2")
+        }
+
+        @Test
+        @DisplayName("Shared-PK different-value row shows swapped sourceValue and targetValue by direction")
+        fun `sourceValue and targetValue are swapped when direction is reversed`() {
+            val atobChange = databaseService.compareTables(aToB).differences
+                .first { it.pk == "1" && it.status == "UPDATE" }
+                .changes.first { it.column == "VALUE" }
+
+            val btoaChange = databaseService.compareTables(bToA).differences
+                .first { it.pk == "1" && it.status == "UPDATE" }
+                .changes.first { it.column == "VALUE" }
+
+            // A→B: A is source, B is target
+            assertThat(atobChange.sourceValue).isEqualTo("a-val-1")
+            assertThat(atobChange.targetValue).isEqualTo("b-val-1")
+
+            // B→A: B is source, A is target — values are exactly swapped
+            assertThat(btoaChange.sourceValue).isEqualTo("b-val-1")
+            assertThat(btoaChange.targetValue).isEqualTo("a-val-1")
+        }
+
+        // --- 3. Approve writes to the correct table ---
+
+        @Test
+        @DisplayName("A→B INSERT approval writes source row into B, leaves A unchanged")
+        fun `A to B INSERT approval writes to B not A`() {
+            databaseService.reviewCompareRow(CompareReviewRequest(
+                pk = "10", status = "APPROVED",
+                tableOne = "TESTUSER.DIRECTION_A", tableTwo = "TESTUSER.DIRECTION_B",
+                rowStatus = "INSERT", syncPk = listOf("ID"), ignoreColumns = emptyList(),
+                pkMap = mapOf("ID" to "10")
+            ))
+
+            assertThat(rowB(10)["VALUE"]).isEqualTo("a-only") // written to B
+            assertThat(rowA(10)["VALUE"]).isEqualTo("a-only") // A unchanged
+        }
+
+        @Test
+        @DisplayName("B→A INSERT approval writes source row into A, leaves B unchanged")
+        fun `B to A INSERT approval writes to A not B`() {
+            databaseService.reviewCompareRow(CompareReviewRequest(
+                pk = "20", status = "APPROVED",
+                tableOne = "TESTUSER.DIRECTION_B", tableTwo = "TESTUSER.DIRECTION_A",
+                rowStatus = "INSERT", syncPk = listOf("ID"), ignoreColumns = emptyList(),
+                pkMap = mapOf("ID" to "20")
+            ))
+
+            assertThat(rowA(20)["VALUE"]).isEqualTo("b-only") // written to A
+            assertThat(rowB(20)["VALUE"]).isEqualTo("b-only") // B unchanged
+        }
+
+        @Test
+        @DisplayName("A→B UPDATE approval overwrites B with A's values, leaves A unchanged")
+        fun `A to B UPDATE approval applies A values to B`() {
+            databaseService.reviewCompareRow(CompareReviewRequest(
+                pk = "30", status = "APPROVED",
+                tableOne = "TESTUSER.DIRECTION_A", tableTwo = "TESTUSER.DIRECTION_B",
+                rowStatus = "UPDATE", syncPk = listOf("ID"), ignoreColumns = emptyList(),
+                pkMap = mapOf("ID" to "30")
+            ))
+
+            assertThat(rowB(30)["VALUE"]).isEqualTo("a-val-30") // B now has A's value
+            assertThat(rowA(30)["VALUE"]).isEqualTo("a-val-30") // A unchanged
+        }
+
+        @Test
+        @DisplayName("B→A UPDATE approval overwrites A with B's values, leaves B unchanged")
+        fun `B to A UPDATE approval applies B values to A`() {
+            databaseService.reviewCompareRow(CompareReviewRequest(
+                pk = "40", status = "APPROVED",
+                tableOne = "TESTUSER.DIRECTION_B", tableTwo = "TESTUSER.DIRECTION_A",
+                rowStatus = "UPDATE", syncPk = listOf("ID"), ignoreColumns = emptyList(),
+                pkMap = mapOf("ID" to "40")
+            ))
+
+            assertThat(rowA(40)["VALUE"]).isEqualTo("b-val-40") // A now has B's value
+            assertThat(rowB(40)["VALUE"]).isEqualTo("b-val-40") // B unchanged
+        }
+
+        @Test
+        @DisplayName("A→B approve does not accidentally write to A (wrong direction guard)")
+        fun `A to B approval never modifies the source table`() {
+            val aBefore = rowA(30)["VALUE"]
+
+            databaseService.reviewCompareRow(CompareReviewRequest(
+                pk = "30", status = "APPROVED",
+                tableOne = "TESTUSER.DIRECTION_A", tableTwo = "TESTUSER.DIRECTION_B",
+                rowStatus = "UPDATE", syncPk = listOf("ID"), ignoreColumns = emptyList(),
+                pkMap = mapOf("ID" to "30")
+            ))
+
+            // Source table A must be identical after the approval
+            assertThat(rowA(30)["VALUE"]).isEqualTo(aBefore)
+        }
+    }
 }

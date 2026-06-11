@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ConfigProvider, Input, Layout, Modal, Spin, Switch, Typography, message, theme } from 'antd';
 import { TableSelector } from './components/TableSelector';
+import { buildReviewRequest } from './services/compareUtils';
 import { DataGrid } from './components/DataGrid';
 import { DiffView } from './components/DiffView';
 import apiClient from './services/api';
@@ -75,16 +76,13 @@ function App() {
     const status = review.decision === 'approved' ? 'APPROVED' : 'REJECTED';
     const row = compareData.find((r) => r.pk === review.rowId);
     try {
-      await apiClient.reviewCompareRow({
-        pk: review.rowId,
-        status,
-        tableOne: currentCompareConfig?.tableOne ?? '',
-        tableTwo: currentCompareConfig?.tableTwo ?? '',
-        rowStatus: row?.status ?? '',
-        syncPk: currentCompareConfig?.syncPk ?? [],
-        ignoreColumns: currentCompareConfig?.ignoreColumns ?? [],
-        pkMap: row?.pkMap ?? {},
-      });
+      await apiClient.reviewCompareRow(
+        buildReviewRequest(
+          { pk: review.rowId, pkMap: row?.pkMap ?? {}, status: row?.status ?? '', changedColumns: 0, updatedBy: '', reviewStatus: '', changes: [] },
+          currentCompareConfig ?? { tableOne: '', tableTwo: '', syncPk: [], ignoreColumns: [], limit: 100 },
+          status,
+        )
+      );
       setCompareData((rows) =>
         rows.map((row) =>
           row.pk === review.rowId ? { ...row, reviewStatus: status } : row
@@ -104,16 +102,9 @@ function App() {
   const approveCompareRows = async (rowsToApprove: CompareJobDiffRow[]) => {
     await Promise.all(
       rowsToApprove.map((row) =>
-        apiClient.reviewCompareRow({
-          pk: row.pk,
-          status: 'APPROVED',
-          tableOne: currentCompareConfig?.tableOne ?? '',
-          tableTwo: currentCompareConfig?.tableTwo ?? '',
-          rowStatus: row.status,
-          syncPk: currentCompareConfig?.syncPk ?? [],
-          ignoreColumns: currentCompareConfig?.ignoreColumns ?? [],
-          pkMap: row.pkMap,
-        })
+        apiClient.reviewCompareRow(
+          buildReviewRequest(row, currentCompareConfig ?? { tableOne: '', tableTwo: '', syncPk: [], ignoreColumns: [], limit: 100 }, 'APPROVED')
+        )
       )
     );
     setCompareData((rows) =>
@@ -173,16 +164,9 @@ function App() {
 
   const handleRowReject = async (row: CompareJobDiffRow) => {
     try {
-      await apiClient.reviewCompareRow({
-        pk: row.pk,
-        status: 'REJECTED',
-        tableOne: currentCompareConfig?.tableOne ?? '',
-        tableTwo: currentCompareConfig?.tableTwo ?? '',
-        rowStatus: row.status,
-        syncPk: currentCompareConfig?.syncPk ?? [],
-        ignoreColumns: currentCompareConfig?.ignoreColumns ?? [],
-        pkMap: row.pkMap,
-      });
+      await apiClient.reviewCompareRow(
+        buildReviewRequest(row, currentCompareConfig ?? { tableOne: '', tableTwo: '', syncPk: [], ignoreColumns: [], limit: 100 }, 'REJECTED')
+      );
       setCompareData((rows) =>
         rows.map((r) => r.pk === row.pk ? { ...r, reviewStatus: 'REJECTED' } : r)
       );
