@@ -244,6 +244,7 @@ function App() {
   const [approveError, setApproveError] = useState<string | null>(null);
   const [approveSubmitting, setApproveSubmitting] = useState(false);
   const [pendingChangedFields, setPendingChangedFields] = useState<Record<string, any> | null>(null);
+  const [isInsertMode, setIsInsertMode] = useState(false);
 
   const changedFields = useMemo(() => getChangedFields(beforeData, afterData), [beforeData, afterData]);
 
@@ -259,6 +260,7 @@ function App() {
 
   const handleQuery = async (schema: string, table: string, pkValues: Record<string, string>) => {
     setLoading(true);
+    setIsInsertMode(false);
     try {
       setCurrentSchema(schema);
       setCurrentTable(table);
@@ -266,13 +268,31 @@ function App() {
       const metadataResp = await apiClient.getTableMetadata(schema, table);
       setPkColumns(metadataResp.pkColumns);
       setMetadata(metadataResp);
-      const response = await apiClient.getByPk({ schema, table, pk: pkValues });
-      setGridData([response.row]);
-      setGridColumns(Object.keys(response.row));
-      setBeforeData(response.row);
-      setAfterData(response.row);
-      setShowDiff(true);
-      message.success('Record loaded successfully');
+      try {
+        const response = await apiClient.getByPk({ schema, table, pk: pkValues });
+        setGridData([response.row]);
+        setGridColumns(Object.keys(response.row));
+        setBeforeData(response.row);
+        setAfterData(response.row);
+        setShowDiff(true);
+        message.success('Record loaded successfully');
+      } catch (fetchError: any) {
+        if (fetchError.response?.status === 404) {
+          // Row not found — enter INSERT mode with blank form pre-filled with PK
+          const emptyRow: Record<string, any> = {};
+          metadataResp.columns.forEach((col) => {
+            emptyRow[col.name] = pkValues[col.name] ?? pkValues[col.name.toLowerCase()] ?? '';
+          });
+          setGridData([]);
+          setBeforeData({});
+          setAfterData(emptyRow);
+          setIsInsertMode(true);
+          setShowDiff(true);
+          message.info('Record not found — fill in the fields to insert a new row');
+        } else {
+          throw fetchError;
+        }
+      }
     } catch (error: any) {
       message.error(`Failed to load record: ${error.response?.data?.error || error.message}`);
     } finally {
@@ -303,11 +323,11 @@ function App() {
   };
 
   const handleApprove = async () => {
-    if (Object.keys(changedFields).length === 0) {
+    if (!isInsertMode && Object.keys(changedFields).length === 0) {
       message.warning('No changes to apply');
       return;
     }
-    setPendingChangedFields(changedFields);
+    setPendingChangedFields(isInsertMode ? afterData : changedFields);
     setApproveReason('');
     setApproveError(null);
     setApproveOpen(true);
@@ -364,6 +384,7 @@ function App() {
                       pkColumns={pkColumns}
                       metadata={metadata}
                       themeMode={themeMode}
+                      isInsertMode={isInsertMode}
                     />
                   </div>
                 )}
@@ -371,9 +392,9 @@ function App() {
             </div>
           </Spin>
           <Modal
-            title="Approve Changes"
+            title={isInsertMode ? 'Confirm Insert' : 'Approve Changes'}
             open={approveOpen}
-            okText="Approve"
+            okText={isInsertMode ? 'Insert' : 'Approve'}
             cancelText="Cancel"
             okButtonProps={{ disabled: approveSubmitting || approveReason.trim().length === 0 }}
             confirmLoading={approveSubmitting}
@@ -386,40 +407,64 @@ function App() {
               const reason = approveReason.trim();
               if (!reason) { setApproveError('Reason is required'); return; }
               if (!pendingChangedFields || Object.keys(pendingChangedFields).length === 0) {
-                setApproveError('No changes to apply'); return;
+                setApproveError('No values to apply'); return;
               }
               setApproveSubmitting(true);
               setLoading(true);
               try {
-                const response = await apiClient.update({
-                  schema: currentSchema,
-                  table: currentTable,
-                  pk: currentPk,
-                  set: pendingChangedFields,
-                  reason,
-                });
-                message.success(`Successfully updated ${response.updated} record(s)`);
-                setGridData([response.row]);
-                setBeforeData(response.row);
-                setAfterData(response.row);
+                if (isInsertMode) {
+                  const response = await apiClient.insert({
+                    schema: currentSchema,
+                    table: currentTable,
+                    values: pendingChangedFields,
+                    reason,
+                  });
+                  message.success(`Successfully inserted ${response.inserted} record(s)`);
+                  setGridData([response.row]);
+                  setBeforeData(response.row);
+                  setAfterData(response.row);
+                  setIsInsertMode(false);
+                } else {
+                  const response = await apiClient.update({
+                    schema: currentSchema,
+                    table: currentTable,
+                    pk: currentPk,
+                    set: pendingChangedFields,
+                    reason,
+                  });
+                  message.success(`Successfully updated ${response.updated} record(s)`);
+                  setGridData([response.row]);
+                  setBeforeData(response.row);
+                  setAfterData(response.row);
+                }
                 setApproveOpen(false);
                 setApproveError(null);
               } catch (error: any) {
-                message.error(`Update failed: ${error.response?.data?.error || error.message}`);
-                setApproveError(error.response?.data?.error || error.message || 'Update failed');
+                const label = isInsertMode ? 'Insert' : 'Update';
+                message.error(`${label} failed: ${error.response?.data?.error || error.message}`);
+                setApproveError(error.response?.data?.error || error.message || `${label} failed`);
               } finally {
                 setApproveSubmitting(false);
                 setLoading(false);
               }
             }}
           >
-            <p className="mb-2">You are about to update the following fields:</p>
+            <p className="mb-2">
+              {isInsertMode
+                ? 'You are about to insert a new record with the following values:'
+                : 'You are about to update the following fields:'}
+            </p>
             <ul className="list-disc list-inside mb-3">
-              {Object.keys(pendingChangedFields || {}).map((field) => (
-                <li key={field} className="text-sm">
-                  <strong>{field}</strong>: {String(beforeData[field])} → {String((pendingChangedFields as any)[field])}
-                </li>
-              ))}
+              {Object.entries(pendingChangedFields || {})
+                .filter(([, v]) => v !== '' && v !== null && v !== undefined)
+                .map(([field, value]) => (
+                  <li key={field} className="text-sm">
+                    {isInsertMode
+                      ? <><strong>{field}</strong>: {String(value)}</>
+                      : <><strong>{field}</strong>: {String(beforeData[field])} → {String(value)}</>
+                    }
+                  </li>
+                ))}
             </ul>
             <Input.TextArea
               value={approveReason}

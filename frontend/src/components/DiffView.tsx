@@ -16,6 +16,7 @@ interface DiffViewProps {
   pkColumns: string[];
   metadata: TableMetadataResponse | null;
   themeMode?: ThemeMode;
+  isInsertMode?: boolean;
 }
 
 export const DiffView = ({
@@ -27,9 +28,10 @@ export const DiffView = ({
   pkColumns,
   metadata,
   themeMode = ThemeMode.Light,
+  isInsertMode = false,
 }: DiffViewProps) => {
   const [viewMode, setViewMode] = useState<'side-by-side' | 'unified' | 'summary'>('side-by-side');
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode] = useState(isInsertMode);
   const [editValues, setEditValues] = useState<Record<string, any>>(after);
   const [inlineField, setInlineField] = useState<string | null>(null);
   const [inlineValue, setInlineValue] = useState<string>('');
@@ -338,16 +340,27 @@ export const DiffView = ({
     <Card
       title={
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold">Diff View</span>
-          <Space>
-            <Button
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => setEditMode(true)}
-            >
-              Edit Proposed
-            </Button>
-          </Space>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold">
+              {isInsertMode ? 'Insert New Record' : 'Diff View'}
+            </span>
+            {isInsertMode && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-green-100 text-green-700 border border-green-300">
+                INSERT MODE
+              </span>
+            )}
+          </div>
+          {!isInsertMode && (
+            <Space>
+              <Button
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => setEditMode(true)}
+              >
+                Edit Proposed
+              </Button>
+            </Space>
+          )}
         </div>
       }
       size="small"
@@ -382,13 +395,15 @@ export const DiffView = ({
             type="primary"
             icon={<CheckOutlined />}
             onClick={onApprove}
-            disabled={changedDiffs.length === 0}
+            disabled={!isInsertMode && changedDiffs.length === 0}
           >
-            Approve Change
+            {isInsertMode ? 'Insert Record' : 'Approve Change'}
           </Button>
-          <Button danger icon={<CloseOutlined />} onClick={onReject}>
-            Reject
-          </Button>
+          {!isInsertMode && (
+            <Button danger icon={<CloseOutlined />} onClick={onReject}>
+              Reject
+            </Button>
+          )}
         </Space>
 
         <div className="text-xs text-gray-500">

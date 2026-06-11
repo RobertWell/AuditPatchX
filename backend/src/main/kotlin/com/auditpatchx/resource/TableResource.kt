@@ -82,6 +82,37 @@ class TableResource(
     }
 
     /**
+     * POST /api/record/insert - Insert a new row
+     */
+    @POST
+    @Path("/record/insert")
+    fun insert(request: InsertRequest): Response {
+        return try {
+            if (request.reason.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ErrorResponse("Reason is required"))
+                    .build()
+            }
+            val result = databaseService.insert(request)
+            Response.status(Response.Status.CREATED).entity(result).build()
+        } catch (e: IllegalArgumentException) {
+            Response.status(Response.Status.BAD_REQUEST)
+                .entity(ErrorResponse(e.message ?: "Invalid request"))
+                .build()
+        } catch (e: SecurityException) {
+            logger.error("Security violation in insert: ${e.message}")
+            Response.status(Response.Status.FORBIDDEN)
+                .entity(ErrorResponse("Access denied"))
+                .build()
+        } catch (e: Exception) {
+            logger.error("Insert failed", e)
+            Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(ErrorResponse("Insert failed"))
+                .build()
+        }
+    }
+
+    /**
      * POST /api/record/validate-patch - Validate patch before applying
      */
     @POST

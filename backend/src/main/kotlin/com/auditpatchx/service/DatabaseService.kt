@@ -206,6 +206,63 @@ class DatabaseService(
         }
     }
 
+    fun insert(request: InsertRequest): InsertResponse {
+        val allowedColumns = securityService.validateAndGetColumns(request.schema, request.table)
+
+        // Filter out blank/null values — let DB defaults handle unspecified columns
+        val valuesToInsert = request.values
+            .mapKeys { it.key.uppercase() }
+            .filter { (_, v) -> v != null && v.toString().isNotBlank() }
+
+        if (valuesToInsert.isEmpty()) {
+            throw IllegalArgumentException("No values provided for insert")
+        }
+
+        securityService.validateColumns(allowedColumns, valuesToInsert.keys)
+
+        val columnMetadata = securityService.getDetailedColumnMetadata(request.schema, request.table)
+        val columnTypeMap = columnMetadata.associate { it.name.uppercase() to it.type }
+
+        val colList  = valuesToInsert.keys.joinToString(", ")
+        val paramList = valuesToInsert.keys.joinToString(", ") { ":$it" }
+        val insertSql = "INSERT INTO ${request.schema.uppercase()}.${request.table.uppercase()} ($colList) VALUES ($paramList)"
+
+        val pkColumns = allowlistService.getTableConfig(request.schema, request.table)?.pkColumns()
+            ?: throw SecurityException("Table not in allowlist")
+
+        logger.info(
+            "Executing insert: schema=${request.schema}, table=${request.table}, " +
+                "columns=${valuesToInsert.keys}, reason=${request.reason}"
+        )
+
+        return jdbi.inTransaction<InsertResponse, Exception> { handle ->
+            var update = handle.createUpdate(insertSql)
+            valuesToInsert.forEach { (col, value) ->
+                val converted = convertValueForBinding(value, columnTypeMap[col])
+                update = update.bind(col, converted)
+            }
+            val inserted = update.execute()
+
+            // Fetch back the inserted row using PK values
+            val pkValues = pkColumns.associate { pk ->
+                pk.uppercase() to (valuesToInsert[pk.uppercase()]
+                    ?: throw IllegalArgumentException("PK column $pk must be provided"))
+            }
+            val whereClause = pkValues.keys.joinToString(" AND ") { "$it = :$it" }
+            val fetchSql = "SELECT * FROM ${request.schema.uppercase()}.${request.table.uppercase()} WHERE $whereClause"
+            var query = handle.createQuery(fetchSql)
+            pkValues.forEach { (col, value) ->
+                query = query.bind(col, convertValueForBinding(value, columnTypeMap[col]))
+            }
+            val row = query.mapToMap().findOne()
+                .orElseThrow { NotFoundException("Row not found after insert") }
+                .toUppercaseKeys()
+                .let { normalizeRowValues(it, columnTypeMap) }
+
+            InsertResponse(inserted = inserted, row = row)
+        }
+    }
+
     /**
      * Compare two tables
      */

@@ -65,6 +65,18 @@ data class UpdateResponse(
     val row: Map<String, Any?>
 )
 
+data class InsertRequest(
+    val schema: String,
+    val table: String,
+    val values: Map<String, Any?>,
+    val reason: String
+)
+
+data class InsertResponse(
+    val inserted: Int,
+    val row: Map<String, Any?>
+)
+
 data class TableMetadataRequest(
     val schema: String,
     val table: String

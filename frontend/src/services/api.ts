@@ -9,6 +9,8 @@ import type {
   ValidatePatchResponse,
   UpdateRequest,
   UpdateResponse,
+  InsertRequest,
+  InsertResponse,
   TableMetadataResponse,
   CompareJobRequest,
   CompareJobResponse,
@@ -55,6 +57,11 @@ class ApiClient {
 
   async update(request: UpdateRequest): Promise<UpdateResponse> {
     const response = await this.client.post<UpdateResponse>('/record/update', request);
+    return response.data;
+  }
+
+  async insert(request: InsertRequest): Promise<InsertResponse> {
+    const response = await this.client.post<InsertResponse>('/record/insert', request);
     return response.data;
   }
 

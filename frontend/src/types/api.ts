@@ -60,6 +60,18 @@ export interface UpdateResponse {
   row: Record<string, any>;
 }
 
+export interface InsertRequest {
+  schema: string;
+  table: string;
+  values: Record<string, any>;
+  reason: string;
+}
+
+export interface InsertResponse {
+  inserted: number;
+  row: Record<string, any>;
+}
+
 export interface ColumnMetadata {
   name: string;
   type: string;
