@@ -14,6 +14,9 @@ backend-tests:
   stage: test
   tags:
     - privileged
+  retry:
+    max: 2
+    when: script_failure
   image: maven:3.9-eclipse-temurin-21
   services:
     - name: docker:24-dind
@@ -32,6 +35,8 @@ backend-tests:
       - .m2/repository
   before_script:
     - cd backend
+    # Purge any corrupted partial downloads from the cache before retrying
+    - find $CI_PROJECT_DIR/.m2 -name "*.lastUpdated" -delete 2>/dev/null || true
   script:
     - mvn test -B
   artifacts:
