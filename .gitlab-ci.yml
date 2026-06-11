@@ -80,6 +80,12 @@ build-image:
   needs:
     - backend-tests
     - frontend-tests
+  before_script:
+    - |
+      for i in $(seq 1 60); do
+        docker info >/dev/null 2>&1 && echo "Docker ready after ${i}s" && break
+        sleep 2
+      done
   script:
     - docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_TOKEN"
     - docker build -t $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA -t $DOCKER_IMAGE:latest .
