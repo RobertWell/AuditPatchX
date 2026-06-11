@@ -277,7 +277,7 @@ function App() {
         setShowDiff(true);
         message.success('Record loaded successfully');
       } catch (fetchError: any) {
-        if (fetchError.response?.status === 404) {
+        if (fetchError.response?.status === 404 && fetchError.response?.data?.code === 'ROW_NOT_FOUND') {
           // Row not found — enter INSERT mode with blank form pre-filled with PK
           const emptyRow: Record<string, any> = {};
           metadataResp.columns.forEach((col) => {

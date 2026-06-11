@@ -66,7 +66,7 @@ class TableResource(
             Response.ok(result).build()
         } catch (e: NotFoundException) {
             Response.status(Response.Status.NOT_FOUND)
-                .entity(ErrorResponse("Row not found"))
+                .entity(ErrorResponse("Row not found", code = "ROW_NOT_FOUND"))
                 .build()
         } catch (e: SecurityException) {
             logger.error("Security violation in get: ${e.message}")

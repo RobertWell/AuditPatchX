@@ -104,7 +104,8 @@ data class TableMetadataResponse(
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class ErrorResponse(
     val error: String,
-    val details: String? = null
+    val details: String? = null,
+    val code: String? = null
 )
 
 data class CompareJobRequest(
