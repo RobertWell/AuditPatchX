@@ -16,19 +16,29 @@ backend-tests:
     - privileged
   image: maven:3.9-eclipse-temurin-21
   services:
-    - docker:dind
+    - name: docker:24-dind
+      alias: docker
+      variables:
+        DOCKER_TLS_CERTDIR: ""
   variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: "/certs"
-    DOCKER_TLS_VERIFY: 1
-    DOCKER_CERT_PATH: "/certs/client"
+    # Kubernetes executor: DinD sidecar shares localhost network namespace
+    DOCKER_HOST: tcp://localhost:2375
+    DOCKER_TLS_CERTDIR: ""
     TESTCONTAINERS_RYUK_DISABLED: "true"
+    TESTCONTAINERS_CHECKS_DISABLE: "true"
   cache:
     key: maven-$CI_COMMIT_REF_SLUG
     paths:
       - .m2/repository
   before_script:
     - cd backend
+    # Wait for DinD to be ready
+    - |
+      for i in $(seq 1 30); do
+        docker info >/dev/null 2>&1 && echo "Docker ready" && break
+        echo "Waiting for Docker... ($i/30)"
+        sleep 2
+      done
   script:
     - mvn test -B
   artifacts:
@@ -50,7 +60,7 @@ frontend-tests:
       - frontend/node_modules
   before_script:
     - cd frontend
-    - npm ci --prefer-offline
+    - npm ci
   script:
     - npx vitest run
     - npm run build
@@ -67,12 +77,12 @@ build-image:
     - privileged
   image: docker:24
   services:
-    - docker:dind
+    - name: docker:24-dind
+      variables:
+        DOCKER_TLS_CERTDIR: ""
   variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: "/certs"
-    DOCKER_TLS_VERIFY: 1
-    DOCKER_CERT_PATH: "/certs/client"
+    DOCKER_HOST: tcp://localhost:2375
+    DOCKER_TLS_CERTDIR: ""
   needs:
     - backend-tests
     - frontend-tests

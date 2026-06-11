@@ -13,7 +13,7 @@
 # OS files
 .DS_Store
 Thumbs.db
-package-lock.json
+# package-lock.json should be committed for reproducible CI installs
 
 # Local logs
 backend/logs/
