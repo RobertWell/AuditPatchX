@@ -44,6 +44,6 @@ ui:
     exclude-columns: []
     include-columns: []
 
-# Sync pairs — override via CONFIG_LOCATIONS in production.
-sync-tables:
-  pairs: []
+# sync-tables.pairs is intentionally absent — even "pairs: []" triggers
+# SRCFG00050 in CI. Absent key → SyncTableConfig.pairs() returns [].
+# Inject pairs via QUARKUS_CONFIG_LOCATIONS in production (ArgoCD ConfigMap).
