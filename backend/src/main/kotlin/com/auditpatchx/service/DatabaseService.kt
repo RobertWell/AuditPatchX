@@ -687,12 +687,24 @@ class DatabaseService(
      * Handles special case for Oracle DATE columns which need java.sql.Date.
      */
     private fun convertValueForBinding(value: Any?, columnType: String?): Any? {
-        if (value == null || columnType == null) {
-            return value
-        }
+        if (value == null || columnType == null) return value
 
         if (value is String) {
             val typeUpper = columnType.uppercase()
+
+            // NUMBER / INTEGER — parse to BigDecimal so Oracle JDBC binds correctly.
+            // Without this, a string "42" bound to a NUMBER column risks ORA-01722.
+            if (typeUpper.startsWith("NUMBER") || typeUpper == "INTEGER" ||
+                typeUpper == "FLOAT" || typeUpper == "BINARY_FLOAT" || typeUpper == "BINARY_DOUBLE"
+            ) {
+                return try {
+                    java.math.BigDecimal(value)
+                } catch (_: NumberFormatException) {
+                    value // leave as-is; Oracle will surface a meaningful error
+                }
+            }
+
+            // DATE / TIMESTAMP — parse to the appropriate Java temporal type
             val isTemporalType = typeUpper.contains("TIMESTAMP") || typeUpper == "DATE"
             if (isTemporalType) {
                 val parsed = parseTemporalString(value)
