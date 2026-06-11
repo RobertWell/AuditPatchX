@@ -8,6 +8,9 @@ quarkus:
   http:
     port: 8081
     test-port: 0
+  test:
+    # Oracle Free image pull + startup can take 15+ min on cold CI cache
+    hang-detection-timeout: 30M
   log:
     level: INFO
     category:

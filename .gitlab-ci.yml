@@ -32,13 +32,14 @@ backend-tests:
       - .m2/repository
   before_script:
     - cd backend
-    # Wait for DinD to be ready
+    # Wait for DinD and pre-pull Oracle Free image so Testcontainers
+    # doesn't pull during the Quarkus hang-detection window
     - |
-      for i in $(seq 1 30); do
-        docker info >/dev/null 2>&1 && echo "Docker ready" && break
-        echo "Waiting for Docker... ($i/30)"
+      for i in $(seq 1 60); do
+        docker info >/dev/null 2>&1 && echo "Docker ready after ${i}s" && break
         sleep 2
       done
+    - docker pull gvenzl/oracle-free:23-slim-faststart
   script:
     - mvn test -B
   artifacts:
