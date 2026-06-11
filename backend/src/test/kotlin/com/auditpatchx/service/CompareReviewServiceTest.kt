@@ -567,6 +567,7 @@ class CompareReviewServiceTest {
 
     @Nested
     @DisplayName("Direction Sensitivity — A→B vs B→A")
+    @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
     inner class CompareDirectionTests {
 
         private val aToB = CompareJobRequest(
@@ -594,6 +595,7 @@ class CompareReviewServiceTest {
         // --- 1. Frontend signal: direction is captured in compare request ---
 
         @Test
+        @Order(1)
         @DisplayName("A→B request has tableOne=A tableTwo=B; B→A is the exact inverse")
         fun `compare request captures direction in tableOne and tableTwo`() {
             assertThat(aToB.tableOne).isEqualTo("TESTUSER.DIRECTION_A")
@@ -607,6 +609,7 @@ class CompareReviewServiceTest {
         // --- 2. Backend returns different result sets ---
 
         @Test
+        @Order(2)
         @DisplayName("A→B and B→A produce different diff result sets")
         fun `switching direction produces different diffs`() {
             val atob = databaseService.compareTables(aToB).differences
@@ -619,6 +622,7 @@ class CompareReviewServiceTest {
         }
 
         @Test
+        @Order(3)
         @DisplayName("A→B shows A-only row as INSERT and not the B-only row")
         fun `A to B shows only A-only rows as INSERT`() {
             val diffs = databaseService.compareTables(aToB).differences
@@ -629,6 +633,7 @@ class CompareReviewServiceTest {
         }
 
         @Test
+        @Order(4)
         @DisplayName("B→A shows B-only row as INSERT and not the A-only row")
         fun `B to A shows only B-only rows as INSERT`() {
             val diffs = databaseService.compareTables(bToA).differences
@@ -639,6 +644,7 @@ class CompareReviewServiceTest {
         }
 
         @Test
+        @Order(5)
         @DisplayName("Identical rows never appear in either direction")
         fun `identical rows are absent from both directions`() {
             val atob = databaseService.compareTables(aToB).differences
@@ -649,6 +655,7 @@ class CompareReviewServiceTest {
         }
 
         @Test
+        @Order(6)
         @DisplayName("Shared-PK different-value row shows swapped sourceValue and targetValue by direction")
         fun `sourceValue and targetValue are swapped when direction is reversed`() {
             val atobChange = databaseService.compareTables(aToB).differences
@@ -671,6 +678,7 @@ class CompareReviewServiceTest {
         // --- 3. Approve writes to the correct table ---
 
         @Test
+        @Order(7)
         @DisplayName("A→B INSERT approval writes source row into B, leaves A unchanged")
         fun `A to B INSERT approval writes to B not A`() {
             databaseService.reviewCompareRow(CompareReviewRequest(
@@ -685,6 +693,7 @@ class CompareReviewServiceTest {
         }
 
         @Test
+        @Order(8)
         @DisplayName("B→A INSERT approval writes source row into A, leaves B unchanged")
         fun `B to A INSERT approval writes to A not B`() {
             databaseService.reviewCompareRow(CompareReviewRequest(
@@ -699,6 +708,7 @@ class CompareReviewServiceTest {
         }
 
         @Test
+        @Order(9)
         @DisplayName("A→B UPDATE approval overwrites B with A's values, leaves A unchanged")
         fun `A to B UPDATE approval applies A values to B`() {
             databaseService.reviewCompareRow(CompareReviewRequest(
@@ -713,6 +723,7 @@ class CompareReviewServiceTest {
         }
 
         @Test
+        @Order(10)
         @DisplayName("B→A UPDATE approval overwrites A with B's values, leaves B unchanged")
         fun `B to A UPDATE approval applies B values to A`() {
             databaseService.reviewCompareRow(CompareReviewRequest(
@@ -727,6 +738,7 @@ class CompareReviewServiceTest {
         }
 
         @Test
+        @Order(11)
         @DisplayName("A→B approve does not accidentally write to A (wrong direction guard)")
         fun `A to B approval never modifies the source table`() {
             val aBefore = rowA(30)["VALUE"]
