@@ -1,9 +1,8 @@
 quarkus:
-  # External config overlay — ArgoCD mounts a ConfigMap here to inject
-  # environment-specific allowlist and sync-table pairs.
-  # Set CONFIG_LOCATIONS=/app/config/application.yaml in production.
-  config:
-    locations: ${CONFIG_LOCATIONS:}
+  # External config overlay for ArgoCD:
+  # Set env var QUARKUS_CONFIG_LOCATIONS=/app/config/application.yaml
+  # to inject a mounted ConfigMap with env-specific allowlist + sync-tables.
+  # No value is needed here — set it via the Kubernetes deployment env block.
 
   datasource:
     db-kind: oracle

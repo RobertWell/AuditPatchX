@@ -48,7 +48,8 @@ backend-tests:
     paths:
       - backend/target/surefire-reports/
     expire_in: 7 days
-  timeout: 20 minutes
+  # First run pulls Oracle Free image (~1GB) — allow extra time; subsequent runs use cached layers
+  timeout: 40 minutes
 
 # ── Frontend tests ────────────────────────────────────────────────────────────
 frontend-tests:
