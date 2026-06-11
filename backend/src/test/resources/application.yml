@@ -10,7 +10,7 @@ quarkus:
     test-port: 0
   test:
     # Oracle Free image pull + startup can take 15+ min on cold CI cache
-    hang-detection-timeout: 30M
+    hang-detection-timeout: PT30M
   log:
     level: INFO
     category:
