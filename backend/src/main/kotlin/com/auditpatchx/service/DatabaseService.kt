@@ -288,14 +288,32 @@ class DatabaseService(
 
         val limit = request.limit.coerceIn(1, 1000)
 
+        // Build partial-PK filter: only non-blank values become WHERE conditions.
+        val activeFilter = request.pkFilter
+            .mapKeys { it.key.uppercase() }
+            .filter { (col, value) -> value.isNotBlank() }
+
+        if (activeFilter.isNotEmpty()) {
+            securityService.validateColumns(allowedColumns1, activeFilter.keys)
+        }
+
         return jdbi.inTransaction<CompareJobResponse, Exception> { handle ->
-            // Query source table (tableOne)
+            // Query source table (tableOne), applying any PK filter the caller provided.
+            val filterClause = if (activeFilter.isEmpty()) ""
+                else " WHERE " + activeFilter.keys.joinToString(" AND ") { "$it = :filter_$it" }
+
             val sql1 = """
-                SELECT * FROM ${schema1.uppercase()}.${table1.uppercase()}
+                SELECT * FROM ${schema1.uppercase()}.${table1.uppercase()}$filterClause
                 FETCH FIRST $limit ROWS ONLY
             """.trimIndent()
 
             val sourceRows = handle.createQuery(sql1)
+                .also { q ->
+                    activeFilter.forEach { (col, value) ->
+                        val colType = columnTypeMap1[col]
+                        q.bind("filter_$col", convertValueForBinding(value, colType))
+                    }
+                }
                 .mapToMap()
                 .list()
                 .map { row -> normalizeRowValues(row.toUppercaseKeys(), columnTypeMap1) }

@@ -113,7 +113,9 @@ data class CompareJobRequest(
     val tableTwo: String,
     val syncPk: List<String>,
     val ignoreColumns: List<String>,
-    val limit: Int = 100
+    val limit: Int = 100,
+    // Optional per-PK filters on the source table. Blank value = wildcard (match all).
+    val pkFilter: Map<String, String> = emptyMap()
 )
 
 data class CompareJobChange(

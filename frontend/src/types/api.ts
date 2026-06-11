@@ -102,6 +102,8 @@ export interface CompareJobRequest {
   syncPk: string[];
   ignoreColumns: string[];
   limit: number;
+  // Per-PK partial filters. Blank value = wildcard (match all).
+  pkFilter?: Record<string, string>;
 }
 
 export interface CompareJobChange {

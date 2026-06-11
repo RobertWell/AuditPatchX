@@ -22,6 +22,11 @@ export function CompareJob({ onStartReview, onConfigChange }: CompareJobProps) {
   const [syncPairs, setSyncPairs] = useState<SyncPairConfigInfo[]>([]);
   const [selectedPairName, setSelectedPairName] = useState('');
   const [configLoading, setConfigLoading] = useState(true);
+  // PK filter: one entry per parsed PK column, value = filter string (blank = wildcard)
+  const [pkFilter, setPkFilter] = useState<Record<string, string>>({});
+
+  // Parse the syncPk string into an ordered list of column names
+  const parsedPks = syncPk.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
   const applyPair = (pair: SyncPairConfigInfo) => {
     setSelectedPairName(pair.pairName);
@@ -29,6 +34,7 @@ export function CompareJob({ onStartReview, onConfigChange }: CompareJobProps) {
     setTableTwo(pair.tableB);
     setSyncPk(pair.pkColumns.join(', '));
     setIgnoreColumn(pair.excludeColumns.join(', '));
+    setPkFilter({});
   };
 
   useEffect(() => {
@@ -56,12 +62,17 @@ export function CompareJob({ onStartReview, onConfigChange }: CompareJobProps) {
   };
 
   const handleRun = () => {
+    // Strip blank filter entries before sending — blank = wildcard, not included
+    const activeFilter = Object.fromEntries(
+      Object.entries(pkFilter).filter(([, v]) => v.trim() !== '')
+    );
     onStartReview({
       tableOne,
       tableTwo,
       syncPk: syncPk.split(',').map(s => s.trim()).filter(Boolean),
       ignoreColumns: ignoreColumn.split(',').map(s => s.trim()).filter(Boolean),
-      limit
+      limit,
+      ...(Object.keys(activeFilter).length > 0 ? { pkFilter: activeFilter } : {}),
     });
   };
 
@@ -153,7 +164,7 @@ export function CompareJob({ onStartReview, onConfigChange }: CompareJobProps) {
                   type="text"
                   placeholder=""
                   value={syncPk}
-                  onChange={(e) => setSyncPk(e.target.value)}
+                  onChange={(e) => { setSyncPk(e.target.value); setPkFilter({}); }}
                   className="mt-1 bg-input-background"
                 />
               </div>
@@ -184,6 +195,42 @@ export function CompareJob({ onStartReview, onConfigChange }: CompareJobProps) {
                 />
               </div>
             </div>
+
+            {/* PK Filter — one optional input per PK column; blank = match all */}
+            {parsedPks.length > 0 && (
+              <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-3">
+                <div className="mb-2 flex items-center gap-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    PK Filter
+                  </Label>
+                  <span className="text-xs text-muted-foreground">
+                    — fill any column to narrow results; leave blank to match all
+                  </span>
+                  {Object.values(pkFilter).some(v => v.trim()) && (
+                    <button
+                      className="ml-auto text-xs text-muted-foreground underline hover:text-foreground"
+                      onClick={() => setPkFilter({})}
+                    >
+                      clear
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {parsedPks.map(col => (
+                    <div key={col} className="flex flex-col gap-1 min-w-[140px]">
+                      <Label className="text-xs text-muted-foreground">{col}</Label>
+                      <Input
+                        type="text"
+                        placeholder="any"
+                        value={pkFilter[col] ?? ''}
+                        onChange={e => setPkFilter(prev => ({ ...prev, [col]: e.target.value }))}
+                        className="h-8 bg-input-background font-mono text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
