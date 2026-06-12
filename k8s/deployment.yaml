@@ -15,9 +15,11 @@ spec:
       labels:
         app: auditpatchx
     spec:
+      automountServiceAccountToken: false    # #5: no API server access needed
       containers:
         - name: auditpatchx
           image: roguerzzz123/auditpatchx:latest
+          imagePullPolicy: Always             # #3: always pull :latest
           ports:
             - containerPort: 8080
           env:
@@ -51,17 +53,27 @@ spec:
             limits:
               cpu: "1000m"
               memory: "1Gi"
+          securityContext:                    # #4: least-privilege container
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false     # Quarkus writes tmp files at runtime
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
           readinessProbe:
             httpGet:
-              path: /api/tables
+              path: /q/health/ready
               port: 8080
-            initialDelaySeconds: 10
+            initialDelaySeconds: 15
             periodSeconds: 10
             failureThreshold: 6
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /q/health/live
               port: 8080
-            initialDelaySeconds: 20
+            initialDelaySeconds: 30
             periodSeconds: 30
       volumes:
         - name: config
