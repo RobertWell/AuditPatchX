@@ -24,7 +24,6 @@ backend-tests:
       variables:
         DOCKER_TLS_CERTDIR: ""
   variables:
-    # Kubernetes executor: DinD sidecar shares localhost network namespace
     DOCKER_HOST: tcp://localhost:2375
     DOCKER_TLS_CERTDIR: ""
     TESTCONTAINERS_RYUK_DISABLED: "true"
@@ -35,7 +34,6 @@ backend-tests:
       - .m2/repository
   before_script:
     - cd backend
-    # Purge any corrupted partial downloads from the cache before retrying
     - find $CI_PROJECT_DIR/.m2 -name "*.lastUpdated" -delete 2>/dev/null || true
   script:
     - mvn test -B
@@ -46,10 +44,11 @@ backend-tests:
     paths:
       - backend/target/surefire-reports/
     expire_in: 7 days
-  # First run pulls Oracle Free image (~1GB) — allow extra time; subsequent runs use cached layers
   timeout: 40 minutes
 
-# ── Frontend tests ────────────────────────────────────────────────────────────
+# ── Frontend build + tests ────────────────────────────────────────────────────
+# vite outDir is ../backend/src/main/resources/META-INF/resources so the
+# built static files land directly in Quarkus's static resource path.
 frontend-tests:
   stage: test
   image: node:20-alpine
@@ -65,11 +64,13 @@ frontend-tests:
     - npm run build
   artifacts:
     paths:
-      - frontend/dist/
+      - backend/src/main/resources/META-INF/resources/
     expire_in: 1 day
   timeout: 10 minutes
 
 # ── Docker image build & push ─────────────────────────────────────────────────
+# The frontend artifact is already at the correct location inside the repo.
+# Dockerfile is a simple 2-stage Maven + JRE build.
 build-image:
   stage: build
   tags:
