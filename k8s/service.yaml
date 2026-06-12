@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: auditpatchx
+  namespace: auditpatchx
+spec:
+  selector:
+    app: auditpatchx
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30880
+  type: NodePort

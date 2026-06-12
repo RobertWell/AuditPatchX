@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auditpatchx
+  namespace: auditpatchx
+  labels:
+    app: auditpatchx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auditpatchx
+  template:
+    metadata:
+      labels:
+        app: auditpatchx
+    spec:
+      containers:
+        - name: auditpatchx
+          image: roguerzzz123/auditpatchx:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: auditpatchx-secret
+                  key: db-url
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: auditpatchx-secret
+                  key: db-user
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: auditpatchx-secret
+                  key: db-password
+            - name: QUARKUS_CONFIG_LOCATIONS
+              value: "/app/config/application.yaml"
+            - name: LOG_JSON
+              value: "true"
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /api/tables
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 30
+      volumes:
+        - name: config
+          configMap:
+            name: auditpatchx-config
+            items:
+              - key: application.yaml
+                path: application.yaml
