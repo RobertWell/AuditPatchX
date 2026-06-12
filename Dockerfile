@@ -14,8 +14,9 @@ WORKDIR /build
 COPY backend/pom.xml .
 RUN mvn dependency:go-offline -q
 
-# Copy frontend dist into Quarkus static resources so it's served at /
-COPY --from=frontend-build /frontend/dist \
+# vite outDir is ../backend/src/main/resources/META-INF/resources (relative to /frontend WORKDIR)
+# which resolves to /backend/src/main/resources/META-INF/resources inside the build stage
+COPY --from=frontend-build /backend/src/main/resources/META-INF/resources/ \
      src/main/resources/META-INF/resources/
 
 # Build backend (tests run in CI with testcontainer, skip here)
