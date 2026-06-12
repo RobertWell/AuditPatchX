@@ -1,0 +1,31 @@
+---
+# VaultAuth: tells the Vault Secrets Operator how to authenticate
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: auditpatchx-vault-auth
+  namespace: auditpatchx
+spec:
+  method: kubernetes
+  mount: kubernetes
+  kubernetes:
+    role: auditpatchx
+    serviceAccount: auditpatchx
+  vaultConnectionRef: default
+---
+# VaultStaticSecret: syncs secret/auditpatchx from Vault → k8s Secret
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: auditpatchx-vault-secret
+  namespace: auditpatchx
+spec:
+  type: kv-v2
+  mount: secret
+  path: auditpatchx
+  destination:
+    name: auditpatchx-secret
+    create: true
+    overwrite: true
+  refreshAfter: 30s
+  vaultAuthRef: auditpatchx-vault-auth
