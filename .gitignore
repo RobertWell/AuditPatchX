@@ -29,3 +29,4 @@ io/
 test-results/
 .env
 config/
+k8s/secret.yaml
