@@ -166,29 +166,52 @@ export function DiffResult({
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-background">
-      {/* Direction + summary header */}
+      {/* Direction + three-subset summary */}
       {sourceTable && targetTable && (
-        <div className="mb-3 rounded-md border bg-muted/40 px-4 py-2 text-sm flex flex-wrap items-center gap-x-4 gap-y-1">
-          <span className="font-mono font-semibold">
-            {srcLabel} <span className="text-muted-foreground">→</span> {tgtLabel}
-          </span>
-          <span className="text-muted-foreground">|</span>
-          <span className="text-blue-600">{updateCount} UPDATE</span>
-          <span className="text-green-600">{insertCount} INSERT
-            <span className="text-muted-foreground text-xs ml-1">({srcLabel}-only rows)</span>
-          </span>
-          {onSwapDirection && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-auto gap-1 h-7 text-xs"
-              onClick={onSwapDirection}
-              title={`Swap to ${tgtLabel} → ${srcLabel}`}
-            >
-              <ArrowRightLeft className="w-3 h-3" />
-              Swap & Re-run
-            </Button>
-          )}
+        <div className="mb-3 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-mono font-semibold">
+            <span>{srcLabel}</span>
+            <ArrowRightLeft className="w-3.5 h-3.5 text-muted-foreground" />
+            <span>{tgtLabel}</span>
+            {onSwapDirection && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto gap-1 h-7 text-xs"
+                onClick={onSwapDirection}
+                title={`Swap to ${tgtLabel} → ${srcLabel}`}
+              >
+                <ArrowRightLeft className="w-3 h-3" />
+                Swap & Re-run
+              </Button>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-sm">
+            {/* Subset 1: only in source */}
+            <div className="rounded-md border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30 px-3 py-2 flex items-start gap-2">
+              <Plus className="w-4 h-4 mt-0.5 text-green-600 shrink-0" />
+              <div>
+                <div className="font-semibold text-green-700 dark:text-green-300">{insertCount} INSERT</div>
+                <div className="text-xs text-green-600 dark:text-green-400">Only in <span className="font-mono">{srcLabel}</span> → will be inserted into target on approve</div>
+              </div>
+            </div>
+            {/* Subset 2: in both, values differ */}
+            <div className="rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-3 py-2 flex items-start gap-2">
+              <RefreshCw className="w-4 h-4 mt-0.5 text-blue-600 shrink-0" />
+              <div>
+                <div className="font-semibold text-blue-700 dark:text-blue-300">{updateCount} UPDATE</div>
+                <div className="text-xs text-blue-600 dark:text-blue-400">In both tables, values differ → target row updated on approve</div>
+              </div>
+            </div>
+            {/* Subset 3: only in target — requires swap to surface */}
+            <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-2 flex items-start gap-2">
+              <Trash2 className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+              <div>
+                <div className="font-semibold text-muted-foreground">? Only in target</div>
+                <div className="text-xs text-muted-foreground">Rows present only in <span className="font-mono">{tgtLabel}</span> — swap direction &amp; re-run to detect</div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       {/* Limit warning */}

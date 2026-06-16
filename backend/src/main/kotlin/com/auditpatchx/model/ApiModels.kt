@@ -171,7 +171,7 @@ data class SyncPairConfigInfo(
     val tableB: String,
     val pkColumns: List<String>,
     val excludeColumns: List<String>,
-    val validation: CompareValidationResponse
+    val validation: CompareValidationResponse?
 )
 
 data class CompareReviewRequest(

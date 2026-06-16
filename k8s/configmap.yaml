@@ -41,3 +41,3129 @@ data:
             - BATCH_ID
             - REGION_CODE
             - EFFECTIVE_TS
+
+    # 408 comparison pairs: 51 TRDMGMR tables × 8 environment directions.
+    # Validation is lazy — pairs pointing to non-existent schemas return null
+    # validation and are still selectable in the UI.
+    sync-tables:
+      pairs:
+        - pair-name: "AGENT_ACTION_RECORDS [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_ACTION_RECORDS"
+            table-b: "TRDMGMR_UAT.AGENT_ACTION_RECORDS"
+          pk-columns:
+            - HISTDATE
+            - AGENT_ID
+            - ACTION_NUM
+        - pair-name: "AGENT_ACTION_RECORDS [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_ACTION_RECORDS"
+            table-b: "TRDMGMR_STAGING.AGENT_ACTION_RECORDS"
+          pk-columns:
+            - HISTDATE
+            - AGENT_ID
+            - ACTION_NUM
+        - pair-name: "AGENT_ACTION_RECORDS [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_ACTION_RECORDS"
+            table-b: "TRDMGMR_DR.AGENT_ACTION_RECORDS"
+          pk-columns:
+            - HISTDATE
+            - AGENT_ID
+            - ACTION_NUM
+        - pair-name: "AGENT_ACTION_RECORDS [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_ACTION_RECORDS"
+            table-b: "TRDMGMR_HOTFIX.AGENT_ACTION_RECORDS"
+          pk-columns:
+            - HISTDATE
+            - AGENT_ID
+            - ACTION_NUM
+        - pair-name: "AGENT_ACTION_RECORDS [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ACTION_RECORDS"
+            table-b: "TRDMGMR_STAGING.AGENT_ACTION_RECORDS"
+          pk-columns:
+            - HISTDATE
+            - AGENT_ID
+            - ACTION_NUM
+        - pair-name: "AGENT_ACTION_RECORDS [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ACTION_RECORDS"
+            table-b: "TRDMGMR_DR.AGENT_ACTION_RECORDS"
+          pk-columns:
+            - HISTDATE
+            - AGENT_ID
+            - ACTION_NUM
+        - pair-name: "AGENT_ACTION_RECORDS [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_ACTION_RECORDS"
+            table-b: "TRDMGMR_DR.AGENT_ACTION_RECORDS"
+          pk-columns:
+            - HISTDATE
+            - AGENT_ID
+            - ACTION_NUM
+        - pair-name: "AGENT_ACTION_RECORDS [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_ACTION_RECORDS"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_ACTION_RECORDS"
+          pk-columns:
+            - HISTDATE
+            - AGENT_ID
+            - ACTION_NUM
+        - pair-name: "AGENT_DAILY_ORDER_REQUESTS [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_DAILY_ORDER_REQUESTS"
+            table-b: "TRDMGMR_UAT.AGENT_DAILY_ORDER_REQUESTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_DAILY_ORDER_REQUESTS [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_DAILY_ORDER_REQUESTS"
+            table-b: "TRDMGMR_STAGING.AGENT_DAILY_ORDER_REQUESTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_DAILY_ORDER_REQUESTS [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_DAILY_ORDER_REQUESTS"
+            table-b: "TRDMGMR_DR.AGENT_DAILY_ORDER_REQUESTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_DAILY_ORDER_REQUESTS [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_DAILY_ORDER_REQUESTS"
+            table-b: "TRDMGMR_HOTFIX.AGENT_DAILY_ORDER_REQUESTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_DAILY_ORDER_REQUESTS [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_DAILY_ORDER_REQUESTS"
+            table-b: "TRDMGMR_STAGING.AGENT_DAILY_ORDER_REQUESTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_DAILY_ORDER_REQUESTS [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_DAILY_ORDER_REQUESTS"
+            table-b: "TRDMGMR_DR.AGENT_DAILY_ORDER_REQUESTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_DAILY_ORDER_REQUESTS [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_DAILY_ORDER_REQUESTS"
+            table-b: "TRDMGMR_DR.AGENT_DAILY_ORDER_REQUESTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_DAILY_ORDER_REQUESTS [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_DAILY_ORDER_REQUESTS"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_DAILY_ORDER_REQUESTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_HOLDINGS [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_HOLDINGS"
+            table-b: "TRDMGMR_UAT.AGENT_HOLDINGS"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "AGENT_HOLDINGS [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_HOLDINGS"
+            table-b: "TRDMGMR_STAGING.AGENT_HOLDINGS"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "AGENT_HOLDINGS [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_HOLDINGS"
+            table-b: "TRDMGMR_DR.AGENT_HOLDINGS"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "AGENT_HOLDINGS [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_HOLDINGS"
+            table-b: "TRDMGMR_HOTFIX.AGENT_HOLDINGS"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "AGENT_HOLDINGS [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_HOLDINGS"
+            table-b: "TRDMGMR_STAGING.AGENT_HOLDINGS"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "AGENT_HOLDINGS [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_HOLDINGS"
+            table-b: "TRDMGMR_DR.AGENT_HOLDINGS"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "AGENT_HOLDINGS [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_HOLDINGS"
+            table-b: "TRDMGMR_DR.AGENT_HOLDINGS"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "AGENT_HOLDINGS [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_HOLDINGS"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_HOLDINGS"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "AGENT_INVEST_CANDIDATES [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_INVEST_CANDIDATES"
+            table-b: "TRDMGMR_UAT.AGENT_INVEST_CANDIDATES"
+          pk-columns:
+            - AGENT_ID
+            - STOCK_CODE
+            - STOCK_SEQ
+        - pair-name: "AGENT_INVEST_CANDIDATES [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_INVEST_CANDIDATES"
+            table-b: "TRDMGMR_STAGING.AGENT_INVEST_CANDIDATES"
+          pk-columns:
+            - AGENT_ID
+            - STOCK_CODE
+            - STOCK_SEQ
+        - pair-name: "AGENT_INVEST_CANDIDATES [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_INVEST_CANDIDATES"
+            table-b: "TRDMGMR_DR.AGENT_INVEST_CANDIDATES"
+          pk-columns:
+            - AGENT_ID
+            - STOCK_CODE
+            - STOCK_SEQ
+        - pair-name: "AGENT_INVEST_CANDIDATES [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_INVEST_CANDIDATES"
+            table-b: "TRDMGMR_HOTFIX.AGENT_INVEST_CANDIDATES"
+          pk-columns:
+            - AGENT_ID
+            - STOCK_CODE
+            - STOCK_SEQ
+        - pair-name: "AGENT_INVEST_CANDIDATES [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_INVEST_CANDIDATES"
+            table-b: "TRDMGMR_STAGING.AGENT_INVEST_CANDIDATES"
+          pk-columns:
+            - AGENT_ID
+            - STOCK_CODE
+            - STOCK_SEQ
+        - pair-name: "AGENT_INVEST_CANDIDATES [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_INVEST_CANDIDATES"
+            table-b: "TRDMGMR_DR.AGENT_INVEST_CANDIDATES"
+          pk-columns:
+            - AGENT_ID
+            - STOCK_CODE
+            - STOCK_SEQ
+        - pair-name: "AGENT_INVEST_CANDIDATES [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_INVEST_CANDIDATES"
+            table-b: "TRDMGMR_DR.AGENT_INVEST_CANDIDATES"
+          pk-columns:
+            - AGENT_ID
+            - STOCK_CODE
+            - STOCK_SEQ
+        - pair-name: "AGENT_INVEST_CANDIDATES [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_INVEST_CANDIDATES"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_INVEST_CANDIDATES"
+          pk-columns:
+            - AGENT_ID
+            - STOCK_CODE
+            - STOCK_SEQ
+        - pair-name: "AGENT_MGMT [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_MGMT"
+            table-b: "TRDMGMR_UAT.AGENT_MGMT"
+          pk-columns:
+            - AGENT_ID
+        - pair-name: "AGENT_MGMT [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_MGMT"
+            table-b: "TRDMGMR_STAGING.AGENT_MGMT"
+          pk-columns:
+            - AGENT_ID
+        - pair-name: "AGENT_MGMT [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_MGMT"
+            table-b: "TRDMGMR_DR.AGENT_MGMT"
+          pk-columns:
+            - AGENT_ID
+        - pair-name: "AGENT_MGMT [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_MGMT"
+            table-b: "TRDMGMR_HOTFIX.AGENT_MGMT"
+          pk-columns:
+            - AGENT_ID
+        - pair-name: "AGENT_MGMT [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_MGMT"
+            table-b: "TRDMGMR_STAGING.AGENT_MGMT"
+          pk-columns:
+            - AGENT_ID
+        - pair-name: "AGENT_MGMT [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_MGMT"
+            table-b: "TRDMGMR_DR.AGENT_MGMT"
+          pk-columns:
+            - AGENT_ID
+        - pair-name: "AGENT_MGMT [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_MGMT"
+            table-b: "TRDMGMR_DR.AGENT_MGMT"
+          pk-columns:
+            - AGENT_ID
+        - pair-name: "AGENT_MGMT [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_MGMT"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_MGMT"
+          pk-columns:
+            - AGENT_ID
+        - pair-name: "AGENT_MGMT_HIST [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_MGMT_HIST"
+            table-b: "TRDMGMR_UAT.AGENT_MGMT_HIST"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "AGENT_MGMT_HIST [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_MGMT_HIST"
+            table-b: "TRDMGMR_STAGING.AGENT_MGMT_HIST"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "AGENT_MGMT_HIST [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_MGMT_HIST"
+            table-b: "TRDMGMR_DR.AGENT_MGMT_HIST"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "AGENT_MGMT_HIST [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_MGMT_HIST"
+            table-b: "TRDMGMR_HOTFIX.AGENT_MGMT_HIST"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "AGENT_MGMT_HIST [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_MGMT_HIST"
+            table-b: "TRDMGMR_STAGING.AGENT_MGMT_HIST"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "AGENT_MGMT_HIST [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_MGMT_HIST"
+            table-b: "TRDMGMR_DR.AGENT_MGMT_HIST"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "AGENT_MGMT_HIST [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_MGMT_HIST"
+            table-b: "TRDMGMR_DR.AGENT_MGMT_HIST"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "AGENT_MGMT_HIST [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_MGMT_HIST"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_MGMT_HIST"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "AGENT_ORDER_DEALS [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_DEALS"
+            table-b: "TRDMGMR_UAT.AGENT_ORDER_DEALS"
+          pk-columns:
+            - DEAL_ID
+        - pair-name: "AGENT_ORDER_DEALS [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_DEALS"
+            table-b: "TRDMGMR_STAGING.AGENT_ORDER_DEALS"
+          pk-columns:
+            - DEAL_ID
+        - pair-name: "AGENT_ORDER_DEALS [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_DEALS"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_DEALS"
+          pk-columns:
+            - DEAL_ID
+        - pair-name: "AGENT_ORDER_DEALS [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_DEALS"
+            table-b: "TRDMGMR_HOTFIX.AGENT_ORDER_DEALS"
+          pk-columns:
+            - DEAL_ID
+        - pair-name: "AGENT_ORDER_DEALS [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ORDER_DEALS"
+            table-b: "TRDMGMR_STAGING.AGENT_ORDER_DEALS"
+          pk-columns:
+            - DEAL_ID
+        - pair-name: "AGENT_ORDER_DEALS [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ORDER_DEALS"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_DEALS"
+          pk-columns:
+            - DEAL_ID
+        - pair-name: "AGENT_ORDER_DEALS [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_ORDER_DEALS"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_DEALS"
+          pk-columns:
+            - DEAL_ID
+        - pair-name: "AGENT_ORDER_DEALS [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_ORDER_DEALS"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_ORDER_DEALS"
+          pk-columns:
+            - DEAL_ID
+        - pair-name: "AGENT_ORDER_EVENTS [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_EVENTS"
+            table-b: "TRDMGMR_UAT.AGENT_ORDER_EVENTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_ORDER_EVENTS [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_EVENTS"
+            table-b: "TRDMGMR_STAGING.AGENT_ORDER_EVENTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_ORDER_EVENTS [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_EVENTS"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_EVENTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_ORDER_EVENTS [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_EVENTS"
+            table-b: "TRDMGMR_HOTFIX.AGENT_ORDER_EVENTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_ORDER_EVENTS [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ORDER_EVENTS"
+            table-b: "TRDMGMR_STAGING.AGENT_ORDER_EVENTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_ORDER_EVENTS [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ORDER_EVENTS"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_EVENTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_ORDER_EVENTS [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_ORDER_EVENTS"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_EVENTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_ORDER_EVENTS [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_ORDER_EVENTS"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_ORDER_EVENTS"
+          pk-columns:
+            - TRADE_DATE
+            - AGENT_ID
+        - pair-name: "AGENT_ORDER_EVENT_LOG [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_EVENT_LOG"
+            table-b: "TRDMGMR_UAT.AGENT_ORDER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "AGENT_ORDER_EVENT_LOG [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_EVENT_LOG"
+            table-b: "TRDMGMR_STAGING.AGENT_ORDER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "AGENT_ORDER_EVENT_LOG [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_EVENT_LOG"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "AGENT_ORDER_EVENT_LOG [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_EVENT_LOG"
+            table-b: "TRDMGMR_HOTFIX.AGENT_ORDER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "AGENT_ORDER_EVENT_LOG [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ORDER_EVENT_LOG"
+            table-b: "TRDMGMR_STAGING.AGENT_ORDER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "AGENT_ORDER_EVENT_LOG [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ORDER_EVENT_LOG"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "AGENT_ORDER_EVENT_LOG [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_ORDER_EVENT_LOG"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "AGENT_ORDER_EVENT_LOG [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_ORDER_EVENT_LOG"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_ORDER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "AGENT_ORDER_FEES_TAXES [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_FEES_TAXES"
+            table-b: "TRDMGMR_UAT.AGENT_ORDER_FEES_TAXES"
+          pk-columns:
+            - FEE_TAX_ID
+        - pair-name: "AGENT_ORDER_FEES_TAXES [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_FEES_TAXES"
+            table-b: "TRDMGMR_STAGING.AGENT_ORDER_FEES_TAXES"
+          pk-columns:
+            - FEE_TAX_ID
+        - pair-name: "AGENT_ORDER_FEES_TAXES [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_FEES_TAXES"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_FEES_TAXES"
+          pk-columns:
+            - FEE_TAX_ID
+        - pair-name: "AGENT_ORDER_FEES_TAXES [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_FEES_TAXES"
+            table-b: "TRDMGMR_HOTFIX.AGENT_ORDER_FEES_TAXES"
+          pk-columns:
+            - FEE_TAX_ID
+        - pair-name: "AGENT_ORDER_FEES_TAXES [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ORDER_FEES_TAXES"
+            table-b: "TRDMGMR_STAGING.AGENT_ORDER_FEES_TAXES"
+          pk-columns:
+            - FEE_TAX_ID
+        - pair-name: "AGENT_ORDER_FEES_TAXES [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ORDER_FEES_TAXES"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_FEES_TAXES"
+          pk-columns:
+            - FEE_TAX_ID
+        - pair-name: "AGENT_ORDER_FEES_TAXES [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_ORDER_FEES_TAXES"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_FEES_TAXES"
+          pk-columns:
+            - FEE_TAX_ID
+        - pair-name: "AGENT_ORDER_FEES_TAXES [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_ORDER_FEES_TAXES"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_ORDER_FEES_TAXES"
+          pk-columns:
+            - FEE_TAX_ID
+        - pair-name: "AGENT_ORDER_OPERATIONS_LOG [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_OPERATIONS_LOG"
+            table-b: "TRDMGMR_UAT.AGENT_ORDER_OPERATIONS_LOG"
+          pk-columns:
+            - LOG_ID
+        - pair-name: "AGENT_ORDER_OPERATIONS_LOG [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_OPERATIONS_LOG"
+            table-b: "TRDMGMR_STAGING.AGENT_ORDER_OPERATIONS_LOG"
+          pk-columns:
+            - LOG_ID
+        - pair-name: "AGENT_ORDER_OPERATIONS_LOG [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_OPERATIONS_LOG"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_OPERATIONS_LOG"
+          pk-columns:
+            - LOG_ID
+        - pair-name: "AGENT_ORDER_OPERATIONS_LOG [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_OPERATIONS_LOG"
+            table-b: "TRDMGMR_HOTFIX.AGENT_ORDER_OPERATIONS_LOG"
+          pk-columns:
+            - LOG_ID
+        - pair-name: "AGENT_ORDER_OPERATIONS_LOG [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ORDER_OPERATIONS_LOG"
+            table-b: "TRDMGMR_STAGING.AGENT_ORDER_OPERATIONS_LOG"
+          pk-columns:
+            - LOG_ID
+        - pair-name: "AGENT_ORDER_OPERATIONS_LOG [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ORDER_OPERATIONS_LOG"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_OPERATIONS_LOG"
+          pk-columns:
+            - LOG_ID
+        - pair-name: "AGENT_ORDER_OPERATIONS_LOG [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_ORDER_OPERATIONS_LOG"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_OPERATIONS_LOG"
+          pk-columns:
+            - LOG_ID
+        - pair-name: "AGENT_ORDER_OPERATIONS_LOG [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_ORDER_OPERATIONS_LOG"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_ORDER_OPERATIONS_LOG"
+          pk-columns:
+            - LOG_ID
+        - pair-name: "AGENT_ORDER_STATE_HISTORY [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_STATE_HISTORY"
+            table-b: "TRDMGMR_UAT.AGENT_ORDER_STATE_HISTORY"
+          pk-columns:
+            - HISTORY_ID
+        - pair-name: "AGENT_ORDER_STATE_HISTORY [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_STATE_HISTORY"
+            table-b: "TRDMGMR_STAGING.AGENT_ORDER_STATE_HISTORY"
+          pk-columns:
+            - HISTORY_ID
+        - pair-name: "AGENT_ORDER_STATE_HISTORY [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_STATE_HISTORY"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_STATE_HISTORY"
+          pk-columns:
+            - HISTORY_ID
+        - pair-name: "AGENT_ORDER_STATE_HISTORY [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_ORDER_STATE_HISTORY"
+            table-b: "TRDMGMR_HOTFIX.AGENT_ORDER_STATE_HISTORY"
+          pk-columns:
+            - HISTORY_ID
+        - pair-name: "AGENT_ORDER_STATE_HISTORY [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ORDER_STATE_HISTORY"
+            table-b: "TRDMGMR_STAGING.AGENT_ORDER_STATE_HISTORY"
+          pk-columns:
+            - HISTORY_ID
+        - pair-name: "AGENT_ORDER_STATE_HISTORY [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_ORDER_STATE_HISTORY"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_STATE_HISTORY"
+          pk-columns:
+            - HISTORY_ID
+        - pair-name: "AGENT_ORDER_STATE_HISTORY [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_ORDER_STATE_HISTORY"
+            table-b: "TRDMGMR_DR.AGENT_ORDER_STATE_HISTORY"
+          pk-columns:
+            - HISTORY_ID
+        - pair-name: "AGENT_ORDER_STATE_HISTORY [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_ORDER_STATE_HISTORY"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_ORDER_STATE_HISTORY"
+          pk-columns:
+            - HISTORY_ID
+        - pair-name: "AGENT_POSITIONS [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_POSITIONS"
+            table-b: "TRDMGMR_UAT.AGENT_POSITIONS"
+          pk-columns:
+            - AGENT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "AGENT_POSITIONS [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_POSITIONS"
+            table-b: "TRDMGMR_STAGING.AGENT_POSITIONS"
+          pk-columns:
+            - AGENT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "AGENT_POSITIONS [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_POSITIONS"
+            table-b: "TRDMGMR_DR.AGENT_POSITIONS"
+          pk-columns:
+            - AGENT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "AGENT_POSITIONS [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_POSITIONS"
+            table-b: "TRDMGMR_HOTFIX.AGENT_POSITIONS"
+          pk-columns:
+            - AGENT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "AGENT_POSITIONS [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_POSITIONS"
+            table-b: "TRDMGMR_STAGING.AGENT_POSITIONS"
+          pk-columns:
+            - AGENT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "AGENT_POSITIONS [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_POSITIONS"
+            table-b: "TRDMGMR_DR.AGENT_POSITIONS"
+          pk-columns:
+            - AGENT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "AGENT_POSITIONS [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_POSITIONS"
+            table-b: "TRDMGMR_DR.AGENT_POSITIONS"
+          pk-columns:
+            - AGENT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "AGENT_POSITIONS [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_POSITIONS"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_POSITIONS"
+          pk-columns:
+            - AGENT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "AGENT_TRANSACTION_LIST [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.AGENT_TRANSACTION_LIST"
+            table-b: "TRDMGMR_UAT.AGENT_TRANSACTION_LIST"
+          pk-columns:
+            - AGENT_ID
+            - TRANSACTION_TICKET
+        - pair-name: "AGENT_TRANSACTION_LIST [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.AGENT_TRANSACTION_LIST"
+            table-b: "TRDMGMR_STAGING.AGENT_TRANSACTION_LIST"
+          pk-columns:
+            - AGENT_ID
+            - TRANSACTION_TICKET
+        - pair-name: "AGENT_TRANSACTION_LIST [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.AGENT_TRANSACTION_LIST"
+            table-b: "TRDMGMR_DR.AGENT_TRANSACTION_LIST"
+          pk-columns:
+            - AGENT_ID
+            - TRANSACTION_TICKET
+        - pair-name: "AGENT_TRANSACTION_LIST [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.AGENT_TRANSACTION_LIST"
+            table-b: "TRDMGMR_HOTFIX.AGENT_TRANSACTION_LIST"
+          pk-columns:
+            - AGENT_ID
+            - TRANSACTION_TICKET
+        - pair-name: "AGENT_TRANSACTION_LIST [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_TRANSACTION_LIST"
+            table-b: "TRDMGMR_STAGING.AGENT_TRANSACTION_LIST"
+          pk-columns:
+            - AGENT_ID
+            - TRANSACTION_TICKET
+        - pair-name: "AGENT_TRANSACTION_LIST [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.AGENT_TRANSACTION_LIST"
+            table-b: "TRDMGMR_DR.AGENT_TRANSACTION_LIST"
+          pk-columns:
+            - AGENT_ID
+            - TRANSACTION_TICKET
+        - pair-name: "AGENT_TRANSACTION_LIST [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.AGENT_TRANSACTION_LIST"
+            table-b: "TRDMGMR_DR.AGENT_TRANSACTION_LIST"
+          pk-columns:
+            - AGENT_ID
+            - TRANSACTION_TICKET
+        - pair-name: "AGENT_TRANSACTION_LIST [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.AGENT_TRANSACTION_LIST"
+            table-b: "TRDMGMR_ARCHIVE.AGENT_TRANSACTION_LIST"
+          pk-columns:
+            - AGENT_ID
+            - TRANSACTION_TICKET
+        - pair-name: "BASIC_STOCK_FEATURE [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.BASIC_STOCK_FEATURE"
+            table-b: "TRDMGMR_UAT.BASIC_STOCK_FEATURE"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "BASIC_STOCK_FEATURE [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.BASIC_STOCK_FEATURE"
+            table-b: "TRDMGMR_STAGING.BASIC_STOCK_FEATURE"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "BASIC_STOCK_FEATURE [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.BASIC_STOCK_FEATURE"
+            table-b: "TRDMGMR_DR.BASIC_STOCK_FEATURE"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "BASIC_STOCK_FEATURE [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.BASIC_STOCK_FEATURE"
+            table-b: "TRDMGMR_HOTFIX.BASIC_STOCK_FEATURE"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "BASIC_STOCK_FEATURE [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.BASIC_STOCK_FEATURE"
+            table-b: "TRDMGMR_STAGING.BASIC_STOCK_FEATURE"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "BASIC_STOCK_FEATURE [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.BASIC_STOCK_FEATURE"
+            table-b: "TRDMGMR_DR.BASIC_STOCK_FEATURE"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "BASIC_STOCK_FEATURE [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.BASIC_STOCK_FEATURE"
+            table-b: "TRDMGMR_DR.BASIC_STOCK_FEATURE"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "BASIC_STOCK_FEATURE [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.BASIC_STOCK_FEATURE"
+            table-b: "TRDMGMR_ARCHIVE.BASIC_STOCK_FEATURE"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "BROKER_ACCOUNT [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.BROKER_ACCOUNT"
+            table-b: "TRDMGMR_UAT.BROKER_ACCOUNT"
+          pk-columns:
+            - ACCOUNT_TYPE
+            - BROKER_ID
+            - ACCOUNT_ID
+        - pair-name: "BROKER_ACCOUNT [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.BROKER_ACCOUNT"
+            table-b: "TRDMGMR_STAGING.BROKER_ACCOUNT"
+          pk-columns:
+            - ACCOUNT_TYPE
+            - BROKER_ID
+            - ACCOUNT_ID
+        - pair-name: "BROKER_ACCOUNT [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.BROKER_ACCOUNT"
+            table-b: "TRDMGMR_DR.BROKER_ACCOUNT"
+          pk-columns:
+            - ACCOUNT_TYPE
+            - BROKER_ID
+            - ACCOUNT_ID
+        - pair-name: "BROKER_ACCOUNT [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.BROKER_ACCOUNT"
+            table-b: "TRDMGMR_HOTFIX.BROKER_ACCOUNT"
+          pk-columns:
+            - ACCOUNT_TYPE
+            - BROKER_ID
+            - ACCOUNT_ID
+        - pair-name: "BROKER_ACCOUNT [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.BROKER_ACCOUNT"
+            table-b: "TRDMGMR_STAGING.BROKER_ACCOUNT"
+          pk-columns:
+            - ACCOUNT_TYPE
+            - BROKER_ID
+            - ACCOUNT_ID
+        - pair-name: "BROKER_ACCOUNT [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.BROKER_ACCOUNT"
+            table-b: "TRDMGMR_DR.BROKER_ACCOUNT"
+          pk-columns:
+            - ACCOUNT_TYPE
+            - BROKER_ID
+            - ACCOUNT_ID
+        - pair-name: "BROKER_ACCOUNT [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.BROKER_ACCOUNT"
+            table-b: "TRDMGMR_DR.BROKER_ACCOUNT"
+          pk-columns:
+            - ACCOUNT_TYPE
+            - BROKER_ID
+            - ACCOUNT_ID
+        - pair-name: "BROKER_ACCOUNT [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.BROKER_ACCOUNT"
+            table-b: "TRDMGMR_ARCHIVE.BROKER_ACCOUNT"
+          pk-columns:
+            - ACCOUNT_TYPE
+            - BROKER_ID
+            - ACCOUNT_ID
+        - pair-name: "BROKER_ACCOUNT_POSITION_SNAPSHOT [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+            table-b: "TRDMGMR_UAT.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "BROKER_ACCOUNT_POSITION_SNAPSHOT [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+            table-b: "TRDMGMR_STAGING.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "BROKER_ACCOUNT_POSITION_SNAPSHOT [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+            table-b: "TRDMGMR_DR.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "BROKER_ACCOUNT_POSITION_SNAPSHOT [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+            table-b: "TRDMGMR_HOTFIX.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "BROKER_ACCOUNT_POSITION_SNAPSHOT [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+            table-b: "TRDMGMR_STAGING.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "BROKER_ACCOUNT_POSITION_SNAPSHOT [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+            table-b: "TRDMGMR_DR.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "BROKER_ACCOUNT_POSITION_SNAPSHOT [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+            table-b: "TRDMGMR_DR.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "BROKER_ACCOUNT_POSITION_SNAPSHOT [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+            table-b: "TRDMGMR_ARCHIVE.BROKER_ACCOUNT_POSITION_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "BROKER_ACCOUNT_SNAPSHOT [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.BROKER_ACCOUNT_SNAPSHOT"
+            table-b: "TRDMGMR_UAT.BROKER_ACCOUNT_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "BROKER_ACCOUNT_SNAPSHOT [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.BROKER_ACCOUNT_SNAPSHOT"
+            table-b: "TRDMGMR_STAGING.BROKER_ACCOUNT_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "BROKER_ACCOUNT_SNAPSHOT [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.BROKER_ACCOUNT_SNAPSHOT"
+            table-b: "TRDMGMR_DR.BROKER_ACCOUNT_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "BROKER_ACCOUNT_SNAPSHOT [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.BROKER_ACCOUNT_SNAPSHOT"
+            table-b: "TRDMGMR_HOTFIX.BROKER_ACCOUNT_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "BROKER_ACCOUNT_SNAPSHOT [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.BROKER_ACCOUNT_SNAPSHOT"
+            table-b: "TRDMGMR_STAGING.BROKER_ACCOUNT_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "BROKER_ACCOUNT_SNAPSHOT [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.BROKER_ACCOUNT_SNAPSHOT"
+            table-b: "TRDMGMR_DR.BROKER_ACCOUNT_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "BROKER_ACCOUNT_SNAPSHOT [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.BROKER_ACCOUNT_SNAPSHOT"
+            table-b: "TRDMGMR_DR.BROKER_ACCOUNT_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "BROKER_ACCOUNT_SNAPSHOT [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.BROKER_ACCOUNT_SNAPSHOT"
+            table-b: "TRDMGMR_ARCHIVE.BROKER_ACCOUNT_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "BROKER_EVENT_LOG [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.BROKER_EVENT_LOG"
+            table-b: "TRDMGMR_UAT.BROKER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "BROKER_EVENT_LOG [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.BROKER_EVENT_LOG"
+            table-b: "TRDMGMR_STAGING.BROKER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "BROKER_EVENT_LOG [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.BROKER_EVENT_LOG"
+            table-b: "TRDMGMR_DR.BROKER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "BROKER_EVENT_LOG [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.BROKER_EVENT_LOG"
+            table-b: "TRDMGMR_HOTFIX.BROKER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "BROKER_EVENT_LOG [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.BROKER_EVENT_LOG"
+            table-b: "TRDMGMR_STAGING.BROKER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "BROKER_EVENT_LOG [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.BROKER_EVENT_LOG"
+            table-b: "TRDMGMR_DR.BROKER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "BROKER_EVENT_LOG [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.BROKER_EVENT_LOG"
+            table-b: "TRDMGMR_DR.BROKER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "BROKER_EVENT_LOG [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.BROKER_EVENT_LOG"
+            table-b: "TRDMGMR_ARCHIVE.BROKER_EVENT_LOG"
+          pk-columns:
+            - EVENT_ID
+        - pair-name: "ML_CANDIDATE_SNAPSHOT [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.ML_CANDIDATE_SNAPSHOT"
+            table-b: "TRDMGMR_UAT.ML_CANDIDATE_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "ML_CANDIDATE_SNAPSHOT [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.ML_CANDIDATE_SNAPSHOT"
+            table-b: "TRDMGMR_STAGING.ML_CANDIDATE_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "ML_CANDIDATE_SNAPSHOT [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.ML_CANDIDATE_SNAPSHOT"
+            table-b: "TRDMGMR_DR.ML_CANDIDATE_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "ML_CANDIDATE_SNAPSHOT [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.ML_CANDIDATE_SNAPSHOT"
+            table-b: "TRDMGMR_HOTFIX.ML_CANDIDATE_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "ML_CANDIDATE_SNAPSHOT [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.ML_CANDIDATE_SNAPSHOT"
+            table-b: "TRDMGMR_STAGING.ML_CANDIDATE_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "ML_CANDIDATE_SNAPSHOT [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.ML_CANDIDATE_SNAPSHOT"
+            table-b: "TRDMGMR_DR.ML_CANDIDATE_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "ML_CANDIDATE_SNAPSHOT [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.ML_CANDIDATE_SNAPSHOT"
+            table-b: "TRDMGMR_DR.ML_CANDIDATE_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "ML_CANDIDATE_SNAPSHOT [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.ML_CANDIDATE_SNAPSHOT"
+            table-b: "TRDMGMR_ARCHIVE.ML_CANDIDATE_SNAPSHOT"
+          pk-columns:
+            - SNAPSHOT_ID
+        - pair-name: "ML_TRAINING_CONFIG [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.ML_TRAINING_CONFIG"
+            table-b: "TRDMGMR_UAT.ML_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "ML_TRAINING_CONFIG [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.ML_TRAINING_CONFIG"
+            table-b: "TRDMGMR_STAGING.ML_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "ML_TRAINING_CONFIG [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.ML_TRAINING_CONFIG"
+            table-b: "TRDMGMR_DR.ML_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "ML_TRAINING_CONFIG [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.ML_TRAINING_CONFIG"
+            table-b: "TRDMGMR_HOTFIX.ML_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "ML_TRAINING_CONFIG [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.ML_TRAINING_CONFIG"
+            table-b: "TRDMGMR_STAGING.ML_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "ML_TRAINING_CONFIG [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.ML_TRAINING_CONFIG"
+            table-b: "TRDMGMR_DR.ML_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "ML_TRAINING_CONFIG [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.ML_TRAINING_CONFIG"
+            table-b: "TRDMGMR_DR.ML_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "ML_TRAINING_CONFIG [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.ML_TRAINING_CONFIG"
+            table-b: "TRDMGMR_ARCHIVE.ML_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "ML_TRAINING_ROUND [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.ML_TRAINING_ROUND"
+            table-b: "TRDMGMR_UAT.ML_TRAINING_ROUND"
+          pk-columns:
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_ROUND [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.ML_TRAINING_ROUND"
+            table-b: "TRDMGMR_STAGING.ML_TRAINING_ROUND"
+          pk-columns:
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_ROUND [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.ML_TRAINING_ROUND"
+            table-b: "TRDMGMR_DR.ML_TRAINING_ROUND"
+          pk-columns:
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_ROUND [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.ML_TRAINING_ROUND"
+            table-b: "TRDMGMR_HOTFIX.ML_TRAINING_ROUND"
+          pk-columns:
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_ROUND [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.ML_TRAINING_ROUND"
+            table-b: "TRDMGMR_STAGING.ML_TRAINING_ROUND"
+          pk-columns:
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_ROUND [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.ML_TRAINING_ROUND"
+            table-b: "TRDMGMR_DR.ML_TRAINING_ROUND"
+          pk-columns:
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_ROUND [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.ML_TRAINING_ROUND"
+            table-b: "TRDMGMR_DR.ML_TRAINING_ROUND"
+          pk-columns:
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_ROUND [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.ML_TRAINING_ROUND"
+            table-b: "TRDMGMR_ARCHIVE.ML_TRAINING_ROUND"
+          pk-columns:
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_TRIAL [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.ML_TRAINING_TRIAL"
+            table-b: "TRDMGMR_UAT.ML_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_TRIAL [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.ML_TRAINING_TRIAL"
+            table-b: "TRDMGMR_STAGING.ML_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_TRIAL [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.ML_TRAINING_TRIAL"
+            table-b: "TRDMGMR_DR.ML_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_TRIAL [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.ML_TRAINING_TRIAL"
+            table-b: "TRDMGMR_HOTFIX.ML_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_TRIAL [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.ML_TRAINING_TRIAL"
+            table-b: "TRDMGMR_STAGING.ML_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_TRIAL [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.ML_TRAINING_TRIAL"
+            table-b: "TRDMGMR_DR.ML_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_TRIAL [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.ML_TRAINING_TRIAL"
+            table-b: "TRDMGMR_DR.ML_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+            - ROUND_ID
+        - pair-name: "ML_TRAINING_TRIAL [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.ML_TRAINING_TRIAL"
+            table-b: "TRDMGMR_ARCHIVE.ML_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+            - ROUND_ID
+        - pair-name: "ORDER_EVENTS [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.ORDER_EVENTS"
+            table-b: "TRDMGMR_UAT.ORDER_EVENTS"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.ORDER_EVENTS"
+            table-b: "TRDMGMR_STAGING.ORDER_EVENTS"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.ORDER_EVENTS"
+            table-b: "TRDMGMR_DR.ORDER_EVENTS"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.ORDER_EVENTS"
+            table-b: "TRDMGMR_HOTFIX.ORDER_EVENTS"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.ORDER_EVENTS"
+            table-b: "TRDMGMR_STAGING.ORDER_EVENTS"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.ORDER_EVENTS"
+            table-b: "TRDMGMR_DR.ORDER_EVENTS"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.ORDER_EVENTS"
+            table-b: "TRDMGMR_DR.ORDER_EVENTS"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.ORDER_EVENTS"
+            table-b: "TRDMGMR_ARCHIVE.ORDER_EVENTS"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS_DEAD_LETTER [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.ORDER_EVENTS_DEAD_LETTER"
+            table-b: "TRDMGMR_UAT.ORDER_EVENTS_DEAD_LETTER"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS_DEAD_LETTER [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.ORDER_EVENTS_DEAD_LETTER"
+            table-b: "TRDMGMR_STAGING.ORDER_EVENTS_DEAD_LETTER"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS_DEAD_LETTER [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.ORDER_EVENTS_DEAD_LETTER"
+            table-b: "TRDMGMR_DR.ORDER_EVENTS_DEAD_LETTER"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS_DEAD_LETTER [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.ORDER_EVENTS_DEAD_LETTER"
+            table-b: "TRDMGMR_HOTFIX.ORDER_EVENTS_DEAD_LETTER"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS_DEAD_LETTER [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.ORDER_EVENTS_DEAD_LETTER"
+            table-b: "TRDMGMR_STAGING.ORDER_EVENTS_DEAD_LETTER"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS_DEAD_LETTER [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.ORDER_EVENTS_DEAD_LETTER"
+            table-b: "TRDMGMR_DR.ORDER_EVENTS_DEAD_LETTER"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS_DEAD_LETTER [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.ORDER_EVENTS_DEAD_LETTER"
+            table-b: "TRDMGMR_DR.ORDER_EVENTS_DEAD_LETTER"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_EVENTS_DEAD_LETTER [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.ORDER_EVENTS_DEAD_LETTER"
+            table-b: "TRDMGMR_ARCHIVE.ORDER_EVENTS_DEAD_LETTER"
+          pk-columns:
+            - ID
+        - pair-name: "ORDER_LATEST_STATE [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.ORDER_LATEST_STATE"
+            table-b: "TRDMGMR_UAT.ORDER_LATEST_STATE"
+          pk-columns:
+            - ORDER_REF
+        - pair-name: "ORDER_LATEST_STATE [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.ORDER_LATEST_STATE"
+            table-b: "TRDMGMR_STAGING.ORDER_LATEST_STATE"
+          pk-columns:
+            - ORDER_REF
+        - pair-name: "ORDER_LATEST_STATE [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.ORDER_LATEST_STATE"
+            table-b: "TRDMGMR_DR.ORDER_LATEST_STATE"
+          pk-columns:
+            - ORDER_REF
+        - pair-name: "ORDER_LATEST_STATE [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.ORDER_LATEST_STATE"
+            table-b: "TRDMGMR_HOTFIX.ORDER_LATEST_STATE"
+          pk-columns:
+            - ORDER_REF
+        - pair-name: "ORDER_LATEST_STATE [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.ORDER_LATEST_STATE"
+            table-b: "TRDMGMR_STAGING.ORDER_LATEST_STATE"
+          pk-columns:
+            - ORDER_REF
+        - pair-name: "ORDER_LATEST_STATE [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.ORDER_LATEST_STATE"
+            table-b: "TRDMGMR_DR.ORDER_LATEST_STATE"
+          pk-columns:
+            - ORDER_REF
+        - pair-name: "ORDER_LATEST_STATE [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.ORDER_LATEST_STATE"
+            table-b: "TRDMGMR_DR.ORDER_LATEST_STATE"
+          pk-columns:
+            - ORDER_REF
+        - pair-name: "ORDER_LATEST_STATE [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.ORDER_LATEST_STATE"
+            table-b: "TRDMGMR_ARCHIVE.ORDER_LATEST_STATE"
+          pk-columns:
+            - ORDER_REF
+        - pair-name: "ORDER_STATE_TO_STEP [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.ORDER_STATE_TO_STEP"
+            table-b: "TRDMGMR_UAT.ORDER_STATE_TO_STEP"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATE_TO_STEP [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.ORDER_STATE_TO_STEP"
+            table-b: "TRDMGMR_STAGING.ORDER_STATE_TO_STEP"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATE_TO_STEP [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.ORDER_STATE_TO_STEP"
+            table-b: "TRDMGMR_DR.ORDER_STATE_TO_STEP"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATE_TO_STEP [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.ORDER_STATE_TO_STEP"
+            table-b: "TRDMGMR_HOTFIX.ORDER_STATE_TO_STEP"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATE_TO_STEP [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.ORDER_STATE_TO_STEP"
+            table-b: "TRDMGMR_STAGING.ORDER_STATE_TO_STEP"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATE_TO_STEP [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.ORDER_STATE_TO_STEP"
+            table-b: "TRDMGMR_DR.ORDER_STATE_TO_STEP"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATE_TO_STEP [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.ORDER_STATE_TO_STEP"
+            table-b: "TRDMGMR_DR.ORDER_STATE_TO_STEP"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATE_TO_STEP [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.ORDER_STATE_TO_STEP"
+            table-b: "TRDMGMR_ARCHIVE.ORDER_STATE_TO_STEP"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATUS_FLOW_CONFIG [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.ORDER_STATUS_FLOW_CONFIG"
+            table-b: "TRDMGMR_UAT.ORDER_STATUS_FLOW_CONFIG"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATUS_FLOW_CONFIG [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.ORDER_STATUS_FLOW_CONFIG"
+            table-b: "TRDMGMR_STAGING.ORDER_STATUS_FLOW_CONFIG"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATUS_FLOW_CONFIG [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.ORDER_STATUS_FLOW_CONFIG"
+            table-b: "TRDMGMR_DR.ORDER_STATUS_FLOW_CONFIG"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATUS_FLOW_CONFIG [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.ORDER_STATUS_FLOW_CONFIG"
+            table-b: "TRDMGMR_HOTFIX.ORDER_STATUS_FLOW_CONFIG"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATUS_FLOW_CONFIG [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.ORDER_STATUS_FLOW_CONFIG"
+            table-b: "TRDMGMR_STAGING.ORDER_STATUS_FLOW_CONFIG"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATUS_FLOW_CONFIG [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.ORDER_STATUS_FLOW_CONFIG"
+            table-b: "TRDMGMR_DR.ORDER_STATUS_FLOW_CONFIG"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATUS_FLOW_CONFIG [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.ORDER_STATUS_FLOW_CONFIG"
+            table-b: "TRDMGMR_DR.ORDER_STATUS_FLOW_CONFIG"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STATUS_FLOW_CONFIG [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.ORDER_STATUS_FLOW_CONFIG"
+            table-b: "TRDMGMR_ARCHIVE.ORDER_STATUS_FLOW_CONFIG"
+          pk-columns:
+            - STATE
+        - pair-name: "ORDER_STEPPER_DEFINITION [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.ORDER_STEPPER_DEFINITION"
+            table-b: "TRDMGMR_UAT.ORDER_STEPPER_DEFINITION"
+          pk-columns:
+            - STEP_KEY
+        - pair-name: "ORDER_STEPPER_DEFINITION [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.ORDER_STEPPER_DEFINITION"
+            table-b: "TRDMGMR_STAGING.ORDER_STEPPER_DEFINITION"
+          pk-columns:
+            - STEP_KEY
+        - pair-name: "ORDER_STEPPER_DEFINITION [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.ORDER_STEPPER_DEFINITION"
+            table-b: "TRDMGMR_DR.ORDER_STEPPER_DEFINITION"
+          pk-columns:
+            - STEP_KEY
+        - pair-name: "ORDER_STEPPER_DEFINITION [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.ORDER_STEPPER_DEFINITION"
+            table-b: "TRDMGMR_HOTFIX.ORDER_STEPPER_DEFINITION"
+          pk-columns:
+            - STEP_KEY
+        - pair-name: "ORDER_STEPPER_DEFINITION [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.ORDER_STEPPER_DEFINITION"
+            table-b: "TRDMGMR_STAGING.ORDER_STEPPER_DEFINITION"
+          pk-columns:
+            - STEP_KEY
+        - pair-name: "ORDER_STEPPER_DEFINITION [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.ORDER_STEPPER_DEFINITION"
+            table-b: "TRDMGMR_DR.ORDER_STEPPER_DEFINITION"
+          pk-columns:
+            - STEP_KEY
+        - pair-name: "ORDER_STEPPER_DEFINITION [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.ORDER_STEPPER_DEFINITION"
+            table-b: "TRDMGMR_DR.ORDER_STEPPER_DEFINITION"
+          pk-columns:
+            - STEP_KEY
+        - pair-name: "ORDER_STEPPER_DEFINITION [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.ORDER_STEPPER_DEFINITION"
+            table-b: "TRDMGMR_ARCHIVE.ORDER_STEPPER_DEFINITION"
+          pk-columns:
+            - STEP_KEY
+        - pair-name: "REFRESH_PARAMETERS [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.REFRESH_PARAMETERS"
+            table-b: "TRDMGMR_UAT.REFRESH_PARAMETERS"
+          pk-columns:
+            - PARAM_KEY
+        - pair-name: "REFRESH_PARAMETERS [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.REFRESH_PARAMETERS"
+            table-b: "TRDMGMR_STAGING.REFRESH_PARAMETERS"
+          pk-columns:
+            - PARAM_KEY
+        - pair-name: "REFRESH_PARAMETERS [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.REFRESH_PARAMETERS"
+            table-b: "TRDMGMR_DR.REFRESH_PARAMETERS"
+          pk-columns:
+            - PARAM_KEY
+        - pair-name: "REFRESH_PARAMETERS [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.REFRESH_PARAMETERS"
+            table-b: "TRDMGMR_HOTFIX.REFRESH_PARAMETERS"
+          pk-columns:
+            - PARAM_KEY
+        - pair-name: "REFRESH_PARAMETERS [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.REFRESH_PARAMETERS"
+            table-b: "TRDMGMR_STAGING.REFRESH_PARAMETERS"
+          pk-columns:
+            - PARAM_KEY
+        - pair-name: "REFRESH_PARAMETERS [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.REFRESH_PARAMETERS"
+            table-b: "TRDMGMR_DR.REFRESH_PARAMETERS"
+          pk-columns:
+            - PARAM_KEY
+        - pair-name: "REFRESH_PARAMETERS [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.REFRESH_PARAMETERS"
+            table-b: "TRDMGMR_DR.REFRESH_PARAMETERS"
+          pk-columns:
+            - PARAM_KEY
+        - pair-name: "REFRESH_PARAMETERS [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.REFRESH_PARAMETERS"
+            table-b: "TRDMGMR_ARCHIVE.REFRESH_PARAMETERS"
+          pk-columns:
+            - PARAM_KEY
+        - pair-name: "STOCK_FETCH_FAILURE [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_FETCH_FAILURE"
+            table-b: "TRDMGMR_UAT.STOCK_FETCH_FAILURE"
+          pk-columns:
+            - STOCK_CODE
+            - PROVIDER
+            - FAILURE_SYMBOL
+        - pair-name: "STOCK_FETCH_FAILURE [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_FETCH_FAILURE"
+            table-b: "TRDMGMR_STAGING.STOCK_FETCH_FAILURE"
+          pk-columns:
+            - STOCK_CODE
+            - PROVIDER
+            - FAILURE_SYMBOL
+        - pair-name: "STOCK_FETCH_FAILURE [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_FETCH_FAILURE"
+            table-b: "TRDMGMR_DR.STOCK_FETCH_FAILURE"
+          pk-columns:
+            - STOCK_CODE
+            - PROVIDER
+            - FAILURE_SYMBOL
+        - pair-name: "STOCK_FETCH_FAILURE [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_FETCH_FAILURE"
+            table-b: "TRDMGMR_HOTFIX.STOCK_FETCH_FAILURE"
+          pk-columns:
+            - STOCK_CODE
+            - PROVIDER
+            - FAILURE_SYMBOL
+        - pair-name: "STOCK_FETCH_FAILURE [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_FETCH_FAILURE"
+            table-b: "TRDMGMR_STAGING.STOCK_FETCH_FAILURE"
+          pk-columns:
+            - STOCK_CODE
+            - PROVIDER
+            - FAILURE_SYMBOL
+        - pair-name: "STOCK_FETCH_FAILURE [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_FETCH_FAILURE"
+            table-b: "TRDMGMR_DR.STOCK_FETCH_FAILURE"
+          pk-columns:
+            - STOCK_CODE
+            - PROVIDER
+            - FAILURE_SYMBOL
+        - pair-name: "STOCK_FETCH_FAILURE [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_FETCH_FAILURE"
+            table-b: "TRDMGMR_DR.STOCK_FETCH_FAILURE"
+          pk-columns:
+            - STOCK_CODE
+            - PROVIDER
+            - FAILURE_SYMBOL
+        - pair-name: "STOCK_FETCH_FAILURE [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_FETCH_FAILURE"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_FETCH_FAILURE"
+          pk-columns:
+            - STOCK_CODE
+            - PROVIDER
+            - FAILURE_SYMBOL
+        - pair-name: "STOCK_HIST_NORMALIZED [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_HIST_NORMALIZED"
+            table-b: "TRDMGMR_UAT.STOCK_HIST_NORMALIZED"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_NORMALIZED [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_HIST_NORMALIZED"
+            table-b: "TRDMGMR_STAGING.STOCK_HIST_NORMALIZED"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_NORMALIZED [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_HIST_NORMALIZED"
+            table-b: "TRDMGMR_DR.STOCK_HIST_NORMALIZED"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_NORMALIZED [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_HIST_NORMALIZED"
+            table-b: "TRDMGMR_HOTFIX.STOCK_HIST_NORMALIZED"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_NORMALIZED [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_HIST_NORMALIZED"
+            table-b: "TRDMGMR_STAGING.STOCK_HIST_NORMALIZED"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_NORMALIZED [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_HIST_NORMALIZED"
+            table-b: "TRDMGMR_DR.STOCK_HIST_NORMALIZED"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_NORMALIZED [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_HIST_NORMALIZED"
+            table-b: "TRDMGMR_DR.STOCK_HIST_NORMALIZED"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_NORMALIZED [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_HIST_NORMALIZED"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_HIST_NORMALIZED"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_REAL [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_HIST_REAL"
+            table-b: "TRDMGMR_UAT.STOCK_HIST_REAL"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_REAL [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_HIST_REAL"
+            table-b: "TRDMGMR_STAGING.STOCK_HIST_REAL"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_REAL [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_HIST_REAL"
+            table-b: "TRDMGMR_DR.STOCK_HIST_REAL"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_REAL [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_HIST_REAL"
+            table-b: "TRDMGMR_HOTFIX.STOCK_HIST_REAL"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_REAL [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_HIST_REAL"
+            table-b: "TRDMGMR_STAGING.STOCK_HIST_REAL"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_REAL [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_HIST_REAL"
+            table-b: "TRDMGMR_DR.STOCK_HIST_REAL"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_REAL [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_HIST_REAL"
+            table-b: "TRDMGMR_DR.STOCK_HIST_REAL"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_HIST_REAL [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_HIST_REAL"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_HIST_REAL"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+        - pair-name: "STOCK_INFO [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_INFO"
+            table-b: "TRDMGMR_UAT.STOCK_INFO"
+          pk-columns:
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_INFO [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_INFO"
+            table-b: "TRDMGMR_STAGING.STOCK_INFO"
+          pk-columns:
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_INFO [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_INFO"
+            table-b: "TRDMGMR_DR.STOCK_INFO"
+          pk-columns:
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_INFO [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_INFO"
+            table-b: "TRDMGMR_HOTFIX.STOCK_INFO"
+          pk-columns:
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_INFO [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_INFO"
+            table-b: "TRDMGMR_STAGING.STOCK_INFO"
+          pk-columns:
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_INFO [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_INFO"
+            table-b: "TRDMGMR_DR.STOCK_INFO"
+          pk-columns:
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_INFO [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_INFO"
+            table-b: "TRDMGMR_DR.STOCK_INFO"
+          pk-columns:
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_INFO [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_INFO"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_INFO"
+          pk-columns:
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_INFO_AUDIT [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_INFO_AUDIT"
+            table-b: "TRDMGMR_UAT.STOCK_INFO_AUDIT"
+          pk-columns:
+            - AUDIT_ID
+        - pair-name: "STOCK_INFO_AUDIT [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_INFO_AUDIT"
+            table-b: "TRDMGMR_STAGING.STOCK_INFO_AUDIT"
+          pk-columns:
+            - AUDIT_ID
+        - pair-name: "STOCK_INFO_AUDIT [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_INFO_AUDIT"
+            table-b: "TRDMGMR_DR.STOCK_INFO_AUDIT"
+          pk-columns:
+            - AUDIT_ID
+        - pair-name: "STOCK_INFO_AUDIT [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_INFO_AUDIT"
+            table-b: "TRDMGMR_HOTFIX.STOCK_INFO_AUDIT"
+          pk-columns:
+            - AUDIT_ID
+        - pair-name: "STOCK_INFO_AUDIT [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_INFO_AUDIT"
+            table-b: "TRDMGMR_STAGING.STOCK_INFO_AUDIT"
+          pk-columns:
+            - AUDIT_ID
+        - pair-name: "STOCK_INFO_AUDIT [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_INFO_AUDIT"
+            table-b: "TRDMGMR_DR.STOCK_INFO_AUDIT"
+          pk-columns:
+            - AUDIT_ID
+        - pair-name: "STOCK_INFO_AUDIT [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_INFO_AUDIT"
+            table-b: "TRDMGMR_DR.STOCK_INFO_AUDIT"
+          pk-columns:
+            - AUDIT_ID
+        - pair-name: "STOCK_INFO_AUDIT [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_INFO_AUDIT"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_INFO_AUDIT"
+          pk-columns:
+            - AUDIT_ID
+        - pair-name: "STOCK_PRICE_HISTORY [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_PRICE_HISTORY"
+            table-b: "TRDMGMR_UAT.STOCK_PRICE_HISTORY"
+          pk-columns:
+            - STOCK_CODE
+            - MARKET
+            - TRADE_DATE
+        - pair-name: "STOCK_PRICE_HISTORY [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_PRICE_HISTORY"
+            table-b: "TRDMGMR_STAGING.STOCK_PRICE_HISTORY"
+          pk-columns:
+            - STOCK_CODE
+            - MARKET
+            - TRADE_DATE
+        - pair-name: "STOCK_PRICE_HISTORY [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_PRICE_HISTORY"
+            table-b: "TRDMGMR_DR.STOCK_PRICE_HISTORY"
+          pk-columns:
+            - STOCK_CODE
+            - MARKET
+            - TRADE_DATE
+        - pair-name: "STOCK_PRICE_HISTORY [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_PRICE_HISTORY"
+            table-b: "TRDMGMR_HOTFIX.STOCK_PRICE_HISTORY"
+          pk-columns:
+            - STOCK_CODE
+            - MARKET
+            - TRADE_DATE
+        - pair-name: "STOCK_PRICE_HISTORY [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_PRICE_HISTORY"
+            table-b: "TRDMGMR_STAGING.STOCK_PRICE_HISTORY"
+          pk-columns:
+            - STOCK_CODE
+            - MARKET
+            - TRADE_DATE
+        - pair-name: "STOCK_PRICE_HISTORY [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_PRICE_HISTORY"
+            table-b: "TRDMGMR_DR.STOCK_PRICE_HISTORY"
+          pk-columns:
+            - STOCK_CODE
+            - MARKET
+            - TRADE_DATE
+        - pair-name: "STOCK_PRICE_HISTORY [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_PRICE_HISTORY"
+            table-b: "TRDMGMR_DR.STOCK_PRICE_HISTORY"
+          pk-columns:
+            - STOCK_CODE
+            - MARKET
+            - TRADE_DATE
+        - pair-name: "STOCK_PRICE_HISTORY [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_PRICE_HISTORY"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_PRICE_HISTORY"
+          pk-columns:
+            - STOCK_CODE
+            - MARKET
+            - TRADE_DATE
+        - pair-name: "STOCK_TREND_DAILY_PREDICTIONS [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_DAILY_PREDICTIONS"
+            table-b: "TRDMGMR_UAT.STOCK_TREND_DAILY_PREDICTIONS"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+            - TASK_NAME
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_DAILY_PREDICTIONS [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_DAILY_PREDICTIONS"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_DAILY_PREDICTIONS"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+            - TASK_NAME
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_DAILY_PREDICTIONS [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_DAILY_PREDICTIONS"
+            table-b: "TRDMGMR_DR.STOCK_TREND_DAILY_PREDICTIONS"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+            - TASK_NAME
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_DAILY_PREDICTIONS [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_DAILY_PREDICTIONS"
+            table-b: "TRDMGMR_HOTFIX.STOCK_TREND_DAILY_PREDICTIONS"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+            - TASK_NAME
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_DAILY_PREDICTIONS [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_DAILY_PREDICTIONS"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_DAILY_PREDICTIONS"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+            - TASK_NAME
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_DAILY_PREDICTIONS [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_DAILY_PREDICTIONS"
+            table-b: "TRDMGMR_DR.STOCK_TREND_DAILY_PREDICTIONS"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+            - TASK_NAME
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_DAILY_PREDICTIONS [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_TREND_DAILY_PREDICTIONS"
+            table-b: "TRDMGMR_DR.STOCK_TREND_DAILY_PREDICTIONS"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+            - TASK_NAME
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_DAILY_PREDICTIONS [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_TREND_DAILY_PREDICTIONS"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_TREND_DAILY_PREDICTIONS"
+          pk-columns:
+            - STOCK_CODE
+            - TRADE_DATE
+            - TASK_NAME
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_MODEL_REGISTRY [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_MODEL_REGISTRY"
+            table-b: "TRDMGMR_UAT.STOCK_TREND_MODEL_REGISTRY"
+          pk-columns:
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_MODEL_REGISTRY [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_MODEL_REGISTRY"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_MODEL_REGISTRY"
+          pk-columns:
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_MODEL_REGISTRY [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_MODEL_REGISTRY"
+            table-b: "TRDMGMR_DR.STOCK_TREND_MODEL_REGISTRY"
+          pk-columns:
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_MODEL_REGISTRY [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_MODEL_REGISTRY"
+            table-b: "TRDMGMR_HOTFIX.STOCK_TREND_MODEL_REGISTRY"
+          pk-columns:
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_MODEL_REGISTRY [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_MODEL_REGISTRY"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_MODEL_REGISTRY"
+          pk-columns:
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_MODEL_REGISTRY [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_MODEL_REGISTRY"
+            table-b: "TRDMGMR_DR.STOCK_TREND_MODEL_REGISTRY"
+          pk-columns:
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_MODEL_REGISTRY [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_TREND_MODEL_REGISTRY"
+            table-b: "TRDMGMR_DR.STOCK_TREND_MODEL_REGISTRY"
+          pk-columns:
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_MODEL_REGISTRY [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_TREND_MODEL_REGISTRY"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_TREND_MODEL_REGISTRY"
+          pk-columns:
+            - MODEL_ID
+        - pair-name: "STOCK_TREND_OUTCOME [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_OUTCOME"
+            table-b: "TRDMGMR_UAT.STOCK_TREND_OUTCOME"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_OUTCOME [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_OUTCOME"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_OUTCOME"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_OUTCOME [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_OUTCOME"
+            table-b: "TRDMGMR_DR.STOCK_TREND_OUTCOME"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_OUTCOME [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_OUTCOME"
+            table-b: "TRDMGMR_HOTFIX.STOCK_TREND_OUTCOME"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_OUTCOME [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_OUTCOME"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_OUTCOME"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_OUTCOME [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_OUTCOME"
+            table-b: "TRDMGMR_DR.STOCK_TREND_OUTCOME"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_OUTCOME [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_TREND_OUTCOME"
+            table-b: "TRDMGMR_DR.STOCK_TREND_OUTCOME"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_OUTCOME [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_TREND_OUTCOME"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_TREND_OUTCOME"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_REVIEW_RESULT [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_REVIEW_RESULT"
+            table-b: "TRDMGMR_UAT.STOCK_TREND_REVIEW_RESULT"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_REVIEW_RESULT [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_REVIEW_RESULT"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_REVIEW_RESULT"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_REVIEW_RESULT [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_REVIEW_RESULT"
+            table-b: "TRDMGMR_DR.STOCK_TREND_REVIEW_RESULT"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_REVIEW_RESULT [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_REVIEW_RESULT"
+            table-b: "TRDMGMR_HOTFIX.STOCK_TREND_REVIEW_RESULT"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_REVIEW_RESULT [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_REVIEW_RESULT"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_REVIEW_RESULT"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_REVIEW_RESULT [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_REVIEW_RESULT"
+            table-b: "TRDMGMR_DR.STOCK_TREND_REVIEW_RESULT"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_REVIEW_RESULT [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_TREND_REVIEW_RESULT"
+            table-b: "TRDMGMR_DR.STOCK_TREND_REVIEW_RESULT"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_REVIEW_RESULT [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_TREND_REVIEW_RESULT"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_TREND_REVIEW_RESULT"
+          pk-columns:
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_REVIEW_RUN [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_REVIEW_RUN"
+            table-b: "TRDMGMR_UAT.STOCK_TREND_REVIEW_RUN"
+          pk-columns:
+            - RUN_ID
+        - pair-name: "STOCK_TREND_REVIEW_RUN [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_REVIEW_RUN"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_REVIEW_RUN"
+          pk-columns:
+            - RUN_ID
+        - pair-name: "STOCK_TREND_REVIEW_RUN [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_REVIEW_RUN"
+            table-b: "TRDMGMR_DR.STOCK_TREND_REVIEW_RUN"
+          pk-columns:
+            - RUN_ID
+        - pair-name: "STOCK_TREND_REVIEW_RUN [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_REVIEW_RUN"
+            table-b: "TRDMGMR_HOTFIX.STOCK_TREND_REVIEW_RUN"
+          pk-columns:
+            - RUN_ID
+        - pair-name: "STOCK_TREND_REVIEW_RUN [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_REVIEW_RUN"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_REVIEW_RUN"
+          pk-columns:
+            - RUN_ID
+        - pair-name: "STOCK_TREND_REVIEW_RUN [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_REVIEW_RUN"
+            table-b: "TRDMGMR_DR.STOCK_TREND_REVIEW_RUN"
+          pk-columns:
+            - RUN_ID
+        - pair-name: "STOCK_TREND_REVIEW_RUN [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_TREND_REVIEW_RUN"
+            table-b: "TRDMGMR_DR.STOCK_TREND_REVIEW_RUN"
+          pk-columns:
+            - RUN_ID
+        - pair-name: "STOCK_TREND_REVIEW_RUN [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_TREND_REVIEW_RUN"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_TREND_REVIEW_RUN"
+          pk-columns:
+            - RUN_ID
+        - pair-name: "STOCK_TREND_TRAINING_CONFIG [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_TRAINING_CONFIG"
+            table-b: "TRDMGMR_UAT.STOCK_TREND_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "STOCK_TREND_TRAINING_CONFIG [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_TRAINING_CONFIG"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "STOCK_TREND_TRAINING_CONFIG [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_TRAINING_CONFIG"
+            table-b: "TRDMGMR_DR.STOCK_TREND_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "STOCK_TREND_TRAINING_CONFIG [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_TRAINING_CONFIG"
+            table-b: "TRDMGMR_HOTFIX.STOCK_TREND_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "STOCK_TREND_TRAINING_CONFIG [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_TRAINING_CONFIG"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "STOCK_TREND_TRAINING_CONFIG [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_TRAINING_CONFIG"
+            table-b: "TRDMGMR_DR.STOCK_TREND_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "STOCK_TREND_TRAINING_CONFIG [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_TREND_TRAINING_CONFIG"
+            table-b: "TRDMGMR_DR.STOCK_TREND_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "STOCK_TREND_TRAINING_CONFIG [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_TREND_TRAINING_CONFIG"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_TREND_TRAINING_CONFIG"
+          pk-columns:
+            - CONFIG_ID
+        - pair-name: "STOCK_TREND_TRAINING_TRIAL [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_TRAINING_TRIAL"
+            table-b: "TRDMGMR_UAT.STOCK_TREND_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+        - pair-name: "STOCK_TREND_TRAINING_TRIAL [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_TRAINING_TRIAL"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+        - pair-name: "STOCK_TREND_TRAINING_TRIAL [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_TRAINING_TRIAL"
+            table-b: "TRDMGMR_DR.STOCK_TREND_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+        - pair-name: "STOCK_TREND_TRAINING_TRIAL [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_TRAINING_TRIAL"
+            table-b: "TRDMGMR_HOTFIX.STOCK_TREND_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+        - pair-name: "STOCK_TREND_TRAINING_TRIAL [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_TRAINING_TRIAL"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+        - pair-name: "STOCK_TREND_TRAINING_TRIAL [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_TRAINING_TRIAL"
+            table-b: "TRDMGMR_DR.STOCK_TREND_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+        - pair-name: "STOCK_TREND_TRAINING_TRIAL [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_TREND_TRAINING_TRIAL"
+            table-b: "TRDMGMR_DR.STOCK_TREND_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+        - pair-name: "STOCK_TREND_TRAINING_TRIAL [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_TREND_TRAINING_TRIAL"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_TREND_TRAINING_TRIAL"
+          pk-columns:
+            - TRIAL_ID
+        - pair-name: "STOCK_TREND_USER_REVIEW [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_USER_REVIEW"
+            table-b: "TRDMGMR_UAT.STOCK_TREND_USER_REVIEW"
+          pk-columns:
+            - USER_ID
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_USER_REVIEW [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_USER_REVIEW"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_USER_REVIEW"
+          pk-columns:
+            - USER_ID
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_USER_REVIEW [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_USER_REVIEW"
+            table-b: "TRDMGMR_DR.STOCK_TREND_USER_REVIEW"
+          pk-columns:
+            - USER_ID
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_USER_REVIEW [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STOCK_TREND_USER_REVIEW"
+            table-b: "TRDMGMR_HOTFIX.STOCK_TREND_USER_REVIEW"
+          pk-columns:
+            - USER_ID
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_USER_REVIEW [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_USER_REVIEW"
+            table-b: "TRDMGMR_STAGING.STOCK_TREND_USER_REVIEW"
+          pk-columns:
+            - USER_ID
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_USER_REVIEW [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STOCK_TREND_USER_REVIEW"
+            table-b: "TRDMGMR_DR.STOCK_TREND_USER_REVIEW"
+          pk-columns:
+            - USER_ID
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_USER_REVIEW [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STOCK_TREND_USER_REVIEW"
+            table-b: "TRDMGMR_DR.STOCK_TREND_USER_REVIEW"
+          pk-columns:
+            - USER_ID
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STOCK_TREND_USER_REVIEW [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STOCK_TREND_USER_REVIEW"
+            table-b: "TRDMGMR_ARCHIVE.STOCK_TREND_USER_REVIEW"
+          pk-columns:
+            - USER_ID
+            - RUN_ID
+            - MARKET
+            - STOCK_CODE
+        - pair-name: "STRIKING_RECOMMENDATIONS [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.STRIKING_RECOMMENDATIONS"
+            table-b: "TRDMGMR_UAT.STRIKING_RECOMMENDATIONS"
+          pk-columns:
+            - REC_DATE
+            - STOCK_CODE
+        - pair-name: "STRIKING_RECOMMENDATIONS [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.STRIKING_RECOMMENDATIONS"
+            table-b: "TRDMGMR_STAGING.STRIKING_RECOMMENDATIONS"
+          pk-columns:
+            - REC_DATE
+            - STOCK_CODE
+        - pair-name: "STRIKING_RECOMMENDATIONS [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.STRIKING_RECOMMENDATIONS"
+            table-b: "TRDMGMR_DR.STRIKING_RECOMMENDATIONS"
+          pk-columns:
+            - REC_DATE
+            - STOCK_CODE
+        - pair-name: "STRIKING_RECOMMENDATIONS [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.STRIKING_RECOMMENDATIONS"
+            table-b: "TRDMGMR_HOTFIX.STRIKING_RECOMMENDATIONS"
+          pk-columns:
+            - REC_DATE
+            - STOCK_CODE
+        - pair-name: "STRIKING_RECOMMENDATIONS [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.STRIKING_RECOMMENDATIONS"
+            table-b: "TRDMGMR_STAGING.STRIKING_RECOMMENDATIONS"
+          pk-columns:
+            - REC_DATE
+            - STOCK_CODE
+        - pair-name: "STRIKING_RECOMMENDATIONS [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.STRIKING_RECOMMENDATIONS"
+            table-b: "TRDMGMR_DR.STRIKING_RECOMMENDATIONS"
+          pk-columns:
+            - REC_DATE
+            - STOCK_CODE
+        - pair-name: "STRIKING_RECOMMENDATIONS [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.STRIKING_RECOMMENDATIONS"
+            table-b: "TRDMGMR_DR.STRIKING_RECOMMENDATIONS"
+          pk-columns:
+            - REC_DATE
+            - STOCK_CODE
+        - pair-name: "STRIKING_RECOMMENDATIONS [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.STRIKING_RECOMMENDATIONS"
+            table-b: "TRDMGMR_ARCHIVE.STRIKING_RECOMMENDATIONS"
+          pk-columns:
+            - REC_DATE
+            - STOCK_CODE
+        - pair-name: "SYSTEM_CONFIG [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.SYSTEM_CONFIG"
+            table-b: "TRDMGMR_UAT.SYSTEM_CONFIG"
+          pk-columns:
+            - CONFIG_KEY
+        - pair-name: "SYSTEM_CONFIG [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.SYSTEM_CONFIG"
+            table-b: "TRDMGMR_STAGING.SYSTEM_CONFIG"
+          pk-columns:
+            - CONFIG_KEY
+        - pair-name: "SYSTEM_CONFIG [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.SYSTEM_CONFIG"
+            table-b: "TRDMGMR_DR.SYSTEM_CONFIG"
+          pk-columns:
+            - CONFIG_KEY
+        - pair-name: "SYSTEM_CONFIG [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.SYSTEM_CONFIG"
+            table-b: "TRDMGMR_HOTFIX.SYSTEM_CONFIG"
+          pk-columns:
+            - CONFIG_KEY
+        - pair-name: "SYSTEM_CONFIG [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.SYSTEM_CONFIG"
+            table-b: "TRDMGMR_STAGING.SYSTEM_CONFIG"
+          pk-columns:
+            - CONFIG_KEY
+        - pair-name: "SYSTEM_CONFIG [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.SYSTEM_CONFIG"
+            table-b: "TRDMGMR_DR.SYSTEM_CONFIG"
+          pk-columns:
+            - CONFIG_KEY
+        - pair-name: "SYSTEM_CONFIG [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.SYSTEM_CONFIG"
+            table-b: "TRDMGMR_DR.SYSTEM_CONFIG"
+          pk-columns:
+            - CONFIG_KEY
+        - pair-name: "SYSTEM_CONFIG [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.SYSTEM_CONFIG"
+            table-b: "TRDMGMR_ARCHIVE.SYSTEM_CONFIG"
+          pk-columns:
+            - CONFIG_KEY
+        - pair-name: "TAIWAN_HOLIDAYS [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.TAIWAN_HOLIDAYS"
+            table-b: "TRDMGMR_UAT.TAIWAN_HOLIDAYS"
+          pk-columns:
+            - HOLIDAY_DATE
+        - pair-name: "TAIWAN_HOLIDAYS [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.TAIWAN_HOLIDAYS"
+            table-b: "TRDMGMR_STAGING.TAIWAN_HOLIDAYS"
+          pk-columns:
+            - HOLIDAY_DATE
+        - pair-name: "TAIWAN_HOLIDAYS [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.TAIWAN_HOLIDAYS"
+            table-b: "TRDMGMR_DR.TAIWAN_HOLIDAYS"
+          pk-columns:
+            - HOLIDAY_DATE
+        - pair-name: "TAIWAN_HOLIDAYS [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.TAIWAN_HOLIDAYS"
+            table-b: "TRDMGMR_HOTFIX.TAIWAN_HOLIDAYS"
+          pk-columns:
+            - HOLIDAY_DATE
+        - pair-name: "TAIWAN_HOLIDAYS [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.TAIWAN_HOLIDAYS"
+            table-b: "TRDMGMR_STAGING.TAIWAN_HOLIDAYS"
+          pk-columns:
+            - HOLIDAY_DATE
+        - pair-name: "TAIWAN_HOLIDAYS [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.TAIWAN_HOLIDAYS"
+            table-b: "TRDMGMR_DR.TAIWAN_HOLIDAYS"
+          pk-columns:
+            - HOLIDAY_DATE
+        - pair-name: "TAIWAN_HOLIDAYS [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.TAIWAN_HOLIDAYS"
+            table-b: "TRDMGMR_DR.TAIWAN_HOLIDAYS"
+          pk-columns:
+            - HOLIDAY_DATE
+        - pair-name: "TAIWAN_HOLIDAYS [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.TAIWAN_HOLIDAYS"
+            table-b: "TRDMGMR_ARCHIVE.TAIWAN_HOLIDAYS"
+          pk-columns:
+            - HOLIDAY_DATE
+        - pair-name: "TRANSACTIONS [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.TRANSACTIONS"
+            table-b: "TRDMGMR_UAT.TRANSACTIONS"
+          pk-columns:
+            - TRANSACTION_ID
+        - pair-name: "TRANSACTIONS [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.TRANSACTIONS"
+            table-b: "TRDMGMR_STAGING.TRANSACTIONS"
+          pk-columns:
+            - TRANSACTION_ID
+        - pair-name: "TRANSACTIONS [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.TRANSACTIONS"
+            table-b: "TRDMGMR_DR.TRANSACTIONS"
+          pk-columns:
+            - TRANSACTION_ID
+        - pair-name: "TRANSACTIONS [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.TRANSACTIONS"
+            table-b: "TRDMGMR_HOTFIX.TRANSACTIONS"
+          pk-columns:
+            - TRANSACTION_ID
+        - pair-name: "TRANSACTIONS [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.TRANSACTIONS"
+            table-b: "TRDMGMR_STAGING.TRANSACTIONS"
+          pk-columns:
+            - TRANSACTION_ID
+        - pair-name: "TRANSACTIONS [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.TRANSACTIONS"
+            table-b: "TRDMGMR_DR.TRANSACTIONS"
+          pk-columns:
+            - TRANSACTION_ID
+        - pair-name: "TRANSACTIONS [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.TRANSACTIONS"
+            table-b: "TRDMGMR_DR.TRANSACTIONS"
+          pk-columns:
+            - TRANSACTION_ID
+        - pair-name: "TRANSACTIONS [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.TRANSACTIONS"
+            table-b: "TRDMGMR_ARCHIVE.TRANSACTIONS"
+          pk-columns:
+            - TRANSACTION_ID
+        - pair-name: "TREND_USER_HOLDING [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.TREND_USER_HOLDING"
+            table-b: "TRDMGMR_UAT.TREND_USER_HOLDING"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "TREND_USER_HOLDING [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.TREND_USER_HOLDING"
+            table-b: "TRDMGMR_STAGING.TREND_USER_HOLDING"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "TREND_USER_HOLDING [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.TREND_USER_HOLDING"
+            table-b: "TRDMGMR_DR.TREND_USER_HOLDING"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "TREND_USER_HOLDING [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.TREND_USER_HOLDING"
+            table-b: "TRDMGMR_HOTFIX.TREND_USER_HOLDING"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "TREND_USER_HOLDING [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.TREND_USER_HOLDING"
+            table-b: "TRDMGMR_STAGING.TREND_USER_HOLDING"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "TREND_USER_HOLDING [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.TREND_USER_HOLDING"
+            table-b: "TRDMGMR_DR.TREND_USER_HOLDING"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "TREND_USER_HOLDING [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.TREND_USER_HOLDING"
+            table-b: "TRDMGMR_DR.TREND_USER_HOLDING"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "TREND_USER_HOLDING [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.TREND_USER_HOLDING"
+            table-b: "TRDMGMR_ARCHIVE.TREND_USER_HOLDING"
+          pk-columns:
+            - HOLDING_ID
+        - pair-name: "TREND_USER_PROFILE [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.TREND_USER_PROFILE"
+            table-b: "TRDMGMR_UAT.TREND_USER_PROFILE"
+          pk-columns:
+            - USER_ID
+        - pair-name: "TREND_USER_PROFILE [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.TREND_USER_PROFILE"
+            table-b: "TRDMGMR_STAGING.TREND_USER_PROFILE"
+          pk-columns:
+            - USER_ID
+        - pair-name: "TREND_USER_PROFILE [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.TREND_USER_PROFILE"
+            table-b: "TRDMGMR_DR.TREND_USER_PROFILE"
+          pk-columns:
+            - USER_ID
+        - pair-name: "TREND_USER_PROFILE [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.TREND_USER_PROFILE"
+            table-b: "TRDMGMR_HOTFIX.TREND_USER_PROFILE"
+          pk-columns:
+            - USER_ID
+        - pair-name: "TREND_USER_PROFILE [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.TREND_USER_PROFILE"
+            table-b: "TRDMGMR_STAGING.TREND_USER_PROFILE"
+          pk-columns:
+            - USER_ID
+        - pair-name: "TREND_USER_PROFILE [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.TREND_USER_PROFILE"
+            table-b: "TRDMGMR_DR.TREND_USER_PROFILE"
+          pk-columns:
+            - USER_ID
+        - pair-name: "TREND_USER_PROFILE [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.TREND_USER_PROFILE"
+            table-b: "TRDMGMR_DR.TREND_USER_PROFILE"
+          pk-columns:
+            - USER_ID
+        - pair-name: "TREND_USER_PROFILE [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.TREND_USER_PROFILE"
+            table-b: "TRDMGMR_ARCHIVE.TREND_USER_PROFILE"
+          pk-columns:
+            - USER_ID
+        - pair-name: "TREND_USER_WATCHLIST [prod → uat]"
+          db: "oracle-k8s / prod → uat"
+          tables:
+            table-a: "TRDMGMR.TREND_USER_WATCHLIST"
+            table-b: "TRDMGMR_UAT.TREND_USER_WATCHLIST"
+          pk-columns:
+            - WATCH_ID
+        - pair-name: "TREND_USER_WATCHLIST [prod → staging]"
+          db: "oracle-k8s / prod → staging"
+          tables:
+            table-a: "TRDMGMR.TREND_USER_WATCHLIST"
+            table-b: "TRDMGMR_STAGING.TREND_USER_WATCHLIST"
+          pk-columns:
+            - WATCH_ID
+        - pair-name: "TREND_USER_WATCHLIST [prod → dr]"
+          db: "oracle-k8s / prod → dr"
+          tables:
+            table-a: "TRDMGMR.TREND_USER_WATCHLIST"
+            table-b: "TRDMGMR_DR.TREND_USER_WATCHLIST"
+          pk-columns:
+            - WATCH_ID
+        - pair-name: "TREND_USER_WATCHLIST [prod → hotfix]"
+          db: "oracle-k8s / prod → hotfix"
+          tables:
+            table-a: "TRDMGMR.TREND_USER_WATCHLIST"
+            table-b: "TRDMGMR_HOTFIX.TREND_USER_WATCHLIST"
+          pk-columns:
+            - WATCH_ID
+        - pair-name: "TREND_USER_WATCHLIST [uat → staging]"
+          db: "oracle-k8s / uat → staging"
+          tables:
+            table-a: "TRDMGMR_UAT.TREND_USER_WATCHLIST"
+            table-b: "TRDMGMR_STAGING.TREND_USER_WATCHLIST"
+          pk-columns:
+            - WATCH_ID
+        - pair-name: "TREND_USER_WATCHLIST [uat → dr]"
+          db: "oracle-k8s / uat → dr"
+          tables:
+            table-a: "TRDMGMR_UAT.TREND_USER_WATCHLIST"
+            table-b: "TRDMGMR_DR.TREND_USER_WATCHLIST"
+          pk-columns:
+            - WATCH_ID
+        - pair-name: "TREND_USER_WATCHLIST [staging → dr]"
+          db: "oracle-k8s / staging → dr"
+          tables:
+            table-a: "TRDMGMR_STAGING.TREND_USER_WATCHLIST"
+            table-b: "TRDMGMR_DR.TREND_USER_WATCHLIST"
+          pk-columns:
+            - WATCH_ID
+        - pair-name: "TREND_USER_WATCHLIST [dr → archive]"
+          db: "oracle-k8s / dr → archive"
+          tables:
+            table-a: "TRDMGMR_DR.TREND_USER_WATCHLIST"
+            table-b: "TRDMGMR_ARCHIVE.TREND_USER_WATCHLIST"
+          pk-columns:
+            - WATCH_ID

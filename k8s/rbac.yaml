@@ -4,18 +4,25 @@ metadata:
   name: gitlab-runner-deployer
   namespace: auditpatchx
 rules:
+# Patch only the specific Deployment — resourceNames prevents touching any other workload
 - apiGroups: ["apps"]
-  resources: ["deployments", "replicasets"]
-  verbs: ["get", "list", "patch", "watch"]
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list", "watch"]
+  resources: ["deployments"]
+  resourceNames: ["auditpatchx"]
+  verbs: ["get", "patch"]
+# list/watch cannot use resourceNames — kept read-only, no patch
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: gitlab-runner-deployer
   namespace: auditpatchx
+# NOTE: gitlab-runner SA is shared across projects (local dev trade-off).
+# Mitigated by: resourceNames scoping above + protected-branch gating in CI.
+# Production hardening: create a dedicated auditpatchx-ci-deployer SA and
+# pin it via runners.kubernetes.service_account_overwrite_allowed.
 subjects:
 - kind: ServiceAccount
   name: gitlab-runner

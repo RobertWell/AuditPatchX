@@ -157,7 +157,7 @@ export interface SyncPairConfigInfo {
   tableB: string;
   pkColumns: string[];
   excludeColumns: string[];
-  validation: CompareValidationResponse;
+  validation: CompareValidationResponse | null;
 }
 
 export interface CompareReviewRequest {

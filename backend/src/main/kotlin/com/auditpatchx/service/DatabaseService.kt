@@ -473,12 +473,17 @@ class DatabaseService(
 
     fun getSyncPairConfigs(): List<SyncPairConfigInfo> {
         return syncTableConfig.pairs().map { pair ->
-            val validation = validateCompareTables(
-                CompareValidationRequest(
-                    tableOne = pair.tables().tableA(),
-                    tableTwo = pair.tables().tableB()
+            val validation = try {
+                validateCompareTables(
+                    CompareValidationRequest(
+                        tableOne = pair.tables().tableA(),
+                        tableTwo = pair.tables().tableB()
+                    )
                 )
-            )
+            } catch (e: Exception) {
+                logger.debug("Skipping validation for pair '${pair.pairName()}': ${e.message}")
+                null
+            }
 
             SyncPairConfigInfo(
                 pairName = pair.pairName(),
