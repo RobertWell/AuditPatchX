@@ -1,0 +1,26 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitlab-runner-deployer
+  namespace: auditpatchx
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "patch", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitlab-runner-deployer
+  namespace: auditpatchx
+subjects:
+- kind: ServiceAccount
+  name: gitlab-runner
+  namespace: gitlab
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: gitlab-runner-deployer

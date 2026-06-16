@@ -8,6 +8,7 @@ variables:
 stages:
   - test
   - build
+  - deploy
 
 # ── Backend tests (Oracle Free testcontainer) ────────────────────────────────
 backend-tests:
@@ -69,8 +70,6 @@ frontend-tests:
   timeout: 10 minutes
 
 # ── Docker image build & push ─────────────────────────────────────────────────
-# The frontend artifact is already at the correct location inside the repo.
-# Dockerfile is a simple 2-stage Maven + JRE build.
 build-image:
   stage: build
   tags:
@@ -100,3 +99,21 @@ build-image:
   only:
     - main
   timeout: 20 minutes
+
+# ── Auto-deploy to k8s (auditpatchx namespace) ───────────────────────────────
+# Runs only on main after build-image succeeds.
+# Uses in-cluster ServiceAccount (gitlab-runner SA → gitlab-runner-deployer
+# Role in auditpatchx ns) — no kubeconfig or credentials required.
+deploy:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  needs:
+    - job: build-image
+  before_script:
+    - kubectl version --client
+  script:
+    - kubectl rollout restart deployment/auditpatchx -n auditpatchx
+    - kubectl rollout status deployment/auditpatchx -n auditpatchx --timeout=300s
+  only:
+    - main
+  timeout: 10 minutes
