@@ -136,7 +136,11 @@ data class CompareJobDiffRow(
 )
 
 data class CompareJobResponse(
-    val differences: List<CompareJobDiffRow>
+    val differences: List<CompareJobDiffRow>,
+    // How many source rows were scanned. If scannedRows == the requested limit,
+    // the result is likely incomplete — more rows may exist beyond the limit.
+    val scannedRows: Int = 0,
+    val limitReached: Boolean = false
 )
 
 data class CompareValidationRequest(

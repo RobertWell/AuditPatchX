@@ -21,6 +21,11 @@ interface DiffResultProps {
   onRowApprove?: (row: CompareJobDiffRow) => void;
   onRowReject?: (row: CompareJobDiffRow) => void;
   onExportSql?: () => void;
+  sourceTable?: string;
+  targetTable?: string;
+  limitReached?: boolean;
+  scannedRows?: number;
+  limit?: number;
 }
 
 export function DiffResult({
@@ -31,6 +36,11 @@ export function DiffResult({
   onRowApprove,
   onRowReject,
   onExportSql,
+  sourceTable,
+  targetTable,
+  limitReached,
+  scannedRows,
+  limit,
 }: DiffResultProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -147,8 +157,36 @@ export function DiffResult({
     );
   };
 
+  const updateCount = data.filter(r => r.status === 'UPDATE').length;
+  const insertCount = data.filter(r => r.status === 'INSERT').length;
+  const srcLabel = sourceTable?.split('.').pop() ?? 'Source';
+  const tgtLabel = targetTable?.split('.').pop() ?? 'Target';
+
   return (
     <div className="flex-1 overflow-auto p-6 bg-background">
+      {/* Direction + summary header */}
+      {sourceTable && targetTable && (
+        <div className="mb-3 rounded-md border bg-muted/40 px-4 py-2 text-sm flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span className="font-mono font-semibold">
+            {srcLabel} <span className="text-muted-foreground">→</span> {tgtLabel}
+          </span>
+          <span className="text-muted-foreground">|</span>
+          <span className="text-blue-600">{updateCount} UPDATE</span>
+          <span className="text-green-600">{insertCount} INSERT
+            <span className="text-muted-foreground text-xs ml-1">({srcLabel}-only rows)</span>
+          </span>
+        </div>
+      )}
+      {/* Limit warning */}
+      {limitReached && (
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30 px-4 py-2 text-sm text-amber-800 dark:text-amber-200">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>
+            Results capped at limit ({limit}). Only {scannedRows} source rows were scanned —
+            differences beyond row {scannedRows} are not shown. Increase the limit or use PK filters to narrow the scope.
+          </span>
+        </div>
+      )}
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1>Comparison Results</h1>

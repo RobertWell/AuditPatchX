@@ -125,6 +125,8 @@ export interface CompareJobDiffRow {
 
 export interface CompareJobResponse {
   differences: CompareJobDiffRow[];
+  scannedRows: number;
+  limitReached: boolean;
 }
 
 export interface ColumnTypeMismatch {

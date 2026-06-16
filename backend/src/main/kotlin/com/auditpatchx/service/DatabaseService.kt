@@ -407,7 +407,11 @@ class DatabaseService(
                 }
             }
 
-            CompareJobResponse(differences = differences)
+            CompareJobResponse(
+                differences = differences,
+                scannedRows = sourceRows.size,
+                limitReached = sourceRows.size >= limit
+            )
         }
     }
 

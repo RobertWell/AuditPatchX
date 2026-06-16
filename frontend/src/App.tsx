@@ -45,6 +45,8 @@ function App() {
   const [currentPage, setCurrentPage] = useState<Page>('patches');
   const [compareData, setCompareData] = useState<CompareJobDiffRow[]>([]);
   const [currentCompareConfig, setCurrentCompareConfig] = useState<CompareJobRequest | null>(null);
+  const [compareLimitReached, setCompareLimitReached] = useState(false);
+  const [compareScannedRows, setCompareScannedRows] = useState(0);
   const [sqlReview, setSqlReview] = useState<SqlReviewState>({
     isOpen: false,
     rowId: '',
@@ -100,21 +102,31 @@ function App() {
   };
 
   const approveCompareRows = async (rowsToApprove: CompareJobDiffRow[]) => {
-    await Promise.all(
-      rowsToApprove.map((row) =>
-        apiClient.reviewCompareRow(
-          buildReviewRequest(row, currentCompareConfig ?? { tableOne: '', tableTwo: '', syncPk: [], ignoreColumns: [], limit: 100 }, 'APPROVED')
-        )
-      )
-    );
-    setCompareData((rows) =>
-      rows.map((row) =>
-        rowsToApprove.some((approvedRow) => approvedRow.pk === row.pk)
-          ? { ...row, reviewStatus: 'APPROVED' }
-          : row
-      )
-    );
-    message.success(`Approved ${rowsToApprove.length} row(s)`);
+    const config = currentCompareConfig ?? { tableOne: '', tableTwo: '', syncPk: [], ignoreColumns: [], limit: 100 };
+    const BATCH = 10; // sequential batches to avoid overwhelming Oracle
+    const approved: string[] = [];
+    const failed: string[] = [];
+
+    for (let i = 0; i < rowsToApprove.length; i += BATCH) {
+      const batch = rowsToApprove.slice(i, i + BATCH);
+      const results = await Promise.allSettled(
+        batch.map((row) => apiClient.reviewCompareRow(buildReviewRequest(row, config, 'APPROVED')))
+      );
+      results.forEach((result, idx) => {
+        if (result.status === 'fulfilled') approved.push(batch[idx].pk);
+        else failed.push(batch[idx].pk);
+      });
+    }
+
+    if (approved.length > 0) {
+      setCompareData((rows) =>
+        rows.map((row) => approved.includes(row.pk) ? { ...row, reviewStatus: 'APPROVED' } : row)
+      );
+      message.success(`Approved ${approved.length} row(s)`);
+    }
+    if (failed.length > 0) {
+      message.error(`${failed.length} row(s) failed to approve — check each row and retry`);
+    }
   };
 
   const confirmApproveRows = (rowsToApprove: CompareJobDiffRow[]) => {
@@ -182,6 +194,8 @@ function App() {
       const response = await apiClient.compareJob(config);
       setCompareData(response.differences);
       setCurrentCompareConfig(config);
+      setCompareLimitReached(response.limitReached ?? false);
+      setCompareScannedRows(response.scannedRows ?? 0);
     } catch (error: any) {
       message.error(`Compare failed: ${error.response?.data?.error || error.message}`);
     } finally {
@@ -192,6 +206,8 @@ function App() {
   const handleCompareConfigChange = () => {
     setCompareData([]);
     setCurrentCompareConfig(null);
+    setCompareLimitReached(false);
+    setCompareScannedRows(0);
   };
 
   const handleExportSql = () => {
@@ -493,6 +509,11 @@ function App() {
                   onRowApprove={handleRowApprove}
                   onRowReject={handleRowReject}
                   onExportSql={handleExportSql}
+                  sourceTable={currentCompareConfig?.tableOne}
+                  targetTable={currentCompareConfig?.tableTwo}
+                  limitReached={compareLimitReached}
+                  scannedRows={compareScannedRows}
+                  limit={currentCompareConfig?.limit}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
