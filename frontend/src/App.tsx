@@ -210,6 +210,16 @@ function App() {
     setCompareScannedRows(0);
   };
 
+  const handleSwapDirection = () => {
+    if (!currentCompareConfig) return;
+    const swapped = {
+      ...currentCompareConfig,
+      tableOne: currentCompareConfig.tableTwo,
+      tableTwo: currentCompareConfig.tableOne,
+    };
+    handleRunComparison(swapped);
+  };
+
   const handleExportSql = () => {
     if (!currentCompareConfig || compareData.length === 0) {
       message.warning('No comparison data to export');
@@ -514,6 +524,7 @@ function App() {
                   limitReached={compareLimitReached}
                   scannedRows={compareScannedRows}
                   limit={currentCompareConfig?.limit}
+                  onSwapDirection={handleSwapDirection}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center text-muted-foreground">

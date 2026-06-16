@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, Plus, Trash2, RefreshCw, Filter, AlertTriangle } from 'lucide-react';
+import { ChevronRight, ChevronDown, Plus, Trash2, RefreshCw, Filter, AlertTriangle, ArrowRightLeft } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
@@ -25,6 +25,7 @@ interface DiffResultProps {
   targetTable?: string;
   limitReached?: boolean;
   scannedRows?: number;
+  onSwapDirection?: () => void;
   limit?: number;
 }
 
@@ -41,6 +42,7 @@ export function DiffResult({
   limitReached,
   scannedRows,
   limit,
+  onSwapDirection,
 }: DiffResultProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -175,6 +177,18 @@ export function DiffResult({
           <span className="text-green-600">{insertCount} INSERT
             <span className="text-muted-foreground text-xs ml-1">({srcLabel}-only rows)</span>
           </span>
+          {onSwapDirection && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto gap-1 h-7 text-xs"
+              onClick={onSwapDirection}
+              title={`Swap to ${tgtLabel} → ${srcLabel}`}
+            >
+              <ArrowRightLeft className="w-3 h-3" />
+              Swap & Re-run
+            </Button>
+          )}
         </div>
       )}
       {/* Limit warning */}
