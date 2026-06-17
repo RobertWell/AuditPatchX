@@ -950,6 +950,51 @@ class CompareReviewServiceTest {
         }
 
         @Test
+        @DisplayName("UPDATE with trimmed decimal string '100.5' in pkMap — matches NUMBER(15,6) row (no ORA-01722)")
+        fun testApproveUpdateTrimmedDecimalPkString() {
+            // Manually construct pkMap with the short form of the decimal ("100.5" not "100.500000").
+            // convertValueForBinding must produce the same numeric match regardless of trailing zeros.
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = "1-100.5",
+                    status = "APPROVED",
+                    tableOne = "TESTUSER.NUMPK_SOURCE",
+                    tableTwo = "TESTUSER.NUMPK_TARGET",
+                    rowStatus = "UPDATE",
+                    syncPk = listOf("REGION_ID", "PRICE_SCALE"),
+                    ignoreColumns = emptyList(),
+                    pkMap = mapOf("REGION_ID" to "1", "PRICE_SCALE" to "100.5")
+                )
+            )
+
+            val tgt = targetRow(1, java.math.BigDecimal("100.5"))
+            assertThat(tgt["LABEL"]).isEqualTo("source label A")
+        }
+
+        @Test
+        @DisplayName("UPDATE of source-only row throws IllegalStateException — guard catches silent 0-row update")
+        fun testUpdateSourceOnlyRowThrows() {
+            // Row (2, 200.999999) exists in source but NOT in target.
+            // Attempting an UPDATE (not INSERT) means the target WHERE clause matches nothing.
+            // The service must throw rather than silently return "success" with 0 rows written.
+            assertThatThrownBy {
+                databaseService.reviewCompareRow(
+                    CompareReviewRequest(
+                        pk = "2-200.999999",
+                        status = "APPROVED",
+                        tableOne = "TESTUSER.NUMPK_SOURCE",
+                        tableTwo = "TESTUSER.NUMPK_TARGET",
+                        rowStatus = "UPDATE",
+                        syncPk = listOf("REGION_ID", "PRICE_SCALE"),
+                        ignoreColumns = emptyList(),
+                        pkMap = mapOf("REGION_ID" to "2", "PRICE_SCALE" to "200.999999")
+                    )
+                )
+            }.isInstanceOf(IllegalStateException::class.java)
+                .hasMessageContaining("0 rows")
+        }
+
+        @Test
         @DisplayName("REJECTED decision on numeric PK row leaves target unchanged")
         fun testRejectNumericPkRowLeavesTargetUnchanged() {
             val tgtBefore = targetRow(1, java.math.BigDecimal("100.5"))

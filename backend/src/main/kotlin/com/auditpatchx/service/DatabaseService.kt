@@ -890,23 +890,40 @@ class DatabaseService(
                             logger.warn("APPROVE_UPDATE nothing to set pk=${request.pkMap}")
                             0
                         } else {
+                            // Source and target PK columns may have different declared precision
+                            // (e.g. NUMBER(15,6) vs NUMBER(10,2)).  Use the correct type map for
+                            // each side so BigDecimal binding matches the actual stored value.
                             val colsList = dataColumns.joinToString(", ")
-                            val sql = "UPDATE $tgt SET ($colsList) = (SELECT $colsList FROM $src WHERE $whereClause) WHERE $whereClause"
+                            val srcWhere = syncPkUpper.joinToString(" AND ") { "$it = :src_$it" }
+                            val tgtWhere = syncPkUpper.joinToString(" AND ") { "$it = :tgt_$it" }
+                            val sql = "UPDATE $tgt SET ($colsList) = (SELECT $colsList FROM $src WHERE $srcWhere) WHERE $tgtWhere"
                             var stmt = handle.createUpdate(sql)
                             request.pkMap.forEach { (col, value) ->
-                                stmt = stmt.bind("pk_$col", convertValueForBinding(value, columnTypeMap2[col.uppercase()]))
+                                stmt = stmt.bind("src_$col", convertValueForBinding(value, columnTypeMap1[col.uppercase()]))
+                                stmt = stmt.bind("tgt_$col", convertValueForBinding(value, columnTypeMap2[col.uppercase()]))
                             }
-                            stmt.execute()
+                            val count = stmt.execute()
+                            if (count == 0) throw IllegalStateException(
+                                "UPDATE affected 0 rows for $tgt pk=${request.pkMap}. " +
+                                "Target row not found — deleted after compare, or PK binding mismatch."
+                            )
+                            count
                         }
                     }
                     "INSERT" -> {
                         val colsList = syncColumns.joinToString(", ")
+                        // WHERE clause selects from source — must use source column types for binding.
                         val sql = "INSERT INTO $tgt ($colsList) SELECT $colsList FROM $src WHERE $whereClause"
                         var stmt = handle.createUpdate(sql)
                         request.pkMap.forEach { (col, value) ->
-                            stmt = stmt.bind("pk_$col", convertValueForBinding(value, columnTypeMap2[col.uppercase()]))
+                            stmt = stmt.bind("pk_$col", convertValueForBinding(value, columnTypeMap1[col.uppercase()]))
                         }
-                        stmt.execute()
+                        val count = stmt.execute()
+                        if (count == 0) throw IllegalStateException(
+                            "INSERT affected 0 rows for $tgt pk=${request.pkMap}. " +
+                            "Source row not found — deleted after compare, or PK binding mismatch."
+                        )
+                        count
                     }
                     else -> throw IllegalArgumentException("Unsupported rowStatus: ${request.rowStatus}")
                 }
