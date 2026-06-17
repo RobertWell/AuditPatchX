@@ -89,6 +89,16 @@ allowlist:
       pk-columns:
         - EVENT_ID
         - EVENT_TS
+    - schema: TESTUSER
+      table: NUMPK_SOURCE
+      pk-columns:
+        - REGION_ID
+        - PRICE_SCALE
+    - schema: TESTUSER
+      table: NUMPK_TARGET
+      pk-columns:
+        - REGION_ID
+        - PRICE_SCALE
 
 # sync-tables.pairs is intentionally absent from this YAML.
 # SRCFG00050 fires when YAML list entries can't be matched to a ConfigMapping

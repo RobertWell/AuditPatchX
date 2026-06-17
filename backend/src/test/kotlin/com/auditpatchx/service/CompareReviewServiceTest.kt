@@ -128,7 +128,7 @@ class CompareReviewServiceTest {
     inner class ApproveInsertTests {
 
         @Test
-        @DisplayName("Inserts source row into target with correct column values")
+        @DisplayName("Inserts source row into target with correct column values (INT, STR, CLOB)")
         fun testInsertsRowWithCorrectValues() {
             approveInsert("20")
 
@@ -138,6 +138,70 @@ class CompareReviewServiceTest {
             assertThat(tgt["INT_VAL"]).isEqualTo(src["INT_VAL"])
             assertThat(tgt["STR_VAL"]).isEqualTo(src["STR_VAL"])
             assertThat(tgt["CLOB_VAL"]).isEqualTo(src["CLOB_VAL"])
+        }
+
+        @Test
+        @DisplayName("INSERT copies all column types: NUMBER, DECIMAL, VARCHAR2, DATE, TIMESTAMP, CLOB")
+        fun testInsertsAllColumnTypes() {
+            approveInsert("21")
+
+            val src = sourceRow(21)
+            val tgt = targetRow(21)
+
+            assertThat(tgt["INT_VAL"]).isEqualTo(src["INT_VAL"])       // NUMBER(10)
+            assertThat(tgt["DEC_VAL"]).isEqualTo(src["DEC_VAL"])       // NUMBER(15,6)
+            assertThat(tgt["STR_VAL"]).isEqualTo(src["STR_VAL"])       // VARCHAR2
+            assertThat(tgt["DATE_VAL"]).isEqualTo(src["DATE_VAL"])     // DATE
+            assertThat(tgt["TS_VAL"]).isEqualTo(src["TS_VAL"])         // TIMESTAMP(6)
+            assertThat(tgt["CLOB_VAL"]).isEqualTo(src["CLOB_VAL"])     // CLOB
+            assertThat(tgt["NULL_VAL"]).isEqualTo(src["NULL_VAL"])     // VARCHAR2 non-null
+        }
+
+        @Test
+        @DisplayName("INSERT preserves TIMESTAMP(6) sub-second precision")
+        fun testInsertTimestampPrecisionPreserved() {
+            approveInsert("21")
+
+            val srcTs = sourceRow(21)["TS_VAL"] as String
+            val tgtTs = targetRow(21)["TS_VAL"] as String
+
+            assertThat(tgtTs).isEqualTo(srcTs)
+            assertThat(srcTs).contains("09:00:00")
+        }
+
+        @Test
+        @DisplayName("INSERT with NULL columns — NULLs propagated to target, not skipped")
+        fun testInsertSparseRowPreservesNulls() {
+            approveInsert("22")
+
+            val tgt = targetRow(22)
+
+            assertThat(tgt["STR_VAL"]).isEqualTo("sparse insert")
+            assertThat(tgt["INT_VAL"]).isNull()
+            assertThat(tgt["DEC_VAL"]).isNull()
+            assertThat(tgt["DATE_VAL"]).isNull()
+            assertThat(tgt["TS_VAL"]).isNull()
+            assertThat(tgt["NULL_VAL"]).isNull()
+        }
+
+        @Test
+        @DisplayName("INSERT with CLOB larger than 4000 chars — no truncation")
+        fun testInsertLargeClobNotTruncated() {
+            val largeClob = "y".repeat(6000)
+            databaseService.update(
+                UpdateRequest(
+                    schema = "TESTUSER", table = "ALLTYPE_SOURCE",
+                    pk = mapOf("ID" to 23),
+                    set = mapOf("CLOB_VAL" to largeClob),
+                    reason = "test setup"
+                )
+            )
+
+            approveInsert("23")
+
+            val tgtClob = targetRow(23)["CLOB_VAL"] as String
+            assertThat(tgtClob).hasSize(6000)
+            assertThat(tgtClob).isEqualTo(largeClob)
         }
     }
 
@@ -756,6 +820,158 @@ class CompareReviewServiceTest {
 
             // Source table A must be identical after the approval
             assertThat(rowA(30)["VALUE"]).isEqualTo(aBefore)
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Numeric composite PK — NUMBER(10) + NUMBER(15,6)
+    // Guards against ORA-01722 from BigDecimal binding and precision loss when
+    // decimal PK values round-trip through JSON strings ("100.5" → BigDecimal
+    // → Oracle bind → row lookup → JSON → "100.500000" → BigDecimal → bind).
+    // -----------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Numeric Composite PK — NUMBER + NUMBER(15,6)")
+    inner class NumericCompositePkTests {
+
+        private val compareRequest = CompareJobRequest(
+            tableOne = "TESTUSER.NUMPK_SOURCE",
+            tableTwo = "TESTUSER.NUMPK_TARGET",
+            syncPk = listOf("REGION_ID", "PRICE_SCALE"),
+            ignoreColumns = emptyList(),
+            limit = 100
+        )
+
+        private fun sourceRow(regionId: Number, priceScale: Number) =
+            databaseService.getByPk(
+                GetByPkRequest("TESTUSER", "NUMPK_SOURCE",
+                    mapOf("REGION_ID" to regionId, "PRICE_SCALE" to priceScale))
+            ).row
+
+        private fun targetRow(regionId: Number, priceScale: Number) =
+            databaseService.getByPk(
+                GetByPkRequest("TESTUSER", "NUMPK_TARGET",
+                    mapOf("REGION_ID" to regionId, "PRICE_SCALE" to priceScale))
+            ).row
+
+        @Test
+        @DisplayName("compareTables detects UPDATE for numeric composite PK row")
+        fun testCompareDetectsNumericPkDiff() {
+            val diffs = databaseService.compareTables(compareRequest).differences
+            val update = diffs.filter { it.status == "UPDATE" }
+            assertThat(update).hasSize(1)
+            assertThat(update[0].pkMap["REGION_ID"]).isEqualTo("1")
+        }
+
+        @Test
+        @DisplayName("compareTables detects INSERT rows for numeric composite PK")
+        fun testCompareDetectsNumericPkInserts() {
+            val diffs = databaseService.compareTables(compareRequest).differences
+            val inserts = diffs.filter { it.status == "INSERT" }
+            // Rows 2 and 3 are source-only
+            assertThat(inserts).hasSize(2)
+            val insertRegionIds = inserts.map { it.pkMap["REGION_ID"] }.toSet()
+            assertThat(insertRegionIds).containsExactlyInAnyOrder("2", "3")
+        }
+
+        @Test
+        @DisplayName("UPDATE with NUMBER(10)+NUMBER(15,6) PK — BigDecimal binding resolves row, LABEL copied")
+        fun testApproveUpdateNumericCompositePk() {
+            val diff = databaseService.compareTables(compareRequest)
+                .differences.first { it.status == "UPDATE" }
+
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = diff.pk,
+                    status = "APPROVED",
+                    tableOne = "TESTUSER.NUMPK_SOURCE",
+                    tableTwo = "TESTUSER.NUMPK_TARGET",
+                    rowStatus = "UPDATE",
+                    syncPk = listOf("REGION_ID", "PRICE_SCALE"),
+                    ignoreColumns = emptyList(),
+                    pkMap = diff.pkMap
+                )
+            )
+
+            val src = sourceRow(1, java.math.BigDecimal("100.5"))
+            val tgt = targetRow(1, java.math.BigDecimal("100.5"))
+            assertThat(tgt["LABEL"]).isEqualTo(src["LABEL"])
+            assertThat(tgt["LABEL"]).isEqualTo("source label A")
+        }
+
+        @Test
+        @DisplayName("INSERT (REGION_ID=2, PRICE_SCALE=200.999999) — NUMBER(15,6) PK precision survives round-trip")
+        fun testApproveInsertHighPrecisionDecimalPk() {
+            val diff = databaseService.compareTables(compareRequest)
+                .differences.first { it.status == "INSERT" && it.pkMap["REGION_ID"] == "2" }
+
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = diff.pk,
+                    status = "APPROVED",
+                    tableOne = "TESTUSER.NUMPK_SOURCE",
+                    tableTwo = "TESTUSER.NUMPK_TARGET",
+                    rowStatus = "INSERT",
+                    syncPk = listOf("REGION_ID", "PRICE_SCALE"),
+                    ignoreColumns = emptyList(),
+                    pkMap = diff.pkMap
+                )
+            )
+
+            val tgt = targetRow(2, java.math.BigDecimal("200.999999"))
+            assertThat(tgt["LABEL"]).isEqualTo("source label B")
+
+            // Row now synced — must not appear as INSERT again
+            val diffsAfter = databaseService.compareTables(compareRequest).differences
+            assertThat(diffsAfter.none { it.pkMap["REGION_ID"] == "2" && it.status == "INSERT" }).isTrue()
+        }
+
+        @Test
+        @DisplayName("INSERT (REGION_ID=3, PRICE_SCALE=0.000001) — minimum-scale NUMBER(15,6) PK binds correctly")
+        fun testApproveInsertMinScaleDecimalPk() {
+            val diff = databaseService.compareTables(compareRequest)
+                .differences.first { it.status == "INSERT" && it.pkMap["REGION_ID"] == "3" }
+
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = diff.pk,
+                    status = "APPROVED",
+                    tableOne = "TESTUSER.NUMPK_SOURCE",
+                    tableTwo = "TESTUSER.NUMPK_TARGET",
+                    rowStatus = "INSERT",
+                    syncPk = listOf("REGION_ID", "PRICE_SCALE"),
+                    ignoreColumns = emptyList(),
+                    pkMap = diff.pkMap
+                )
+            )
+
+            val tgt = targetRow(3, java.math.BigDecimal("0.000001"))
+            assertThat(tgt["LABEL"]).isEqualTo("min scale label")
+        }
+
+        @Test
+        @DisplayName("REJECTED decision on numeric PK row leaves target unchanged")
+        fun testRejectNumericPkRowLeavesTargetUnchanged() {
+            val tgtBefore = targetRow(1, java.math.BigDecimal("100.5"))
+
+            val diff = databaseService.compareTables(compareRequest)
+                .differences.first { it.status == "UPDATE" }
+
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = diff.pk,
+                    status = "REJECTED",
+                    tableOne = "TESTUSER.NUMPK_SOURCE",
+                    tableTwo = "TESTUSER.NUMPK_TARGET",
+                    rowStatus = "UPDATE",
+                    syncPk = listOf("REGION_ID", "PRICE_SCALE"),
+                    ignoreColumns = emptyList(),
+                    pkMap = diff.pkMap
+                )
+            )
+
+            val tgtAfter = targetRow(1, java.math.BigDecimal("100.5"))
+            assertThat(tgtAfter["LABEL"]).isEqualTo(tgtBefore["LABEL"])
         }
     }
 }

@@ -160,9 +160,24 @@ VALUES (12, 'placeholder');
 INSERT INTO TESTUSER.ALLTYPE_TARGET (ID, CLOB_VAL)
 VALUES (12, 'old clob');
 
--- Row 20: INSERT — source only, no row in target
+-- Row 20: INSERT — source only, no row in target (INT, STR, CLOB only)
 INSERT INTO TESTUSER.ALLTYPE_SOURCE (ID, INT_VAL, STR_VAL, CLOB_VAL)
 VALUES (20, 99, 'insert me', 'clob to insert');
+
+-- Row 21: INSERT — all types fully populated
+INSERT INTO TESTUSER.ALLTYPE_SOURCE (ID, INT_VAL, DEC_VAL, STR_VAL, DATE_VAL, TS_VAL, CLOB_VAL, NULL_VAL)
+VALUES (21, 77, 999.123456, 'full insert row',
+        TO_DATE('2024-03-01', 'YYYY-MM-DD'),
+        TIMESTAMP '2024-03-01 09:00:00.654321',
+        'clob for full insert', 'populated');
+
+-- Row 22: INSERT — sparse row (most columns NULL, exercises NULL propagation into target)
+INSERT INTO TESTUSER.ALLTYPE_SOURCE (ID, STR_VAL)
+VALUES (22, 'sparse insert');
+
+-- Row 23: INSERT — large CLOB placeholder (test sets the real value before approving)
+INSERT INTO TESTUSER.ALLTYPE_SOURCE (ID, INT_VAL, CLOB_VAL)
+VALUES (23, 5, 'large-clob-placeholder');
 
 -- Composite PK tables (REGION_ID NUMBER + DEPT_CODE VARCHAR2)
 CREATE TABLE TESTUSER.COMPOSITE_SOURCE (
@@ -287,5 +302,37 @@ INSERT INTO TESTUSER.DIRECTION_B VALUES (30, 'b-val-30');
 -- ID 40: both present, different — dedicated to B→A UPDATE approve test
 INSERT INTO TESTUSER.DIRECTION_A VALUES (40, 'a-val-40');
 INSERT INTO TESTUSER.DIRECTION_B VALUES (40, 'b-val-40');
+
+COMMIT;
+
+-- ============================================================
+-- Numeric composite PK tables
+-- PK = (REGION_ID NUMBER(10), PRICE_SCALE NUMBER(15,6))
+-- Tests that BigDecimal binding for NUMBER PK columns works
+-- without ORA-01722 and without precision/scale loss.
+-- ============================================================
+CREATE TABLE TESTUSER.NUMPK_SOURCE (
+    REGION_ID   NUMBER(10),
+    PRICE_SCALE NUMBER(15,6),
+    LABEL       VARCHAR2(200),
+    CONSTRAINT pk_numpk_src PRIMARY KEY (REGION_ID, PRICE_SCALE)
+);
+
+CREATE TABLE TESTUSER.NUMPK_TARGET (
+    REGION_ID   NUMBER(10),
+    PRICE_SCALE NUMBER(15,6),
+    LABEL       VARCHAR2(200),
+    CONSTRAINT pk_numpk_tgt PRIMARY KEY (REGION_ID, PRICE_SCALE)
+);
+
+-- Row (1, 100.5): UPDATE — same PK in both, LABEL differs
+INSERT INTO TESTUSER.NUMPK_SOURCE VALUES (1, 100.5, 'source label A');
+INSERT INTO TESTUSER.NUMPK_TARGET VALUES (1, 100.5, 'old label A');
+
+-- Row (2, 200.999999): INSERT — source only, exercises NUMBER(15,6) binding precision
+INSERT INTO TESTUSER.NUMPK_SOURCE VALUES (2, 200.999999, 'source label B');
+
+-- Row (3, 0.000001): INSERT — minimum-scale value, exercises edge of NUMBER(15,6)
+INSERT INTO TESTUSER.NUMPK_SOURCE VALUES (3, 0.000001, 'min scale label');
 
 COMMIT;
