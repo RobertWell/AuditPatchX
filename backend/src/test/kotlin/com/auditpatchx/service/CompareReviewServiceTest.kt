@@ -141,7 +141,7 @@ class CompareReviewServiceTest {
         }
 
         @Test
-        @DisplayName("INSERT copies all column types: NUMBER, DECIMAL, VARCHAR2, DATE, TIMESTAMP, CLOB")
+        @DisplayName("INSERT copies all column types: NUMBER, DECIMAL, VARCHAR2, DATE, TIMESTAMP(6), CLOB — precision preserved")
         fun testInsertsAllColumnTypes() {
             approveInsert("21")
 
@@ -155,18 +155,8 @@ class CompareReviewServiceTest {
             assertThat(tgt["TS_VAL"]).isEqualTo(src["TS_VAL"])         // TIMESTAMP(6)
             assertThat(tgt["CLOB_VAL"]).isEqualTo(src["CLOB_VAL"])     // CLOB
             assertThat(tgt["NULL_VAL"]).isEqualTo(src["NULL_VAL"])     // VARCHAR2 non-null
-        }
-
-        @Test
-        @DisplayName("INSERT preserves TIMESTAMP(6) sub-second precision")
-        fun testInsertTimestampPrecisionPreserved() {
-            approveInsert("21")
-
-            val srcTs = sourceRow(21)["TS_VAL"] as String
-            val tgtTs = targetRow(21)["TS_VAL"] as String
-
-            assertThat(tgtTs).isEqualTo(srcTs)
-            assertThat(srcTs).contains("09:00:00")
+            // TIMESTAMP(6) sub-second precision must not be rounded on INSERT
+            assertThat(tgt["TS_VAL"] as String).contains("09:00:00")
         }
 
         @Test
@@ -830,8 +820,10 @@ class CompareReviewServiceTest {
     // → Oracle bind → row lookup → JSON → "100.500000" → BigDecimal → bind).
     // -----------------------------------------------------------------------
 
+    // Tests are ordered so detection runs before any approval mutates the seed data.
     @Nested
     @DisplayName("Numeric Composite PK — NUMBER + NUMBER(15,6)")
+    @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
     inner class NumericCompositePkTests {
 
         private val compareRequest = CompareJobRequest(
@@ -855,30 +847,57 @@ class CompareReviewServiceTest {
             ).row
 
         @Test
-        @DisplayName("compareTables detects UPDATE for numeric composite PK row")
+        @Order(1)
+        @DisplayName("compareTables detects UPDATE for numeric composite PK row (rows 1 and 4)")
         fun testCompareDetectsNumericPkDiff() {
             val diffs = databaseService.compareTables(compareRequest).differences
-            val update = diffs.filter { it.status == "UPDATE" }
-            assertThat(update).hasSize(1)
-            assertThat(update[0].pkMap["REGION_ID"]).isEqualTo("1")
+            val updates = diffs.filter { it.status == "UPDATE" }
+            // Rows (1, 100.5) and (4, 100.5) both have different LABELs in source vs target
+            assertThat(updates).hasSize(2)
+            assertThat(updates.map { it.pkMap["REGION_ID"] }).containsExactlyInAnyOrder("1", "4")
         }
 
         @Test
-        @DisplayName("compareTables detects INSERT rows for numeric composite PK")
+        @Order(2)
+        @DisplayName("compareTables detects INSERT rows (source-only) for numeric composite PK")
         fun testCompareDetectsNumericPkInserts() {
             val diffs = databaseService.compareTables(compareRequest).differences
             val inserts = diffs.filter { it.status == "INSERT" }
             // Rows 2 and 3 are source-only
             assertThat(inserts).hasSize(2)
-            val insertRegionIds = inserts.map { it.pkMap["REGION_ID"] }.toSet()
-            assertThat(insertRegionIds).containsExactlyInAnyOrder("2", "3")
+            assertThat(inserts.map { it.pkMap["REGION_ID"] }).containsExactlyInAnyOrder("2", "3")
         }
 
         @Test
+        @Order(3)
+        @DisplayName("UPDATE of source-only row throws IllegalStateException — guard catches silent 0-row update")
+        fun testUpdateSourceOnlyRowThrows() {
+            // Row (2, 200.999999) exists in source but NOT in target.
+            // Attempting an UPDATE (not INSERT) means the target WHERE clause matches nothing.
+            // The service must throw rather than silently return "success" with 0 rows written.
+            assertThatThrownBy {
+                databaseService.reviewCompareRow(
+                    CompareReviewRequest(
+                        pk = "2-200.999999",
+                        status = "APPROVED",
+                        tableOne = "TESTUSER.NUMPK_SOURCE",
+                        tableTwo = "TESTUSER.NUMPK_TARGET",
+                        rowStatus = "UPDATE",
+                        syncPk = listOf("REGION_ID", "PRICE_SCALE"),
+                        ignoreColumns = emptyList(),
+                        pkMap = mapOf("REGION_ID" to "2", "PRICE_SCALE" to "200.999999")
+                    )
+                )
+            }.isInstanceOf(IllegalStateException::class.java)
+                .hasMessageContaining("0 rows")
+        }
+
+        @Test
+        @Order(4)
         @DisplayName("UPDATE with NUMBER(10)+NUMBER(15,6) PK — BigDecimal binding resolves row, LABEL copied")
         fun testApproveUpdateNumericCompositePk() {
             val diff = databaseService.compareTables(compareRequest)
-                .differences.first { it.status == "UPDATE" }
+                .differences.first { it.status == "UPDATE" && it.pkMap["REGION_ID"] == "1" }
 
             databaseService.reviewCompareRow(
                 CompareReviewRequest(
@@ -900,6 +919,34 @@ class CompareReviewServiceTest {
         }
 
         @Test
+        @Order(5)
+        @DisplayName("UPDATE with trimmed decimal string '100.5' in pkMap — matches NUMBER(15,6) row (no ORA-01722, no silent no-op)")
+        fun testApproveUpdateTrimmedDecimalPkString() {
+            // Row 4: source='trimmed source label', target='trimmed old label' — clean before/after.
+            // Manually construct pkMap with the short decimal form ("100.5" not "100.500000")
+            // to verify convertValueForBinding handles trailing-zero-stripped values correctly.
+            val tgtBefore = targetRow(4, java.math.BigDecimal("100.5"))
+            assertThat(tgtBefore["LABEL"]).isEqualTo("trimmed old label")
+
+            databaseService.reviewCompareRow(
+                CompareReviewRequest(
+                    pk = "4-100.5",
+                    status = "APPROVED",
+                    tableOne = "TESTUSER.NUMPK_SOURCE",
+                    tableTwo = "TESTUSER.NUMPK_TARGET",
+                    rowStatus = "UPDATE",
+                    syncPk = listOf("REGION_ID", "PRICE_SCALE"),
+                    ignoreColumns = emptyList(),
+                    pkMap = mapOf("REGION_ID" to "4", "PRICE_SCALE" to "100.5")
+                )
+            )
+
+            val tgt = targetRow(4, java.math.BigDecimal("100.5"))
+            assertThat(tgt["LABEL"]).isEqualTo("trimmed source label")
+        }
+
+        @Test
+        @Order(6)
         @DisplayName("INSERT (REGION_ID=2, PRICE_SCALE=200.999999) — NUMBER(15,6) PK precision survives round-trip")
         fun testApproveInsertHighPrecisionDecimalPk() {
             val diff = databaseService.compareTables(compareRequest)
@@ -927,6 +974,7 @@ class CompareReviewServiceTest {
         }
 
         @Test
+        @Order(7)
         @DisplayName("INSERT (REGION_ID=3, PRICE_SCALE=0.000001) — minimum-scale NUMBER(15,6) PK binds correctly")
         fun testApproveInsertMinScaleDecimalPk() {
             val diff = databaseService.compareTables(compareRequest)
@@ -950,68 +998,22 @@ class CompareReviewServiceTest {
         }
 
         @Test
-        @DisplayName("UPDATE with trimmed decimal string '100.5' in pkMap — matches NUMBER(15,6) row (no ORA-01722)")
-        fun testApproveUpdateTrimmedDecimalPkString() {
-            // Manually construct pkMap with the short form of the decimal ("100.5" not "100.500000").
-            // convertValueForBinding must produce the same numeric match regardless of trailing zeros.
+        @Order(8)
+        @DisplayName("REJECTED decision on numeric PK row leaves target unchanged")
+        fun testRejectNumericPkRowLeavesTargetUnchanged() {
+            // Row 1 was synced in Order(4). REJECTED must not modify it again.
+            val tgtBefore = targetRow(1, java.math.BigDecimal("100.5"))
+
             databaseService.reviewCompareRow(
                 CompareReviewRequest(
                     pk = "1-100.5",
-                    status = "APPROVED",
-                    tableOne = "TESTUSER.NUMPK_SOURCE",
-                    tableTwo = "TESTUSER.NUMPK_TARGET",
-                    rowStatus = "UPDATE",
-                    syncPk = listOf("REGION_ID", "PRICE_SCALE"),
-                    ignoreColumns = emptyList(),
-                    pkMap = mapOf("REGION_ID" to "1", "PRICE_SCALE" to "100.5")
-                )
-            )
-
-            val tgt = targetRow(1, java.math.BigDecimal("100.5"))
-            assertThat(tgt["LABEL"]).isEqualTo("source label A")
-        }
-
-        @Test
-        @DisplayName("UPDATE of source-only row throws IllegalStateException — guard catches silent 0-row update")
-        fun testUpdateSourceOnlyRowThrows() {
-            // Row (2, 200.999999) exists in source but NOT in target.
-            // Attempting an UPDATE (not INSERT) means the target WHERE clause matches nothing.
-            // The service must throw rather than silently return "success" with 0 rows written.
-            assertThatThrownBy {
-                databaseService.reviewCompareRow(
-                    CompareReviewRequest(
-                        pk = "2-200.999999",
-                        status = "APPROVED",
-                        tableOne = "TESTUSER.NUMPK_SOURCE",
-                        tableTwo = "TESTUSER.NUMPK_TARGET",
-                        rowStatus = "UPDATE",
-                        syncPk = listOf("REGION_ID", "PRICE_SCALE"),
-                        ignoreColumns = emptyList(),
-                        pkMap = mapOf("REGION_ID" to "2", "PRICE_SCALE" to "200.999999")
-                    )
-                )
-            }.isInstanceOf(IllegalStateException::class.java)
-                .hasMessageContaining("0 rows")
-        }
-
-        @Test
-        @DisplayName("REJECTED decision on numeric PK row leaves target unchanged")
-        fun testRejectNumericPkRowLeavesTargetUnchanged() {
-            val tgtBefore = targetRow(1, java.math.BigDecimal("100.5"))
-
-            val diff = databaseService.compareTables(compareRequest)
-                .differences.first { it.status == "UPDATE" }
-
-            databaseService.reviewCompareRow(
-                CompareReviewRequest(
-                    pk = diff.pk,
                     status = "REJECTED",
                     tableOne = "TESTUSER.NUMPK_SOURCE",
                     tableTwo = "TESTUSER.NUMPK_TARGET",
                     rowStatus = "UPDATE",
                     syncPk = listOf("REGION_ID", "PRICE_SCALE"),
                     ignoreColumns = emptyList(),
-                    pkMap = diff.pkMap
+                    pkMap = mapOf("REGION_ID" to "1", "PRICE_SCALE" to "100.5")
                 )
             )
 

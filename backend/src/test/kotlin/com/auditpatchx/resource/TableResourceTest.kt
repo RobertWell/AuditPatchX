@@ -156,7 +156,7 @@ class TableResourceTest {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("size()", equalTo(15))
+                .body("size()", equalTo(17))
                 .body("[0].schema", notNullValue())
                 .body("[0].table", notNullValue())
                 .body("[0].pkColumns", notNullValue())

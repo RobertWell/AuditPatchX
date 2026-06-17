@@ -335,4 +335,9 @@ INSERT INTO TESTUSER.NUMPK_SOURCE VALUES (2, 200.999999, 'source label B');
 -- Row (3, 0.000001): INSERT — minimum-scale value, exercises edge of NUMBER(15,6)
 INSERT INTO TESTUSER.NUMPK_SOURCE VALUES (3, 0.000001, 'min scale label');
 
+-- Row (4, 100.5): UPDATE — dedicated to trimmed-decimal pkMap binding test
+-- Source and target have the SAME PK but different LABELs.
+INSERT INTO TESTUSER.NUMPK_SOURCE VALUES (4, 100.5, 'trimmed source label');
+INSERT INTO TESTUSER.NUMPK_TARGET VALUES (4, 100.5, 'trimmed old label');
+
 COMMIT;
