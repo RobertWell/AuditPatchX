@@ -378,7 +378,7 @@ class DatabaseService(
                     sourceRow.forEach { (col, srcVal) ->
                         if (!ignoreSet.contains(col) && !request.syncPk.map { it.uppercase() }.contains(col)) {
                             val tgtVal = targetRow[col]
-                            if (srcVal.toString() != tgtVal.toString()) {
+                            if (!valuesEqualForCompare(srcVal, tgtVal)) {
                                 changes.add(
                                     CompareJobChange(
                                         column = col,
@@ -725,6 +725,19 @@ class DatabaseService(
         }
 
         return value
+    }
+
+    private fun valuesEqualForCompare(sourceValue: Any?, targetValue: Any?): Boolean {
+        if (sourceValue == null || targetValue == null) {
+            return sourceValue == targetValue
+        }
+
+        return normalizeLineEndingsForCompare(sourceValue.toString()) ==
+            normalizeLineEndingsForCompare(targetValue.toString())
+    }
+
+    private fun normalizeLineEndingsForCompare(value: String): String {
+        return value.replace("\r\n", "\n").replace('\r', '\n')
     }
 
     private fun normalizeRowValues(

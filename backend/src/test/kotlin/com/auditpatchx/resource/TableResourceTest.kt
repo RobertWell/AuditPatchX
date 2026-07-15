@@ -96,7 +96,29 @@ class TableResourceTest {
                 .body("differences.find { it.pk == '1' }.changes.find { it.column == 'DESCRIPTION' }.isLongText", equalTo(true))
                 .body("differences.find { it.pk == '1' }.changes.column", not(hasItem("UPDATED_BY")))
                 .body("differences.find { it.pk == '2' }", nullValue())
+                .body("differences.find { it.pk == '4' }", nullValue())
                 .body("differences.find { it.pk == '3' }.status", equalTo("INSERT"))
+        }
+
+        @Test
+        @DisplayName("Should ignore CRLF-only CLOB differences in compare updates")
+        fun testCompareJobIgnoresClobLineEndingOnlyDiffs() {
+            val request = CompareJobRequest(
+                tableOne = "TESTUSER.COMPARE_SOURCE",
+                tableTwo = "TESTUSER.COMPARE_TARGET",
+                syncPk = listOf("ID"),
+                ignoreColumns = listOf("UPDATED_BY"),
+                limit = 100,
+                pkFilter = mapOf("ID" to "4")
+            )
+
+            given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .`when`().post("/api/compare/job")
+                .then()
+                .statusCode(200)
+                .body("differences", empty<Any>())
         }
 
         @Test
