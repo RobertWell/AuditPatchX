@@ -120,6 +120,14 @@ code {
   font-size: 12px;
 }
 
+/* Git-like behavior: preserve line structure and let long lines extend so the
+   pane's overflow-auto provides HORIZONTAL scrolling instead of wrapping the
+   content into an unreadable blob (user-reported: no way to see the whole
+   picture). Applies to per-line diff nodes rendered by renderLineDiff. */
+.diff-view .diff-lines > div {
+  white-space: pre;
+}
+
 .diff-added {
   background-color: rgba(34, 197, 94, 0.2);
 }

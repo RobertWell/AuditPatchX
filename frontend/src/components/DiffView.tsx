@@ -80,7 +80,7 @@ export const DiffView = ({
   const renderValue = (diff: FieldDiff, side: 'before' | 'after') => {
     const value = side === 'before' ? diff.before : diff.after;
     if (!diff.textDiff || typeof value !== 'string') {
-      return <span className="whitespace-pre-wrap break-words">{formatValue(value)}</span>;
+      return <span className="whitespace-pre">{formatValue(value)}</span>;
     }
 
     if (diff.textDiffMode === 'lines') {
@@ -90,7 +90,7 @@ export const DiffView = ({
     const lineClass = side === 'before' ? 'diff-line-removed-soft' : 'diff-line-added';
 
     return (
-      <span className={`whitespace-pre-wrap break-words diff-inline-line ${lineClass}`}>
+      <span className={`whitespace-pre diff-inline-line ${lineClass}`}>
         {diff.textDiff.map((part, index) => {
           if (part.added && side === 'before') return null;
           if (part.removed && side === 'after') return null;
@@ -172,6 +172,7 @@ export const DiffView = ({
     if (!sourceEl || !targetEl) return;
     syncingRef.current = true;
     targetEl.scrollTop = sourceEl.scrollTop;
+    targetEl.scrollLeft = sourceEl.scrollLeft;
     syncingRef.current = false;
   };
 
@@ -200,7 +201,7 @@ export const DiffView = ({
               key={diff.field}
               className={`mb-1 p-1 rounded ${diff.changed ? 'diff-row-removed' : ''}`}
             >
-              <div className="grid grid-cols-[160px_minmax(0,1fr)] gap-2 items-start">
+              <div className="grid grid-cols-[160px_minmax(0,1fr)] gap-2 items-start min-w-max">
                 <span className="text-blue-700 font-semibold truncate">{diff.field}:</span>
                 {renderClickableValue(diff, 'before')}
               </div>
@@ -226,7 +227,7 @@ export const DiffView = ({
               key={diff.field}
               className={`mb-1 p-1 rounded ${diff.changed ? 'diff-row-added' : ''}`}
             >
-              <div className="grid grid-cols-[160px_minmax(0,1fr)] gap-2 items-start">
+              <div className="grid grid-cols-[160px_minmax(0,1fr)] gap-2 items-start min-w-max">
                 <span className="text-blue-700 font-semibold truncate">{diff.field}:</span>
                 {renderClickableValue(diff, 'after')}
               </div>
