@@ -89,7 +89,12 @@ class TableResourceTest {
                 .`when`().post("/api/compare/job")
                 .then()
                 .statusCode(200)
-                .body("differences.size()", equalTo(2))
+                // Explicit per-status counts (HEL-27): UPDATE=4 (PK 1, 5, 6, 8),
+                // INSERT=2 (PK 3, 9); PK 2/4/7 must be absent.
+                .body("differences.size()", equalTo(6))
+                .body("differences.findAll { it.status == 'UPDATE' }.size()", equalTo(4))
+                .body("differences.findAll { it.status == 'INSERT' }.size()", equalTo(2))
+                .body("differences.findAll { it.status == 'DELETE' }.size()", equalTo(0))
                 .body("differences.find { it.pk == '1' }.status", equalTo("UPDATE"))
                 .body("differences.find { it.pk == '1' }.changedColumns", equalTo(2))
                 .body("differences.find { it.pk == '1' }.changes.column", containsInAnyOrder("STATUS", "DESCRIPTION"))
@@ -97,6 +102,22 @@ class TableResourceTest {
                 .body("differences.find { it.pk == '1' }.changes.column", not(hasItem("UPDATED_BY")))
                 .body("differences.find { it.pk == '2' }", nullValue())
                 .body("differences.find { it.pk == '3' }.status", equalTo("INSERT"))
+                // CLOB LF-vs-CRLF only -> equal, no UPDATE row
+                .body("differences.find { it.pk == '4' }", nullValue())
+                // real CLOB difference -> exactly one UPDATE with only DESCRIPTION changed
+                .body("differences.find { it.pk == '5' }.status", equalTo("UPDATE"))
+                .body("differences.find { it.pk == '5' }.changedColumns", equalTo(1))
+                .body("differences.find { it.pk == '5' }.changes.column", containsInAnyOrder("DESCRIPTION"))
+                // NON-CLOB (VARCHAR2) LF-vs-CRLF must STILL be a difference
+                .body("differences.find { it.pk == '6' }.status", equalTo("UPDATE"))
+                .body("differences.find { it.pk == '6' }.changes.column", containsInAnyOrder("STATUS"))
+                // null vs null CLOB -> equal
+                .body("differences.find { it.pk == '7' }", nullValue())
+                // null vs non-null CLOB -> different
+                .body("differences.find { it.pk == '8' }.status", equalTo("UPDATE"))
+                .body("differences.find { it.pk == '8' }.changes.column", containsInAnyOrder("DESCRIPTION"))
+                // source-only multiline CLOB -> INSERT
+                .body("differences.find { it.pk == '9' }.status", equalTo("INSERT"))
         }
 
         @Test

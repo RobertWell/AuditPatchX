@@ -378,7 +378,8 @@ class DatabaseService(
                     sourceRow.forEach { (col, srcVal) ->
                         if (!ignoreSet.contains(col) && !request.syncPk.map { it.uppercase() }.contains(col)) {
                             val tgtVal = targetRow[col]
-                            if (srcVal.toString() != tgtVal.toString()) {
+                            val columnType = columnTypeMap1[col] ?: columnTypeMap2[col]
+                            if (!compareValuesEqual(srcVal, tgtVal, columnType)) {
                                 changes.add(
                                     CompareJobChange(
                                         column = col,
@@ -664,6 +665,28 @@ class DatabaseService(
         """.trimIndent()
 
         return UpdateStatement(sql = sql, bindings = bindings)
+    }
+
+    // HEL-27: equivalent Oracle CLOB content routinely differs only in line
+    // endings across environments (CRLF vs LF vs CR). Normalize line endings for
+    // CLOB/NCLOB comparison ONLY — every other type (VARCHAR2, JSON, SQL text,
+    // exact payloads) keeps exact comparison, and null semantics are unchanged
+    // (null renders as "null" on both sides, so null==null and null!=value).
+    private fun isClobLikeColumn(columnType: String?): Boolean =
+        columnType != null &&
+            (columnType.equals("CLOB", ignoreCase = true) || columnType.equals("NCLOB", ignoreCase = true))
+
+    private fun normalizeClobLineEndings(value: String): String =
+        value.replace("\r\n", "\n").replace('\r', '\n')
+
+    private fun compareValuesEqual(srcVal: Any?, tgtVal: Any?, columnType: String?): Boolean {
+        var a = srcVal.toString()
+        var b = tgtVal.toString()
+        if (isClobLikeColumn(columnType)) {
+            a = normalizeClobLineEndings(a)
+            b = normalizeClobLineEndings(b)
+        }
+        return a == b
     }
 
     private fun isClobColumn(columnType: String?): Boolean {
