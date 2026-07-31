@@ -3,9 +3,9 @@ package com.auditpatchx.service
 import com.auditpatchx.model.*
 import com.auditpatchx.config.UiFeatureConfig
 import com.auditpatchx.config.SyncTableConfig
-import datakit.core.Row
-import datakit.jdbi.JdbiReader
-import datakit.oracle.OracleValueReader
+import io.maxxga.rowrelay.core.Row
+import io.maxxga.rowrelay.jdbi.JdbiReader
+import io.maxxga.rowrelay.oracle.OracleValueReader
 import jakarta.enterprise.context.ApplicationScoped
 import org.jdbi.v3.core.Handle
 import org.jdbi.v3.core.Jdbi
@@ -25,15 +25,15 @@ class DatabaseService(
     private val logger = LoggerFactory.getLogger(DatabaseService::class.java)
     private val jdbi: Jdbi = Jdbi.create(dataSource).installPlugin(KotlinPlugin())
 
-    // HEL-120 pilot: dynamic row reading + oracle.sql/CLOB normalization now
-    // comes from datakit (the library extracted FROM this class); the app keeps
+    // HEL-120/HEL-123 pilot: dynamic row reading + oracle.sql/CLOB normalization now
+    // comes from RowRelay (the library extracted FROM this class); the app keeps
     // only its browser-facing shape (uppercase keys + ISO temporal strings).
     private val readOptions = JdbiReader.ReadOptions(valueReader = OracleValueReader())
 
     private fun readRows(handle: Handle, sql: String, named: Map<String, Any?>): List<Map<String, Any?>> =
         JdbiReader.readAll(handle, sql, named, readOptions).rows.map { jsonRow(it) }
 
-    /** datakit Row -> the exact response shape of the old normalizeRowValues
+    /** RowRelay Row -> the exact response shape of the old normalizeRowValues
      *  pipeline: uppercase keys, temporals as ISO strings, LOBs materialized. */
     private fun jsonRow(row: Row): Map<String, Any?> =
         row.asMap().entries.associate { (key, value) ->
@@ -746,7 +746,7 @@ class DatabaseService(
     }
 
     // normalizeRowValues / normalizeValueForJson / readClobValue removed —
-    // datakit's OracleValueReader + jsonRow now own that behavior (HEL-120).
+    // RowRelay's OracleValueReader + jsonRow now own that behavior (HEL-120/HEL-123).
 
     private data class ParsedTemporal(
         val offsetDateTime: java.time.OffsetDateTime,
