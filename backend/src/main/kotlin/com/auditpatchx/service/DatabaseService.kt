@@ -3,12 +3,15 @@ package com.auditpatchx.service
 import com.auditpatchx.model.*
 import com.auditpatchx.config.UiFeatureConfig
 import com.auditpatchx.config.SyncTableConfig
+import datakit.core.Row
+import datakit.jdbi.JdbiReader
+import datakit.oracle.OracleValueReader
 import jakarta.enterprise.context.ApplicationScoped
+import org.jdbi.v3.core.Handle
 import org.jdbi.v3.core.Jdbi
 import org.jdbi.v3.core.kotlin.KotlinPlugin
 import org.slf4j.LoggerFactory
 import java.time.format.DateTimeFormatter
-import java.sql.Clob
 import javax.sql.DataSource
 
 @ApplicationScoped
@@ -21,6 +24,26 @@ class DatabaseService(
 ) {
     private val logger = LoggerFactory.getLogger(DatabaseService::class.java)
     private val jdbi: Jdbi = Jdbi.create(dataSource).installPlugin(KotlinPlugin())
+
+    // HEL-120 pilot: dynamic row reading + oracle.sql/CLOB normalization now
+    // comes from datakit (the library extracted FROM this class); the app keeps
+    // only its browser-facing shape (uppercase keys + ISO temporal strings).
+    private val readOptions = JdbiReader.ReadOptions(valueReader = OracleValueReader())
+
+    private fun readRows(handle: Handle, sql: String, named: Map<String, Any?>): List<Map<String, Any?>> =
+        JdbiReader.readAll(handle, sql, named, readOptions).rows.map { jsonRow(it) }
+
+    /** datakit Row -> the exact response shape of the old normalizeRowValues
+     *  pipeline: uppercase keys, temporals as ISO strings, LOBs materialized. */
+    private fun jsonRow(row: Row): Map<String, Any?> =
+        row.asMap().entries.associate { (key, value) ->
+            key.uppercase() to when (value) {
+                is java.time.LocalDateTime -> value.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                is java.time.LocalDate -> value.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                is java.time.OffsetDateTime -> value.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                else -> value
+            }
+        }
 
     /**
      * Execute query with filters
@@ -47,20 +70,14 @@ class DatabaseService(
 
         logger.debug("Executing query: $sql")
 
+        val named = mutableMapOf<String, Any?>()
+        request.filters?.forEachIndexed { index, filter ->
+            val columnType = columnTypeMap[filter.col.uppercase()]
+            named["value$index"] = convertValueForBinding(filter.value, columnType)
+        }
+
         return jdbi.withHandle<QueryResponse, Exception> { handle ->
-            var query = handle.createQuery(sql)
-
-            // Bind filter values using named parameters with type conversion
-            request.filters?.forEachIndexed { index, filter ->
-                val columnType = columnTypeMap[filter.col.uppercase()]
-                val convertedValue = convertValueForBinding(filter.value, columnType)
-                query = query.bind("value$index", convertedValue)
-            }
-
-            val rows = query.mapToMap().list().map { row ->
-                normalizeRowValues(row.toUppercaseKeys(), columnTypeMap)
-            }
-
+            val rows = readRows(handle, sql, named)
             QueryResponse(
                 columns = if (rows.isNotEmpty()) rows[0].keys.toList() else emptyList(),
                 rows = rows
@@ -87,21 +104,13 @@ class DatabaseService(
 
         logger.debug("Executing get by PK: $sql")
 
+        val named = request.pk.entries.associate { (key, value) ->
+            key to convertValueForBinding(value, columnTypeMap[key.uppercase()])
+        }
+
         return jdbi.withHandle<GetByPkResponse, Exception> { handle ->
-            var query = handle.createQuery(sql)
-
-            // Bind PK values with proper type conversion
-            request.pk.forEach { (key, value) ->
-                val columnType = columnTypeMap[key.uppercase()]
-                val convertedValue = convertValueForBinding(value, columnType)
-                query = query.bind(key, convertedValue)
-            }
-
-            val row = query.mapToMap().findOne().orElse(null)
-                ?.toUppercaseKeys()
-                ?.let { normalizeRowValues(it, columnTypeMap) }
+            val row = readRows(handle, sql, named).firstOrNull()
                 ?: throw NotFoundException("Row not found")
-
             GetByPkResponse(row = row)
         }
     }
@@ -191,16 +200,10 @@ class DatabaseService(
 
             // Fetch updated row
             val fetchSql = buildGetByPkSql(request.schema, request.table, request.pk.keys)
-            var query = handle.createQuery(fetchSql)
-
-            request.pk.forEach { (key, value) ->
-                val columnType = columnTypeMap[key.uppercase()]
-                val convertedValue = convertValueForBinding(value, columnType)
-                query = query.bind(key, convertedValue)
+            val named = request.pk.entries.associate { (key, value) ->
+                key to convertValueForBinding(value, columnTypeMap[key.uppercase()])
             }
-
-            val row = query.mapToMap().findOne().orElse(emptyMap()).toUppercaseKeys()
-                .let { normalizeRowValues(it, columnTypeMap) }
+            val row = readRows(handle, fetchSql, named).firstOrNull() ?: emptyMap()
 
             UpdateResponse(updated = updated, row = row)
         }
@@ -250,14 +253,11 @@ class DatabaseService(
             }
             val whereClause = pkValues.keys.joinToString(" AND ") { "$it = :$it" }
             val fetchSql = "SELECT * FROM ${request.schema.uppercase()}.${request.table.uppercase()} WHERE $whereClause"
-            var query = handle.createQuery(fetchSql)
-            pkValues.forEach { (col, value) ->
-                query = query.bind(col, convertValueForBinding(value, columnTypeMap[col]))
+            val named = pkValues.entries.associate { (col, value) ->
+                col to convertValueForBinding(value, columnTypeMap[col])
             }
-            val row = query.mapToMap().findOne()
-                .orElseThrow { NotFoundException("Row not found after insert") }
-                .toUppercaseKeys()
-                .let { normalizeRowValues(it, columnTypeMap) }
+            val row = readRows(handle, fetchSql, named).firstOrNull()
+                ?: throw NotFoundException("Row not found after insert")
 
             InsertResponse(inserted = inserted, row = row)
         }
@@ -307,16 +307,10 @@ class DatabaseService(
                 FETCH FIRST $limit ROWS ONLY
             """.trimIndent()
 
-            val sourceRows = handle.createQuery(sql1)
-                .also { q ->
-                    activeFilter.forEach { (col, value) ->
-                        val colType = columnTypeMap1[col]
-                        q.bind("filter_$col", convertValueForBinding(value, colType))
-                    }
-                }
-                .mapToMap()
-                .list()
-                .map { row -> normalizeRowValues(row.toUppercaseKeys(), columnTypeMap1) }
+            val filterNamed = activeFilter.entries.associate { (col, value) ->
+                "filter_$col" to convertValueForBinding(value, columnTypeMap1[col])
+            }
+            val sourceRows = readRows(handle, sql1, filterNamed)
 
             val differences = mutableListOf<CompareJobDiffRow>()
 
@@ -334,18 +328,14 @@ class DatabaseService(
                     WHERE $whereClause
                 """.trimIndent()
 
-                var query2 = handle.createQuery(sql2)
-                request.syncPk.forEach { pkCol ->
-                    val columnType = columnTypeMap2[pkCol.uppercase()]
-                    val convertedValue = convertValueForBinding(pkValues[pkCol], columnType)
-                    query2 = query2.bind(pkCol, convertedValue)
+                val pkNamed = request.syncPk.associateWith { pkCol ->
+                    convertValueForBinding(pkValues[pkCol], columnTypeMap2[pkCol.uppercase()])
                 }
-
-                val targetRowOpt = query2.mapToMap().findOne()
+                val targetRowOrNull = readRows(handle, sql2, pkNamed).firstOrNull()
 
                 val pkString = request.syncPk.joinToString("-") { pkValues[it].toString() }
 
-                if (!targetRowOpt.isPresent) {
+                if (targetRowOrNull == null) {
                     val syncPkUpper = request.syncPk.map { it.uppercase() }.toSet()
                     val ignoreUpper = request.ignoreColumns.map { it.uppercase() }.toSet()
                     val insertChanges = sourceRow
@@ -370,7 +360,7 @@ class DatabaseService(
                         )
                     )
                 } else {
-                    val targetRow = normalizeRowValues(targetRowOpt.get().toUppercaseKeys(), columnTypeMap2)
+                    val targetRow = targetRowOrNull
                     val changes = mutableListOf<CompareJobChange>()
                     
                     val ignoreSet = request.ignoreColumns.map { it.uppercase() }.toSet()
@@ -755,48 +745,8 @@ class DatabaseService(
         return value
     }
 
-    private fun normalizeRowValues(
-        row: Map<String, Any?>,
-        columnTypeMap: Map<String, String>
-    ): Map<String, Any?> {
-        return row.mapValues { (key, value) ->
-            val columnType = columnTypeMap[key.uppercase()]
-            normalizeValueForJson(value, columnType)
-        }
-    }
-
-    private fun normalizeValueForJson(value: Any?, columnType: String?): Any? {
-        if (value == null) return null
-
-        return when (value) {
-            is Clob -> readClobValue(value)
-            is oracle.sql.TIMESTAMP -> value.timestampValue().toLocalDateTime()
-                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            is java.sql.Timestamp -> value.toLocalDateTime()
-                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            is oracle.sql.DATE -> value.timestampValue().toLocalDateTime()
-                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            is java.sql.Date -> value.toLocalDate()
-                .format(DateTimeFormatter.ISO_LOCAL_DATE)
-            is oracle.sql.TIMESTAMPTZ -> value.toOffsetDateTime()
-                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-            else -> {
-                when (value.javaClass.name) {
-                    "oracle.sql.TIMESTAMPLTZ" -> value.toString()
-                    else -> value
-                }
-            }
-        }
-    }
-
-    private fun readClobValue(clob: Clob): String {
-        val length = clob.length()
-        if (length == 0L) {
-            return ""
-        }
-        val safeLength = length.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-        return clob.getSubString(1, safeLength)
-    }
+    // normalizeRowValues / normalizeValueForJson / readClobValue removed —
+    // datakit's OracleValueReader + jsonRow now own that behavior (HEL-120).
 
     private data class ParsedTemporal(
         val offsetDateTime: java.time.OffsetDateTime,
@@ -849,14 +799,6 @@ class DatabaseService(
 
         logger.warn("Failed to parse temporal value: $value, using as-is")
         return null
-    }
-
-    /**
-     * Convert map keys to uppercase for Oracle compatibility.
-     * Oracle JDBC returns column names in lowercase by default, but we want uppercase.
-     */
-    private fun Map<String, Any?>.toUppercaseKeys(): Map<String, Any?> {
-        return this.entries.associate { (key, value) -> key.uppercase() to value }
     }
 
     fun reviewCompareRow(request: CompareReviewRequest): CompareReviewResponse {

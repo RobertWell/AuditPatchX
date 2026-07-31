@@ -128,7 +128,32 @@
             <version>3.25.1</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- HEL-120 pilot: datakit consumed as PUBLISHED artifacts from the
+             GitLab Maven registry (pre-stable working coordinates; see the
+             datakit README). Replaces the local dynamic row-reading /
+             oracle.sql normalization duplication in DatabaseService. -->
+        <dependency>
+            <groupId>internal.datakit</groupId>
+            <artifactId>datakit-jdbi</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>internal.datakit</groupId>
+            <artifactId>datakit-oracle</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
+
+    <repositories>
+        <!-- datakit registry (LAN GitLab over the http NodePort: localhost is
+             exempt from Maven's http blocker; CI overrides via settings). -->
+        <repository>
+            <id>gitlab-datakit</id>
+            <url>http://localhost:30153/api/v4/projects/4/packages/maven</url>
+            <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+    </repositories>
 
     <build>
         <sourceDirectory>src/main/kotlin</sourceDirectory>
