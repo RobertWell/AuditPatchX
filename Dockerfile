@@ -5,12 +5,18 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build
 
+# HEL-123: RowRelay resolves from the LAN GitLab Maven registry. The default
+# (host NodePort) serves local builds; CI passes the in-cluster service DNS.
+# ci_settings.xml disables Maven's default http blocker for this in-cluster hop.
+ARG ROWRELAY_REPO_URL=http://localhost:30153/api/v4/projects/5/packages/maven
+
+COPY ci_settings.xml /build/ci_settings.xml
 COPY backend/pom.xml .
-RUN mvn dependency:go-offline -q
+RUN mvn dependency:go-offline -q -s /build/ci_settings.xml -Drowrelay.repo.url=$ROWRELAY_REPO_URL
 
 # Backend source + frontend static files (from CI artifact)
 COPY backend/src ./src
-RUN mvn package -DskipTests -q
+RUN mvn package -DskipTests -q -s /build/ci_settings.xml -Drowrelay.repo.url=$ROWRELAY_REPO_URL
 
 # ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-jammy

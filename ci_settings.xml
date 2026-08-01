@@ -1,0 +1,20 @@
+<!-- Maven settings for GitLab CI and the Docker image build (HEL-123).
+
+     Maven >= 3.8 ships a default mirror ("maven-default-http-blocker") that
+     blocks every non-localhost http repository. The RowRelay registry hop is
+     in-cluster plain http (pod -> gitlab service on a single-node cluster —
+     the same accepted tradeoff as the datakit deploy), so we redefine the
+     blocker mirror to match nothing. No credentials: the rowrelay project is
+     public, package reads are anonymous. -->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.1.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd">
+  <mirrors>
+    <mirror>
+      <id>maven-default-http-blocker</id>
+      <name>http blocker disabled for the in-cluster registry hop</name>
+      <mirrorOf>external:dummy:*</mirrorOf>
+      <url>http://0.0.0.0/</url>
+    </mirror>
+  </mirrors>
+</settings>

@@ -13,10 +13,25 @@
         <quarkus.version>3.6.4</quarkus.version>
         <jdbi.version>3.42.0</jdbi.version>
         <testcontainers.version>1.21.4</testcontainers.version>
+        <rowrelay.version>0.2.0</rowrelay.version>
+        <!-- RowRelay resolves from the LAN GitLab Maven registry (public
+             project => anonymous reads). Host default = the NodePort; CI and
+             the Docker build override with -Drowrelay.repo.url / ARG to the
+             in-cluster service DNS (HEL-123 registry consumption). -->
+        <rowrelay.repo.url>http://localhost:30153/api/v4/projects/5/packages/maven</rowrelay.repo.url>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>rowrelay-gitlab</id>
+            <url>${rowrelay.repo.url}</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+    </repositories>
 
     <dependencyManagement>
         <dependencies>
@@ -135,12 +150,12 @@
         <dependency>
             <groupId>io.maxxga.rowrelay</groupId>
             <artifactId>rowrelay-jdbi</artifactId>
-            <version>0.1.1-SNAPSHOT</version>
+            <version>${rowrelay.version}</version>
         </dependency>
         <dependency>
             <groupId>io.maxxga.rowrelay</groupId>
             <artifactId>rowrelay-oracle</artifactId>
-            <version>0.1.1-SNAPSHOT</version>
+            <version>${rowrelay.version}</version>
         </dependency>
     </dependencies>
 

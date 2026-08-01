@@ -34,39 +34,17 @@ backend-tests:
     paths:
       - .m2/repository
   before_script:
-    # HEL-120: provision the RowRelay dependency (io.maxxga.rowrelay) into the
-    # shared project .m2. RowRelay is the SAME owner's public repo, so this is
-    # PAT-free and self-contained; the built artifacts are cached in .m2 so it
-    # only runs on a cold cache. Pinned to an IMMUTABLE commit SHA (not the
-    # movable v0.1.1 tag) so the exact tree — including the gradle wrapper — is
-    # fixed. NOTE (supply-chain): building third-party source in CI is the
-    # interim mechanism; the cleaner long-term is mirroring the artifact into a
-    # Maven registry (GitLab Packages, PAT-free in-cluster) and consuming it as
-    # a normal dependency — tracked as the RowRelay-registry follow-up.
-    - |
-      RR_SHA=ad80da1448910a0a4d4b0257b9a2abc694bd392b   # tag v0.1.1, immutable
-      RR=$CI_PROJECT_DIR/.m2/repository/io/maxxga/rowrelay/rowrelay-oracle/0.1.1-SNAPSHOT
-      if [ ! -d "$RR" ]; then
-        echo "provisioning RowRelay @ $RR_SHA from public source (no PAT)"
-        git clone --no-checkout https://github.com/RobertWell/rowrelay /tmp/rowrelay
-        git -C /tmp/rowrelay checkout -q "$RR_SHA"
-        test "$(git -C /tmp/rowrelay rev-parse HEAD)" = "$RR_SHA" || { echo "SHA mismatch"; exit 1; }
-        # Build ONLY the modules AuditPatchX consumes (+ their transitive
-        # rowrelay deps) — this dind job also runs an Oracle container, so keep
-        # the gradle footprint small (the full 7-module build tripped
-        # runner_system_failure). Cap the gradle heap. The javadoc jar IS built:
-        # the maven publication declares it as a required artifact, so skipping
-        # dokka fails the publish (build 4 modules' dokka is light enough, ~53s).
-        (cd /tmp/rowrelay && GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx640m" ./gradlew --no-daemon \
-            :rowrelay-core:publishToMavenLocal :rowrelay-jdbc:publishToMavenLocal \
-            :rowrelay-jdbi:publishToMavenLocal :rowrelay-oracle:publishToMavenLocal)
-        mkdir -p "$CI_PROJECT_DIR/.m2/repository/io/maxxga"
-        cp -r "$HOME/.m2/repository/io/maxxga/." "$CI_PROJECT_DIR/.m2/repository/io/maxxga/"
-      fi
+    # HEL-123: RowRelay resolves from the LAN GitLab Maven registry
+    # (root/rowrelay, public => anonymous reads, no PAT) as a NORMAL Maven
+    # dependency — the from-source provisioning is retired. Job pods cannot
+    # resolve the edge hostname, so the URL is the in-cluster service DNS;
+    # ci_settings.xml disables Maven's default http blocker for this hop
+    # (accepted in-cluster tradeoff, documented there).
     - cd backend
     - find $CI_PROJECT_DIR/.m2 -name "*.lastUpdated" -delete 2>/dev/null || true
   script:
-    - mvn test -B
+    - mvn test -B -s $CI_PROJECT_DIR/ci_settings.xml
+        -Drowrelay.repo.url=http://gitlab.gitlab.svc.cluster.local/api/v4/projects/5/packages/maven
   artifacts:
     when: always
     reports:
@@ -122,7 +100,11 @@ build-image:
       done
   script:
     - docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_TOKEN"
-    - docker build -t $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA -t $DOCKER_IMAGE:latest .
+    # HEL-123: the in-image maven build resolves RowRelay from the in-cluster
+    # registry (dind build containers inherit the pod's DNS).
+    - docker build
+        --build-arg ROWRELAY_REPO_URL=http://gitlab.gitlab.svc.cluster.local/api/v4/projects/5/packages/maven
+        -t $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA -t $DOCKER_IMAGE:latest .
     - docker push $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA
     - docker push $DOCKER_IMAGE:latest
   only:
