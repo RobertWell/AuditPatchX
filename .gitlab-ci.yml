@@ -52,13 +52,14 @@ backend-tests:
         git -C /tmp/rowrelay checkout -q "$RR_SHA"
         test "$(git -C /tmp/rowrelay rev-parse HEAD)" = "$RR_SHA" || { echo "SHA mismatch"; exit 1; }
         # Build ONLY the modules AuditPatchX consumes (+ their transitive
-        # rowrelay deps) and skip dokka/test — this dind job also runs an Oracle
-        # container, so keep the gradle footprint small (the full 7-module +
-        # dokka build tripped runner_system_failure). Cap the gradle heap too.
+        # rowrelay deps) — this dind job also runs an Oracle container, so keep
+        # the gradle footprint small (the full 7-module build tripped
+        # runner_system_failure). Cap the gradle heap. The javadoc jar IS built:
+        # the maven publication declares it as a required artifact, so skipping
+        # dokka fails the publish (build 4 modules' dokka is light enough, ~53s).
         (cd /tmp/rowrelay && GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx640m" ./gradlew --no-daemon \
             :rowrelay-core:publishToMavenLocal :rowrelay-jdbc:publishToMavenLocal \
-            :rowrelay-jdbi:publishToMavenLocal :rowrelay-oracle:publishToMavenLocal \
-            -x dokkaJavadoc -x dokkaJavadocJar)
+            :rowrelay-jdbi:publishToMavenLocal :rowrelay-oracle:publishToMavenLocal)
         mkdir -p "$CI_PROJECT_DIR/.m2/repository/io/maxxga"
         cp -r "$HOME/.m2/repository/io/maxxga/." "$CI_PROJECT_DIR/.m2/repository/io/maxxga/"
       fi
