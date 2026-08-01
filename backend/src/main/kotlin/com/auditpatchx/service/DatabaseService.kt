@@ -4,7 +4,9 @@ import com.auditpatchx.model.*
 import com.auditpatchx.config.UiFeatureConfig
 import com.auditpatchx.config.SyncTableConfig
 import io.maxxga.rowrelay.core.Row
+import io.maxxga.rowrelay.core.fold
 import io.maxxga.rowrelay.jdbi.JdbiReader
+import io.maxxga.rowrelay.oracle.OracleDialect
 import io.maxxga.rowrelay.oracle.OracleValueReader
 import jakarta.enterprise.context.ApplicationScoped
 import org.jdbi.v3.core.Handle
@@ -29,6 +31,16 @@ class DatabaseService(
     // comes from RowRelay (the library extracted FROM this class); the app keeps
     // only its browser-facing shape (uppercase keys + ISO temporal strings).
     private val readOptions = JdbiReader.ReadOptions(valueReader = OracleValueReader())
+
+    // HEL-162: identifier composition is owned by the RowRelay Oracle dialect —
+    // validate, uppercase-fold, quote. Every runtime-discovered name that reaches
+    // SQL text goes through here; raw `${x.uppercase()}` interpolation is retired.
+    // (Values are still bound as named parameters, never interpolated.)
+    private fun ident(name: String, what: String = "identifier"): String =
+        OracleDialect.quoteIdent(name, what)
+
+    private fun qualified(schema: String, table: String): String =
+        "${ident(schema, "schema")}.${ident(table, "table")}"
 
     private fun readRows(handle: Handle, sql: String, named: Map<String, Any?>): List<Map<String, Any?>> =
         JdbiReader.readAll(handle, sql, named, readOptions).rows.map { jsonRow(it) }
@@ -226,9 +238,9 @@ class DatabaseService(
         val columnMetadata = securityService.getDetailedColumnMetadata(request.schema, request.table)
         val columnTypeMap = columnMetadata.associate { it.name.uppercase() to it.type }
 
-        val colList  = valuesToInsert.keys.joinToString(", ")
+        val colList  = valuesToInsert.keys.joinToString(", ") { ident(it, "column") }
         val paramList = valuesToInsert.keys.joinToString(", ") { ":$it" }
-        val insertSql = "INSERT INTO ${request.schema.uppercase()}.${request.table.uppercase()} ($colList) VALUES ($paramList)"
+        val insertSql = "INSERT INTO ${qualified(request.schema, request.table)} ($colList) VALUES ($paramList)"
 
         val pkColumns = allowlistService.getTableConfig(request.schema, request.table)?.pkColumns()
             ?: throw SecurityException("Table not in allowlist")
@@ -251,8 +263,8 @@ class DatabaseService(
                 pk.uppercase() to (valuesToInsert[pk.uppercase()]
                     ?: throw IllegalArgumentException("PK column $pk must be provided"))
             }
-            val whereClause = pkValues.keys.joinToString(" AND ") { "$it = :$it" }
-            val fetchSql = "SELECT * FROM ${request.schema.uppercase()}.${request.table.uppercase()} WHERE $whereClause"
+            val whereClause = pkValues.keys.joinToString(" AND ") { "${ident(it, "column")} = :$it" }
+            val fetchSql = "SELECT * FROM ${qualified(request.schema, request.table)} WHERE $whereClause"
             val named = pkValues.entries.associate { (col, value) ->
                 col to convertValueForBinding(value, columnTypeMap[col])
             }
@@ -297,13 +309,17 @@ class DatabaseService(
             securityService.validateColumns(columns1, activeFilter.keys)
         }
 
+        // RowRelay-style split (HEL-162): this block is ONLY I/O — read the
+        // bounded source set, look up each target row, and fold the pure
+        // ComparePlanner's Choice routing (Left = INSERT diff, Right = UPDATE
+        // diff or null). All diff POLICY lives in ComparePlanner, unit-tested
+        // without a database.
         return jdbi.inTransaction<CompareJobResponse, Exception> { handle ->
-            // Query source table (tableOne), applying any PK filter the caller provided.
             val filterClause = if (activeFilter.isEmpty()) ""
-                else " WHERE " + activeFilter.keys.joinToString(" AND ") { "$it = :filter_$it" }
+                else " WHERE " + activeFilter.keys.joinToString(" AND ") { "${ident(it, "column")} = :filter_$it" }
 
             val sql1 = """
-                SELECT * FROM ${schema1.uppercase()}.${table1.uppercase()}$filterClause
+                SELECT * FROM ${qualified(schema1, table1)}$filterClause
                 FETCH FIRST $limit ROWS ONLY
             """.trimIndent()
 
@@ -312,90 +328,25 @@ class DatabaseService(
             }
             val sourceRows = readRows(handle, sql1, filterNamed)
 
-            val differences = mutableListOf<CompareJobDiffRow>()
+            val targetWhere = request.syncPk.joinToString(" AND ") { "${ident(it, "column")} = :$it" }
+            val sql2 = """
+                SELECT * FROM ${qualified(schema2, table2)}
+                WHERE $targetWhere
+            """.trimIndent()
 
-            for (sourceRow in sourceRows) {
-                // Extract PKs
-                val pkValues = request.syncPk.associateWith { sourceRow[it.uppercase()] }
-                if (pkValues.values.any { it == null }) {
-                    continue // Skip rows missing PK values
-                }
-
-                // Query target table (tableTwo)
-                val whereClause = request.syncPk.joinToString(" AND ") { "${it.uppercase()} = :$it" }
-                val sql2 = """
-                    SELECT * FROM ${schema2.uppercase()}.${table2.uppercase()}
-                    WHERE $whereClause
-                """.trimIndent()
-
+            val differences = sourceRows.mapNotNull { sourceRow ->
+                val pkValues = ComparePlanner.pkValuesOrNull(sourceRow, request.syncPk)
+                    ?: return@mapNotNull null                    // pinned: skip rows missing PKs
                 val pkNamed = request.syncPk.associateWith { pkCol ->
                     convertValueForBinding(pkValues[pkCol], columnTypeMap2[pkCol.uppercase()])
                 }
-                val targetRowOrNull = readRows(handle, sql2, pkNamed).firstOrNull()
+                val targetRow = readRows(handle, sql2, pkNamed).firstOrNull()
 
-                val pkString = request.syncPk.joinToString("-") { pkValues[it].toString() }
-
-                if (targetRowOrNull == null) {
-                    val syncPkUpper = request.syncPk.map { it.uppercase() }.toSet()
-                    val ignoreUpper = request.ignoreColumns.map { it.uppercase() }.toSet()
-                    val insertChanges = sourceRow
-                        .filter { (col, _) -> !syncPkUpper.contains(col) && !ignoreUpper.contains(col) }
-                        .map { (col, srcVal) ->
-                            CompareJobChange(
-                                column = col,
-                                sourceValue = srcVal?.toString() ?: "NULL",
-                                targetValue = "NULL",
-                                isLongText = (srcVal?.toString()?.length ?: 0) > 100
-                            )
-                        }
-                    differences.add(
-                        CompareJobDiffRow(
-                            pk = pkString,
-                            pkMap = request.syncPk.associate { it.uppercase() to (pkValues[it]?.toString() ?: "") },
-                            status = "INSERT",
-                            changedColumns = insertChanges.size,
-                            updatedBy = "system",
-                            reviewStatus = "PENDING",
-                            changes = insertChanges
-                        )
-                    )
-                } else {
-                    val targetRow = targetRowOrNull
-                    val changes = mutableListOf<CompareJobChange>()
-                    
-                    val ignoreSet = request.ignoreColumns.map { it.uppercase() }.toSet()
-
-                    sourceRow.forEach { (col, srcVal) ->
-                        if (!ignoreSet.contains(col) && !request.syncPk.map { it.uppercase() }.contains(col)) {
-                            val tgtVal = targetRow[col]
-                            val columnType = columnTypeMap1[col] ?: columnTypeMap2[col]
-                            if (!compareValuesEqual(srcVal, tgtVal, columnType)) {
-                                changes.add(
-                                    CompareJobChange(
-                                        column = col,
-                                        sourceValue = srcVal?.toString() ?: "NULL",
-                                        targetValue = tgtVal?.toString() ?: "NULL",
-                                        isLongText = (srcVal?.toString()?.length ?: 0) > 100 || (tgtVal?.toString()?.length ?: 0) > 100
-                                    )
-                                )
-                            }
-                        }
-                    }
-
-                    if (changes.isNotEmpty()) {
-                        differences.add(
-                            CompareJobDiffRow(
-                                pk = pkString,
-                                pkMap = request.syncPk.associate { it.uppercase() to (pkValues[it]?.toString() ?: "") },
-                                status = "UPDATE",
-                                changedColumns = changes.size,
-                                updatedBy = "system",
-                                reviewStatus = "PENDING",
-                                changes = changes
-                            )
-                        )
-                    }
-                }
+                ComparePlanner.diffRow(
+                    sourceRow, targetRow, request.syncPk,
+                    ignoreColumns = request.ignoreColumns.toSet(),
+                    typeOf = { col -> columnTypeMap1[col] ?: columnTypeMap2[col] },
+                ).fold(onLeft = { it }, onRight = { it })
             }
 
             CompareJobResponse(
@@ -585,7 +536,7 @@ class DatabaseService(
         limit: Int
     ): String {
         val whereClause = filters?.mapIndexed { index, filter ->
-            val column = filter.col.uppercase()
+            val column = ident(filter.col, "column")
             when (filter.op) {
                 "eq" -> "$column = :value$index"
                 "contains" -> "$column LIKE '%' || :value$index || '%'"
@@ -599,7 +550,7 @@ class DatabaseService(
         }?.joinToString(" AND ") ?: "1=1"
 
         return """
-            SELECT * FROM ${schema.uppercase()}.${table.uppercase()}
+            SELECT * FROM ${qualified(schema, table)}
             WHERE $whereClause
             FETCH FIRST $limit ROWS ONLY
         """.trimIndent()
@@ -609,10 +560,10 @@ class DatabaseService(
      * Build SELECT by PK SQL
      */
     private fun buildGetByPkSql(schema: String, table: String, pkColumns: Set<String>): String {
-        val whereClause = pkColumns.map { "${it.uppercase()} = :$it" }.joinToString(" AND ")
+        val whereClause = pkColumns.map { "${ident(it, "column")} = :$it" }.joinToString(" AND ")
 
         return """
-            SELECT * FROM ${schema.uppercase()}.${table.uppercase()}
+            SELECT * FROM ${qualified(schema, table)}
             WHERE $whereClause
         """.trimIndent()
     }
@@ -635,21 +586,22 @@ class DatabaseService(
         val bindings = mutableMapOf<String, Any?>()
         val setClause = setValues.map { (key, value) ->
             val columnType = columnTypeMap[key.uppercase()]
+            val column = ident(key, "column")
             if (isClobColumn(columnType) && value is String) {
-                "${key.uppercase()} = ${buildClobUpdateExpression(value)}"
+                "$column = ${buildClobUpdateExpression(value)}"
             } else if (isClobColumn(columnType) && value == null) {
-                "${key.uppercase()} = NULL"
+                "$column = NULL"
             } else {
                 val bindingKey = "set_$key"
                 val convertedValue = convertValueForBinding(value, columnType)
                 bindings[bindingKey] = convertedValue
-                "${key.uppercase()} = :$bindingKey"
+                "$column = :$bindingKey"
             }
         }.joinToString(", ")
-        val whereClause = pkColumns.map { "${it.uppercase()} = :pk_$it" }.joinToString(" AND ")
+        val whereClause = pkColumns.map { "${ident(it, "column")} = :pk_$it" }.joinToString(" AND ")
 
         val sql = """
-            UPDATE ${schema.uppercase()}.${table.uppercase()}
+            UPDATE ${qualified(schema, table)}
             SET $setClause
             WHERE $whereClause
         """.trimIndent()
@@ -657,27 +609,8 @@ class DatabaseService(
         return UpdateStatement(sql = sql, bindings = bindings)
     }
 
-    // HEL-27: equivalent Oracle CLOB content routinely differs only in line
-    // endings across environments (CRLF vs LF vs CR). Normalize line endings for
-    // CLOB/NCLOB comparison ONLY — every other type (VARCHAR2, JSON, SQL text,
-    // exact payloads) keeps exact comparison, and null semantics are unchanged
-    // (null renders as "null" on both sides, so null==null and null!=value).
-    private fun isClobLikeColumn(columnType: String?): Boolean =
-        columnType != null &&
-            (columnType.equals("CLOB", ignoreCase = true) || columnType.equals("NCLOB", ignoreCase = true))
-
-    private fun normalizeClobLineEndings(value: String): String =
-        value.replace("\r\n", "\n").replace('\r', '\n')
-
-    private fun compareValuesEqual(srcVal: Any?, tgtVal: Any?, columnType: String?): Boolean {
-        var a = srcVal.toString()
-        var b = tgtVal.toString()
-        if (isClobLikeColumn(columnType)) {
-            a = normalizeClobLineEndings(a)
-            b = normalizeClobLineEndings(b)
-        }
-        return a == b
-    }
+    // HEL-27 CLOB comparison rule + row-diff policy moved to the pure
+    // ComparePlanner (HEL-162 RowRelay adoption) — unit-tested without Oracle.
 
     private fun isClobColumn(columnType: String?): Boolean {
         return columnType?.equals("CLOB", ignoreCase = true) == true
@@ -833,9 +766,9 @@ class DatabaseService(
             val columnTypeMap2 = securityService.getDetailedColumnMetadata(schema2, table2)
                 .associate { it.name.uppercase() to it.type }
 
-            val src = "${schema1.uppercase()}.${table1.uppercase()}"
-            val tgt = "${schema2.uppercase()}.${table2.uppercase()}"
-            val whereClause = syncPkUpper.joinToString(" AND ") { "$it = :pk_$it" }
+            val src = qualified(schema1, table1)
+            val tgt = qualified(schema2, table2)
+            val whereClause = syncPkUpper.joinToString(" AND ") { "${ident(it, "column")} = :pk_$it" }
 
             jdbi.inTransaction<Unit, Exception> { handle ->
                 // Verify source row exists before attempting write
@@ -858,9 +791,9 @@ class DatabaseService(
                             // Source and target PK columns may have different declared precision
                             // (e.g. NUMBER(15,6) vs NUMBER(10,2)).  Use the correct type map for
                             // each side so BigDecimal binding matches the actual stored value.
-                            val colsList = dataColumns.joinToString(", ")
-                            val srcWhere = syncPkUpper.joinToString(" AND ") { "$it = :src_$it" }
-                            val tgtWhere = syncPkUpper.joinToString(" AND ") { "$it = :tgt_$it" }
+                            val colsList = dataColumns.joinToString(", ") { ident(it, "column") }
+                            val srcWhere = syncPkUpper.joinToString(" AND ") { "${ident(it, "column")} = :src_$it" }
+                            val tgtWhere = syncPkUpper.joinToString(" AND ") { "${ident(it, "column")} = :tgt_$it" }
                             val sql = "UPDATE $tgt SET ($colsList) = (SELECT $colsList FROM $src WHERE $srcWhere) WHERE $tgtWhere"
                             var stmt = handle.createUpdate(sql)
                             request.pkMap.forEach { (col, value) ->
@@ -876,7 +809,7 @@ class DatabaseService(
                         }
                     }
                     "INSERT" -> {
-                        val colsList = syncColumns.joinToString(", ")
+                        val colsList = syncColumns.joinToString(", ") { ident(it, "column") }
                         // WHERE clause selects from source — must use source column types for binding.
                         val sql = "INSERT INTO $tgt ($colsList) SELECT $colsList FROM $src WHERE $whereClause"
                         var stmt = handle.createUpdate(sql)

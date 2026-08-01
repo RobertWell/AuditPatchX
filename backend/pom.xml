@@ -20,8 +20,8 @@
              in-cluster service DNS (HEL-123 registry consumption). -->
         <rowrelay.repo.url>http://localhost:30153/api/v4/projects/5/packages/maven</rowrelay.repo.url>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
     </properties>
 
     <repositories>
@@ -196,7 +196,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <jvmTarget>17</jvmTarget>
+                    <jvmTarget>21</jvmTarget>
                     <compilerPlugins>
                         <plugin>all-open</plugin>
                     </compilerPlugins>
