@@ -34,17 +34,13 @@ backend-tests:
     paths:
       - .m2/repository
   before_script:
-    # HEL-123: RowRelay resolves from the LAN GitLab Maven registry
-    # (root/rowrelay, public => anonymous reads, no PAT) as a NORMAL Maven
-    # dependency — the from-source provisioning is retired. Job pods cannot
-    # resolve the edge hostname, so the URL is the in-cluster service DNS;
-    # ci_settings.xml disables Maven's default http blocker for this hop
-    # (accepted in-cluster tradeoff, documented there).
+    # HEL-189: RowRelay >=0.3.0 (com.pkgrove) resolves from PUBLIC Maven
+    # Central — no registry URL, no http-blocker exemption (ci_settings.xml
+    # now only re-asserts the standard full blocker).
     - cd backend
     - find $CI_PROJECT_DIR/.m2 -name "*.lastUpdated" -delete 2>/dev/null || true
   script:
     - mvn test -B -s $CI_PROJECT_DIR/ci_settings.xml
-        -Drowrelay.repo.url=http://gitlab.gitlab.svc.cluster.local/api/v4/projects/5/packages/maven
   artifacts:
     when: always
     reports:
@@ -100,10 +96,9 @@ build-image:
       done
   script:
     - docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_TOKEN"
-    # HEL-123: the in-image maven build resolves RowRelay from the in-cluster
-    # registry (dind build containers inherit the pod's DNS).
+    # HEL-189: the in-image maven build resolves RowRelay from public Maven
+    # Central — no build-arg, no in-cluster registry dependency.
     - docker build
-        --build-arg ROWRELAY_REPO_URL=http://gitlab.gitlab.svc.cluster.local/api/v4/projects/5/packages/maven
         -t $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA -t $DOCKER_IMAGE:latest .
     - docker push $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA
     - docker push $DOCKER_IMAGE:latest
