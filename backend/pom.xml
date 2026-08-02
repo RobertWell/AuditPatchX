@@ -133,6 +133,17 @@
             <version>3.25.1</version>
             <scope>test</scope>
         </dependency>
+        <!-- HEL-174: Quarkus-aware coverage. A raw jacoco agent under-reports
+             @QuarkusTest coverage (Quarkus runs augmented classes in its own
+             classloader, so the agent can't attribute them — DatabaseService
+             read as 0/424 despite being driven by the component tests). The
+             quarkus-jacoco extension instruments inside that classloader and
+             emits a standard jacoco report. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-jacoco</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <!-- HEL-120/HEL-123 pilot: RowRelay consumed as PUBLISHED artifacts
              (pre-stable). Replaces the local dynamic row-reading /
