@@ -158,6 +158,15 @@ class DatabaseService(
         }
     }
 
+    // --- Write path × RowRelay boundary (HEL-162) --------------------------------
+    // The write helpers below stay app-shape on purpose: they start from browser
+    // input (String value + Oracle DATA_TYPE name), which RowRelay's Column-typed
+    // writer cannot consume, and reviewCompareRow uses correlated same-DB server-side
+    // copies that a RowRelay round-trip would regress (fidelity/memory/semantics).
+    // Identifiers, the read path, and compare planning already delegate to RowRelay.
+    // Full rationale + audit answers: docs/hel-162-write-path-rowrelay-audit.md
+    // -----------------------------------------------------------------------------
+
     /**
      * Update row by primary key
      */
