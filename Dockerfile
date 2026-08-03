@@ -5,7 +5,7 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build
 
-# HEL-189: RowRelay >=0.3.0 (com.pkgrove) resolves from PUBLIC Maven Central —
+# HEL-189: PkgroveKit >=0.3.0 (com.pkgrove) resolves from PUBLIC Maven Central —
 # no registry URL, no build-arg, no http-blocker exemption. ci_settings.xml now
 # only re-asserts the standard full http blocker.
 COPY ci_settings.xml /build/ci_settings.xml

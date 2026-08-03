@@ -1,7 +1,7 @@
 package com.auditpatchx.service
 
-import io.maxxga.rowrelay.core.Choice
-import io.maxxga.rowrelay.core.fold
+import com.pkgrove.pkgrovekit.core.Choice
+import com.pkgrove.pkgrovekit.core.fold
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
- * HEL-162 / RowRelay-style proof: the ENTIRE compare policy is pure and runs
+ * HEL-162 / PkgroveKit-style proof: the ENTIRE compare policy is pure and runs
  * here with no Oracle, no Quarkus, no container — plain data in, routed
  * Choice out. (Before the migration this logic lived inline inside
  * `jdbi.inTransaction { ... }` and could only be exercised through the live

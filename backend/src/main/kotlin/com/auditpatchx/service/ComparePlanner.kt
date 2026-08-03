@@ -2,10 +2,10 @@ package com.auditpatchx.service
 
 import com.auditpatchx.model.CompareJobChange
 import com.auditpatchx.model.CompareJobDiffRow
-import io.maxxga.rowrelay.core.Choice
+import com.pkgrove.pkgrovekit.core.Choice
 
 /**
- * HEL-162 / RowRelay adoption: the PURE half of the table-compare feature.
+ * HEL-162 / PkgroveKit adoption: the PURE half of the table-compare feature.
  *
  * Everything here is deterministic data-in/data-out — no connections, no
  * handles, no logging, no clock — so the whole diff policy (including the
@@ -13,7 +13,7 @@ import io.maxxga.rowrelay.core.Choice
  * `DatabaseService.compareTables` keeps only the I/O: read source rows, look
  * up each target row, and fold the routed results.
  *
- * Business routing uses RowRelay's `Choice` (workflow-style rule: a business
+ * Business routing uses PkgroveKit's `Choice` (workflow-style rule: a business
  * Left/Right is a VALID path, never an execution failure):
  *
  *   Left  = the target row is MISSING            -> an INSERT diff

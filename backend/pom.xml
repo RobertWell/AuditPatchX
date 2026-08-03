@@ -13,11 +13,13 @@
         <quarkus.version>3.6.4</quarkus.version>
         <jdbi.version>3.42.0</jdbi.version>
         <testcontainers.version>1.21.4</testcontainers.version>
-        <!-- HEL-189: RowRelay >=0.3.0 resolves from PUBLIC Maven Central under
-             the verified namespace com.pkgrove — no custom repository, no
-             registry URL plumbing, no token. Java packages are unchanged
-             (io.maxxga.rowrelay.*); only the Maven coordinates moved. -->
-        <rowrelay.version>0.3.0</rowrelay.version>
+        <!-- HEL-189: resolves from PUBLIC Maven Central under the verified
+             namespace com.pkgrove — no custom repository, no registry URL
+             plumbing, no token. 0.4.0 = the RowRelay->PkgroveKit rename
+             ("rowrelay" is registered by another party): artifactIds
+             rowrelay-* -> pkgrovekit-* AND Java packages io.maxxga.rowrelay.*
+             -> com.pkgrove.pkgrovekit.* (one mechanical import rewrite). -->
+        <pkgrovekit.version>0.4.0</pkgrovekit.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
@@ -145,18 +147,18 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- HEL-120/HEL-123 pilot: RowRelay consumed as PUBLISHED artifacts
+        <!-- HEL-120/HEL-123 pilot: PkgroveKit consumed as PUBLISHED artifacts
              (pre-stable). Replaces the local dynamic row-reading /
              oracle.sql normalization duplication in DatabaseService. -->
         <dependency>
             <groupId>com.pkgrove</groupId>
-            <artifactId>rowrelay-jdbi</artifactId>
-            <version>${rowrelay.version}</version>
+            <artifactId>pkgrovekit-jdbi</artifactId>
+            <version>${pkgrovekit.version}</version>
         </dependency>
         <dependency>
             <groupId>com.pkgrove</groupId>
-            <artifactId>rowrelay-oracle</artifactId>
-            <version>${rowrelay.version}</version>
+            <artifactId>pkgrovekit-oracle</artifactId>
+            <version>${pkgrovekit.version}</version>
         </dependency>
     </dependencies>
 

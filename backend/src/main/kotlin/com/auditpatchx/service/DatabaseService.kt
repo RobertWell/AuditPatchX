@@ -3,11 +3,11 @@ package com.auditpatchx.service
 import com.auditpatchx.model.*
 import com.auditpatchx.config.UiFeatureConfig
 import com.auditpatchx.config.SyncTableConfig
-import io.maxxga.rowrelay.core.Row
-import io.maxxga.rowrelay.core.fold
-import io.maxxga.rowrelay.jdbi.JdbiReader
-import io.maxxga.rowrelay.oracle.OracleDialect
-import io.maxxga.rowrelay.oracle.OracleValueReader
+import com.pkgrove.pkgrovekit.core.Row
+import com.pkgrove.pkgrovekit.core.fold
+import com.pkgrove.pkgrovekit.jdbi.JdbiReader
+import com.pkgrove.pkgrovekit.oracle.OracleDialect
+import com.pkgrove.pkgrovekit.oracle.OracleValueReader
 import jakarta.enterprise.context.ApplicationScoped
 import org.jdbi.v3.core.Handle
 import org.jdbi.v3.core.Jdbi
@@ -28,11 +28,11 @@ class DatabaseService(
     private val jdbi: Jdbi = Jdbi.create(dataSource).installPlugin(KotlinPlugin())
 
     // HEL-120/HEL-123 pilot: dynamic row reading + oracle.sql/CLOB normalization now
-    // comes from RowRelay (the library extracted FROM this class); the app keeps
+    // comes from PkgroveKit (the library extracted FROM this class); the app keeps
     // only its browser-facing shape (uppercase keys + ISO temporal strings).
     private val readOptions = JdbiReader.ReadOptions(valueReader = OracleValueReader())
 
-    // HEL-162: identifier composition is owned by the RowRelay Oracle dialect —
+    // HEL-162: identifier composition is owned by the PkgroveKit Oracle dialect —
     // validate, uppercase-fold, quote. Every runtime-discovered name that reaches
     // SQL text goes through here; raw `${x.uppercase()}` interpolation is retired.
     // (Values are still bound as named parameters, never interpolated.)
@@ -45,7 +45,7 @@ class DatabaseService(
     private fun readRows(handle: Handle, sql: String, named: Map<String, Any?>): List<Map<String, Any?>> =
         JdbiReader.readAll(handle, sql, named, readOptions).rows.map { jsonRow(it) }
 
-    /** RowRelay Row -> the exact response shape of the old normalizeRowValues
+    /** PkgroveKit Row -> the exact response shape of the old normalizeRowValues
      *  pipeline: uppercase keys, temporals as ISO strings, LOBs materialized. */
     private fun jsonRow(row: Row): Map<String, Any?> =
         row.asMap().entries.associate { (key, value) ->
@@ -158,13 +158,13 @@ class DatabaseService(
         }
     }
 
-    // --- Write path × RowRelay boundary (HEL-162) --------------------------------
+    // --- Write path × PkgroveKit boundary (HEL-162) --------------------------------
     // The write helpers below stay app-shape on purpose: they start from browser
-    // input (String value + Oracle DATA_TYPE name), which RowRelay's Column-typed
+    // input (String value + Oracle DATA_TYPE name), which PkgroveKit's Column-typed
     // writer cannot consume, and reviewCompareRow uses correlated same-DB server-side
-    // copies that a RowRelay round-trip would regress (fidelity/memory/semantics).
-    // Identifiers, the read path, and compare planning already delegate to RowRelay.
-    // Full rationale + audit answers: docs/hel-162-write-path-rowrelay-audit.md
+    // copies that a PkgroveKit round-trip would regress (fidelity/memory/semantics).
+    // Identifiers, the read path, and compare planning already delegate to PkgroveKit.
+    // Full rationale + audit answers: docs/hel-162-write-path-pkgrovekit-audit.md
     // -----------------------------------------------------------------------------
 
     /**
@@ -318,7 +318,7 @@ class DatabaseService(
             securityService.validateColumns(columns1, activeFilter.keys)
         }
 
-        // RowRelay-style split (HEL-162): this block is ONLY I/O — read the
+        // PkgroveKit-style split (HEL-162): this block is ONLY I/O — read the
         // bounded source set, look up each target row, and fold the pure
         // ComparePlanner's Choice routing (Left = INSERT diff, Right = UPDATE
         // diff or null). All diff POLICY lives in ComparePlanner, unit-tested
@@ -619,7 +619,7 @@ class DatabaseService(
     }
 
     // HEL-27 CLOB comparison rule + row-diff policy moved to the pure
-    // ComparePlanner (HEL-162 RowRelay adoption) — unit-tested without Oracle.
+    // ComparePlanner (HEL-162 PkgroveKit adoption) — unit-tested without Oracle.
 
     private fun isClobColumn(columnType: String?): Boolean {
         return columnType?.equals("CLOB", ignoreCase = true) == true
@@ -688,7 +688,7 @@ class DatabaseService(
     }
 
     // normalizeRowValues / normalizeValueForJson / readClobValue removed —
-    // RowRelay's OracleValueReader + jsonRow now own that behavior (HEL-120/HEL-123).
+    // PkgroveKit's OracleValueReader + jsonRow now own that behavior (HEL-120/HEL-123).
 
     private data class ParsedTemporal(
         val offsetDateTime: java.time.OffsetDateTime,

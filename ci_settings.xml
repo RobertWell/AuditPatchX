@@ -1,6 +1,6 @@
 <!-- Maven settings for GitLab CI and the Docker image build.
 
-     HEL-189: RowRelay >=0.3.0 (com.pkgrove) resolves from PUBLIC Maven Central
+     HEL-189: PkgroveKit >=0.3.0 (com.pkgrove) resolves from PUBLIC Maven Central
      over https, so the in-cluster plain-http registry hop — and its blocker
      exemption — is retired. This file now only re-asserts Maven's standard
      full http blocker: every external plaintext-http repository is blocked,

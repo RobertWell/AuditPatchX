@@ -34,7 +34,7 @@ backend-tests:
     paths:
       - .m2/repository
   before_script:
-    # HEL-189: RowRelay >=0.3.0 (com.pkgrove) resolves from PUBLIC Maven
+    # HEL-189: PkgroveKit >=0.3.0 (com.pkgrove) resolves from PUBLIC Maven
     # Central — no registry URL, no http-blocker exemption (ci_settings.xml
     # now only re-asserts the standard full blocker).
     - cd backend
@@ -100,7 +100,7 @@ build-image:
       done
   script:
     - docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_TOKEN"
-    # HEL-189: the in-image maven build resolves RowRelay from public Maven
+    # HEL-189: the in-image maven build resolves PkgroveKit from public Maven
     # Central — no build-arg, no in-cluster registry dependency.
     - docker build
         -t $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA -t $DOCKER_IMAGE:latest .
