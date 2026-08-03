@@ -64,11 +64,15 @@ frontend-tests:
     - cd frontend
     - npm ci
   script:
-    - npx vitest run
+    # HEL-179: run the suite WITH coverage so the gate is CI-enforced, not local.
+    - npm run test:coverage
     - npm run build
+  coverage: '/Lines\s*:\s*([\d.]+)%/'
   artifacts:
     paths:
       - backend/src/main/resources/META-INF/resources/
+      - frontend/coverage/coverage-summary.json
+      - frontend/coverage/lcov.info
     expire_in: 1 day
   timeout: 10 minutes
 
