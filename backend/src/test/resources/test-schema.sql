@@ -377,3 +377,58 @@ INSERT INTO TESTUSER.NUMPK_SOURCE VALUES (4, 100.5, 'trimmed source label');
 INSERT INTO TESTUSER.NUMPK_TARGET VALUES (4, 100.5, 'trimmed old label');
 
 COMMIT;
+
+-- ============================================================
+-- HEL-130 lifecycle tables (PkgroveKitLifecycleTest)
+-- Prove pool ownership / transaction atomicity / cancellation /
+-- connection cleanup for the service's adopted PkgroveKit path.
+--
+-- LIFECYCLE_TARGET carries a DEFERRABLE INITIALLY DEFERRED check
+-- constraint: a write of AMOUNT < 0 succeeds at statement time and
+-- only fails at COMMIT (ORA-02091/ORA-02290). That gives a genuine
+-- "write applied, then mid-operation failure" window to prove the
+-- service transaction rolls back with nothing half-applied.
+-- Rows are dedicated per test — do not reuse across tests.
+-- ============================================================
+CREATE TABLE TESTUSER.LIFECYCLE_SOURCE (
+    ID     NUMBER(10) PRIMARY KEY,
+    AMOUNT NUMBER(10),
+    NOTE   VARCHAR2(100)
+);
+
+CREATE TABLE TESTUSER.LIFECYCLE_TARGET (
+    ID     NUMBER(10) PRIMARY KEY,
+    AMOUNT NUMBER(10),
+    NOTE   VARCHAR2(100),
+    CONSTRAINT ck_lifecycle_tgt_amount CHECK (AMOUNT >= 0) DEFERRABLE INITIALLY DEFERRED
+);
+
+-- Row 1: UPDATE approval commit test (source values are valid)
+INSERT INTO TESTUSER.LIFECYCLE_SOURCE VALUES (1, 10, 'source-one');
+INSERT INTO TESTUSER.LIFECYCLE_TARGET VALUES (1, 0, 'target-old');
+
+-- Row 2: UPDATE approval rollback test (source AMOUNT violates the
+-- deferred target constraint -> statement succeeds, commit fails)
+INSERT INTO TESTUSER.LIFECYCLE_SOURCE VALUES (2, -5, 'negative update source');
+INSERT INTO TESTUSER.LIFECYCLE_TARGET VALUES (2, 3, 'target-two');
+
+-- Row 3: INSERT approval rollback test (source only, negative amount)
+INSERT INTO TESTUSER.LIFECYCLE_SOURCE VALUES (3, -7, 'negative insert source');
+
+-- Row 4: INSERT approval success after repeated failures (cleanup test)
+INSERT INTO TESTUSER.LIFECYCLE_SOURCE VALUES (4, 40, 'insert-me');
+
+-- Row 5: cancellation test (target row gets locked, in-flight approve killed)
+INSERT INTO TESTUSER.LIFECYCLE_SOURCE VALUES (5, 50, 'cancel-src');
+INSERT INTO TESTUSER.LIFECYCLE_TARGET VALUES (5, 5, 'cancel-old');
+
+-- Row 6: service patch-path rollback test (target only)
+INSERT INTO TESTUSER.LIFECYCLE_TARGET VALUES (6, 60, 'patch-rollback');
+
+-- Row 8: service patch-path commit test (target only)
+INSERT INTO TESTUSER.LIFECYCLE_TARGET VALUES (8, 80, 'patch-commit');
+
+-- Row 9: pool-ownership battery write (target only)
+INSERT INTO TESTUSER.LIFECYCLE_TARGET VALUES (9, 90, 'ownership');
+
+COMMIT;

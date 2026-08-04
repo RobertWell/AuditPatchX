@@ -3,6 +3,9 @@ quarkus:
     db-kind: oracle
     jdbc:
       url: ${DB_URL:jdbc:oracle:thin:@localhost:1521:XEPDB1}
+      # HEL-130: expose Agroal pool metrics (activeCount etc.) so the
+      # lifecycle tests can assert leases return to 0 after service ops.
+      enable-metrics: true
     username: ${DB_USER:test}
     password: ${DB_PASSWORD:test}
   http:
@@ -99,6 +102,14 @@ allowlist:
       pk-columns:
         - REGION_ID
         - PRICE_SCALE
+    - schema: TESTUSER
+      table: LIFECYCLE_SOURCE
+      pk-columns:
+        - ID
+    - schema: TESTUSER
+      table: LIFECYCLE_TARGET
+      pk-columns:
+        - ID
 
 # sync-tables.pairs is intentionally absent from this YAML.
 # SRCFG00050 fires when YAML list entries can't be matched to a ConfigMapping
