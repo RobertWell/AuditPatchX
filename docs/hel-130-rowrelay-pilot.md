@@ -95,5 +95,3 @@ path replaced ✅; JDBC/JDBI/adapter isolation ✅; existing + new parity tests 
 HEL-128/129); duplicated implementation removed after cutover ✅ (22→3 refs,
 −112 lines); fewer lines/concepts documented ✅ (this file); pilot feedback in the
 public API ✅ (HEL-125/160/162/224); rollback documented + tested ✅.
-
-<!-- HEL-130 rollback-rehearsal marker: forward change 2026-08-04 (this exact line is reverted by the rehearsal) -->
