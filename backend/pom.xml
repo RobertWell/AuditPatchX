@@ -9,8 +9,11 @@
     <version>1.0.0-SNAPSHOT</version>
 
     <properties>
-        <kotlin.version>1.9.22</kotlin.version>
-        <quarkus.version>3.6.4</quarkus.version>
+        <!-- HEL-227: must track the platform BOM (quarkus 3.38.1 manages
+             kotlin-stdlib 2.4.0); a stdlib newer than the compiler fails with
+             'compiled with an incompatible version of Kotlin' on every file. -->
+        <kotlin.version>2.4.0</kotlin.version>
+        <quarkus.version>3.38.1</quarkus.version>
         <jdbi.version>3.42.0</jdbi.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <!-- HEL-189: resolves from PUBLIC Maven Central under the verified
@@ -43,9 +46,13 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-kotlin</artifactId>
         </dependency>
+        <!-- HEL-227: quarkus-resteasy-reactive-jackson was renamed to
+             quarkus-rest-jackson in Quarkus 3.9 and no longer published as of
+             3.38.1. Pure coordinate swap — the resources only use jakarta.ws.rs,
+             no org.jboss.resteasy.reactive types. -->
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-resteasy-reactive-jackson</artifactId>
+            <artifactId>quarkus-rest-jackson</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
