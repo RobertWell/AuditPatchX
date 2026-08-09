@@ -323,6 +323,23 @@ class DatabaseService(
         // ComparePlanner's Choice routing (Left = INSERT diff, Right = UPDATE
         // diff or null). All diff POLICY lives in ComparePlanner, unit-tested
         // without a database.
+        //
+        // HEL-238 (§5 streaming/bounded): the source read is the largest read
+        // on this path (up to `limit` full rows). It is now STREAMED through
+        // PkgroveKit's `JdbiReader.read` / `JdbiRowStream` instead of the old
+        // `readAll(...).rows.map(...)`, so the whole source set is never
+        // materialized — memory is bounded by one row + the accumulated diffs.
+        // Output is byte-for-byte identical (same SQL, same per-row target
+        // lookup, same ComparePlanner routing, same scan count) — proven by the
+        // live-Oracle compare suite (CompareReviewServiceTest / TableResourceTest).
+        //
+        // HEL-238 (§4 N+1) is deliberately NOT addressed here: eliminating the
+        // per-source-row target lookup requires a *reusable* batched-key /
+        // ordered-merge mechanic that PkgroveKit should own, and the published
+        // library (0.4.0/0.5.0) does not yet expose one. Hand-rolling batching
+        // in this app would move generic execution mechanics back into
+        // AuditPatchX — the opposite of HEL-238's boundary. Tracked as a
+        // PkgroveKit-side follow-up (see docs/hel-238-pkgrovekit-dynamic-ops.md).
         return jdbi.inTransaction<CompareJobResponse, Exception> { handle ->
             val filterClause = if (activeFilter.isEmpty()) ""
                 else " WHERE " + activeFilter.keys.joinToString(" AND ") { "${ident(it, "column")} = :filter_$it" }
@@ -335,7 +352,6 @@ class DatabaseService(
             val filterNamed = activeFilter.entries.associate { (col, value) ->
                 "filter_$col" to convertValueForBinding(value, columnTypeMap1[col])
             }
-            val sourceRows = readRows(handle, sql1, filterNamed)
 
             val targetWhere = request.syncPk.joinToString(" AND ") { "${ident(it, "column")} = :$it" }
             val sql2 = """
@@ -343,25 +359,34 @@ class DatabaseService(
                 WHERE $targetWhere
             """.trimIndent()
 
-            val differences = sourceRows.mapNotNull { sourceRow ->
-                val pkValues = ComparePlanner.pkValuesOrNull(sourceRow, request.syncPk)
-                    ?: return@mapNotNull null                    // pinned: skip rows missing PKs
-                val pkNamed = request.syncPk.associateWith { pkCol ->
-                    convertValueForBinding(pkValues[pkCol], columnTypeMap2[pkCol.uppercase()])
-                }
-                val targetRow = readRows(handle, sql2, pkNamed).firstOrNull()
+            val differences = mutableListOf<CompareJobDiffRow>()
+            var scannedRows = 0
+            JdbiReader.read(handle, sql1, filterNamed, readOptions) { stream ->
+                for (rawRow in stream) {
+                    scannedRows++
+                    val sourceRow = jsonRow(rawRow)
+                    val pkValues = ComparePlanner.pkValuesOrNull(sourceRow, request.syncPk)
+                        ?: continue                              // pinned: skip rows missing PKs
+                    val pkNamed = request.syncPk.associateWith { pkCol ->
+                        convertValueForBinding(pkValues[pkCol], columnTypeMap2[pkCol.uppercase()])
+                    }
+                    val targetRow = readRows(handle, sql2, pkNamed).firstOrNull()
 
-                ComparePlanner.diffRow(
-                    sourceRow, targetRow, request.syncPk,
-                    ignoreColumns = request.ignoreColumns.toSet(),
-                    typeOf = { col -> columnTypeMap1[col] ?: columnTypeMap2[col] },
-                ).fold(onLeft = { it }, onRight = { it })
+                    ComparePlanner.diffRow(
+                        sourceRow, targetRow, request.syncPk,
+                        ignoreColumns = request.ignoreColumns.toSet(),
+                        typeOf = { col -> columnTypeMap1[col] ?: columnTypeMap2[col] },
+                    ).fold(
+                        onLeft = { differences += it },
+                        onRight = { if (it != null) differences += it },
+                    )
+                }
             }
 
             CompareJobResponse(
                 differences = differences,
-                scannedRows = sourceRows.size,
-                limitReached = sourceRows.size >= limit
+                scannedRows = scannedRows,
+                limitReached = scannedRows >= limit
             )
         }
     }

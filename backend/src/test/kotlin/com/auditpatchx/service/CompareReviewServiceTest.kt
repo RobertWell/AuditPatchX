@@ -1021,4 +1021,47 @@ class CompareReviewServiceTest {
             assertThat(tgtAfter["LABEL"]).isEqualTo(tgtBefore["LABEL"])
         }
     }
+
+    /**
+     * HEL-238 §5 (streaming / bounded): compareTables now reads the source set
+     * through PkgroveKit's streaming `JdbiReader.read` / `JdbiRowStream` instead
+     * of materializing it with `readAll(...).rows.map(...)`. These tests lock the
+     * scan-accounting parity of that refactor — `scannedRows` / `limitReached`
+     * are computed from the stream cursor now, and must still match the old
+     * list-size semantics exactly. (Row content / diff parity is covered by the
+     * INSERT / UPDATE / ignored-column / CLOB matrices above.)
+     */
+    @Nested
+    @DisplayName("HEL-238 streaming/bounded compare — scan accounting parity")
+    inner class StreamingBoundedCompareTests {
+
+        private fun compare(limit: Int) = databaseService.compareTables(
+            CompareJobRequest(
+                tableOne = "TESTUSER.COMPARE_SOURCE",
+                tableTwo = "TESTUSER.COMPARE_TARGET",
+                syncPk = listOf("ID"),
+                ignoreColumns = emptyList(),
+                limit = limit
+            )
+        )
+
+        @Test
+        @DisplayName("streams every source row when under the limit — scannedRows counts all, limitReached false")
+        fun testStreamsAllSourceRowsUnderLimit() {
+            // COMPARE_SOURCE seeds 9 rows (IDs 1..9); a limit above that scans them all.
+            val result = compare(limit = 100)
+
+            assertThat(result.scannedRows).isEqualTo(9)
+            assertThat(result.limitReached).isFalse()
+        }
+
+        @Test
+        @DisplayName("bounds the streamed scan at the limit — scannedRows == limit, limitReached true")
+        fun testBoundsStreamedScanAtLimit() {
+            val result = compare(limit = 2)
+
+            assertThat(result.scannedRows).isEqualTo(2)
+            assertThat(result.limitReached).isTrue()
+        }
+    }
 }

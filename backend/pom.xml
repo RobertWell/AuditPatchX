@@ -161,6 +161,20 @@
             <groupId>com.pkgrove</groupId>
             <artifactId>pkgrovekit-jdbi</artifactId>
             <version>${pkgrovekit.version}</version>
+            <!-- HEL-238 dependency isolation: pkgrovekit-jdbi pulls in
+                 pkgrovekit-transfer for its JdbiTransfer type, but AuditPatchX
+                 only uses JdbiReader (streaming/materialized reads). The DB-to-DB
+                 transfer engine is an unrelated adapter here (the compare/approve
+                 path uses same-database server-side SQL, never the transfer
+                 engine — see hel-162 audit), so it must not leak onto the runtime
+                 classpath. JdbiTransfer is never referenced/loaded, so the
+                 exclusion is runtime-safe. -->
+            <exclusions>
+                <exclusion>
+                    <groupId>com.pkgrove</groupId>
+                    <artifactId>pkgrovekit-transfer</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.pkgrove</groupId>
