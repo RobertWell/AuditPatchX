@@ -4,7 +4,6 @@ import com.auditpatchx.config.AllowlistService
 import jakarta.enterprise.context.ApplicationScoped
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 import javax.sql.DataSource
 
 @ApplicationScoped
@@ -14,24 +13,27 @@ class SecurityValidationService(
 ) {
     private val logger = LoggerFactory.getLogger(SecurityValidationService::class.java)
 
-    companion object {
-        // HEL-304: bound cache staleness. Schema changes are rare, so 10 minutes
-        // keeps DatabaseMetaData traffic negligible while ensuring a schema
-        // change is picked up without a restart (the cache was previously never
-        // invalidated outside tests).
-        internal val CACHE_TTL_MILLIS = TimeUnit.MINUTES.toMillis(10)
-    }
-
-    // HEL-304: this @ApplicationScoped singleton is mutated concurrently on the
-    // request hot path — a plain HashMap risks lost updates and table
-    // corruption under parallel first-touch. Entries carry a fetch timestamp
-    // and are re-fetched after CACHE_TTL_MILLIS.
-    // Cache for column metadata: "SCHEMA.TABLE" -> CachedColumns
-    private val columnMetadataCache = ConcurrentHashMap<String, CachedColumns>()
-
-    // Time source in millis; overridable so unit tests can age cache entries
-    // deterministically instead of sleeping through the TTL.
-    internal var timeSource: () -> Long = System::currentTimeMillis
+    // HEL-304: this @ApplicationScoped singleton is read and written concurrently
+    // on the compare/patch validation hot path. A plain HashMap can lose updates,
+    // duplicate work, or publish a half-built table under parallel first-touch —
+    // on a SECURITY lookup, which decides which columns a caller may touch.
+    //
+    // NO TTL. An earlier revision added a 10-minute expiry, but the DoD says not
+    // to add TTL complexity without evidence that runtime schema changes must be
+    // observed automatically, and no such evidence was produced. A timer that
+    // exists "just in case" is not free: it adds a clock dependency, an eviction
+    // race between the read and the re-fetch, and a test seam (`timeSource`) that
+    // only exists to serve the timer.
+    //
+    // CACHE-REFRESH BOUNDARY: restart / redeploy. Schema changes here arrive by
+    // migration, which is a deploy — so the cache is refreshed by the same event
+    // that changes the schema. `clearCache()` remains for tests and for an
+    // explicit operational flush. If runtime schema mutation ever becomes a
+    // supported production workflow, that needs a bounded invalidation task with
+    // its own contract, not a background timer bolted on here.
+    //
+    // Cache for column metadata: "SCHEMA.TABLE" -> immutable column set
+    private val columnMetadataCache = ConcurrentHashMap<String, Set<String>>()
 
     /**
      * Validates table access and returns allowed columns from database metadata
@@ -46,7 +48,7 @@ class SecurityValidationService(
 
         val key = "$schema.$table".uppercase()
 
-        // Return cached metadata if available and not expired
+        // Return cached metadata if present (refreshed on restart/redeploy)
         cachedColumns(key)?.let { return it }
 
         // Step 2: Fetch column metadata from database
@@ -60,43 +62,24 @@ class SecurityValidationService(
         return cacheAndGet(key, columns)
     }
 
-    /**
-     * Returns a live cached entry, evicting it first if past TTL.
-     */
-    private fun cachedColumns(key: String): Set<String>? {
-        val entry = columnMetadataCache[key] ?: return null
-        if (isExpired(entry)) {
-            // Two-arg remove: evict only THIS stale entry, never a fresh one a
-            // concurrent thread may have installed in the meantime.
-            columnMetadataCache.remove(key, entry)
-            return null
-        }
-        return entry.columns
-    }
+    private fun cachedColumns(key: String): Set<String>? = columnMetadataCache[key]
 
     /**
-     * Publishes freshly fetched columns. The DB fetch deliberately happens
-     * BEFORE this call — computeIfAbsent would hold a ConcurrentHashMap bin
-     * lock across the DB round-trip, blocking unrelated requests. Instead,
-     * racing first-touch threads may each fetch once, then converge on the
-     * single entry that won putIfAbsent.
+     * Publishes freshly fetched columns and returns the ONE value every racer
+     * agrees on.
+     *
+     * The DB fetch deliberately happens BEFORE this call. `computeIfAbsent` would
+     * be the obvious primitive, but it holds a ConcurrentHashMap bin lock for the
+     * duration of the mapping function — here a `DatabaseMetaData` round-trip —
+     * stalling unrelated keys that hash to the same bin, and deadlocking outright
+     * if the fetch ever re-entered the same map. So: fetch outside, then
+     * `putIfAbsent`, which is atomic and equally guarantees a single published
+     * value. Racing first-touch threads may each fetch once (idempotent,
+     * read-only), then converge on the winner's entry and return it — so two
+     * callers can never see two different column sets for one table.
      */
-    private fun cacheAndGet(key: String, columns: Set<String>): Set<String> {
-        val fresh = CachedColumns(columns, timeSource())
-        val existing = columnMetadataCache.putIfAbsent(key, fresh)
-        if (existing == null) return columns
-        if (!isExpired(existing)) return existing.columns
-        // The existing entry expired between our cache miss and our fetch:
-        // replace it with the fresh result (both racers hold fresh data, so
-        // last-writer-wins is safe).
-        columnMetadataCache[key] = fresh
-        return columns
-    }
-
-    private fun isExpired(entry: CachedColumns): Boolean =
-        timeSource() - entry.fetchedAtMillis >= CACHE_TTL_MILLIS
-
-    private data class CachedColumns(val columns: Set<String>, val fetchedAtMillis: Long)
+    private fun cacheAndGet(key: String, columns: Set<String>): Set<String> =
+        columnMetadataCache.putIfAbsent(key, columns) ?: columns
 
     /**
      * Validates column names against allowed columns

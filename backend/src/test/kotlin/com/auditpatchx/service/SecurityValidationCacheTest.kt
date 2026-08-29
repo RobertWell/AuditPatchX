@@ -17,7 +17,6 @@ import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicLong
 import javax.sql.DataSource
 
 /**
@@ -27,7 +26,7 @@ import javax.sql.DataSource
  * convention is hand-rolled test doubles, no mocking library) and verify the
  * TTL-bounded expiry via the injectable time source.
  */
-@DisplayName("SecurityValidationService cache concurrency and TTL (HEL-304)")
+@DisplayName("SecurityValidationService cache concurrency (HEL-304)")
 class SecurityValidationCacheTest {
 
     private val columnNames = listOf("EMP_ID", "FIRST_NAME", "LAST_NAME", "SALARY")
@@ -74,29 +73,27 @@ class SecurityValidationCacheTest {
     }
 
     @Test
-    @DisplayName("Cached entries are served within TTL and re-fetched after it")
-    fun testTtlExpiryTriggersRefetch() {
+    @DisplayName("An entry stays cached indefinitely — restart/redeploy is the refresh boundary")
+    fun testEntriesArePermanentUntilCleared() {
+        // HEL-304 replaced a 10-minute TTL with no TTL at all. The DoD forbids TTL
+        // complexity absent evidence that runtime schema changes must be observed
+        // automatically, and none was produced: schema changes arrive by migration,
+        // which is a deploy, and a deploy restarts the process. So the guarantee to
+        // pin is that repeated lookups NEVER re-fetch — no clock, no expiry window,
+        // nothing that can quietly re-hit DatabaseMetaData on the security path.
         val fetchCount = AtomicInteger(0)
         val service = newService(fetchCount)
-        val now = AtomicLong(0L)
-        service.timeSource = { now.get() }
 
         service.validateAndGetColumns("TESTUSER", "EMPLOYEE")
         assertThat(fetchCount.get()).isEqualTo(1)
 
-        // Just inside the TTL: cache serves, no new fetch.
-        now.set(SecurityValidationService.CACHE_TTL_MILLIS - 1)
-        service.validateAndGetColumns("TESTUSER", "EMPLOYEE")
+        repeat(50) { service.validateAndGetColumns("TESTUSER", "EMPLOYEE") }
         assertThat(fetchCount.get()).isEqualTo(1)
 
-        // TTL reached: the stale entry is evicted and re-fetched.
-        now.set(SecurityValidationService.CACHE_TTL_MILLIS)
-        service.validateAndGetColumns("TESTUSER", "EMPLOYEE")
-        assertThat(fetchCount.get()).isEqualTo(2)
-
-        // The refreshed entry serves again from cache.
-        service.validateAndGetColumns("TESTUSER", "EMPLOYEE")
-        assertThat(fetchCount.get()).isEqualTo(2)
+        // ...and the value served is still correct, not just cheap.
+        assertThat(service.validateAndGetColumns("TESTUSER", "EMPLOYEE"))
+            .containsExactlyInAnyOrderElementsOf(columnNames)
+        assertThat(fetchCount.get()).isEqualTo(1)
     }
 
     @Test
