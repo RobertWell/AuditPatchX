@@ -1,4 +1,19 @@
 ---
+# VaultConnection: WHERE Vault is. HEL-473 — this object was missing for 87 days, so the VaultAuth
+# below (which references it by the name `default`) could never resolve, and the operator logged
+# `VaultConnection "default" not found` roughly 14 times a minute while this app's Secret was in
+# fact hand-created and never synced from Vault at all. Verified safe to enable on 2026-09-08:
+# secret/auditpatchx holds exactly db-url / db-user / db-password and all three values hash
+# identically to the live Secret, so the sync (destination.overwrite: true) is a no-op on content.
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  name: default
+  namespace: auditpatchx
+spec:
+  address: http://vault.vault:8200
+  skipTLSVerify: false
+---
 # VaultAuth: tells the Vault Secrets Operator how to authenticate
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultAuth
