@@ -11,6 +11,13 @@ metadata:
   name: default
   namespace: auditpatchx
 spec:
+  # http, not https, and that is not an oversight — see HEL-474. Vault's own listener is
+  # `tls_disable = 1` on BOTH clusters, so there is no TLS endpoint to address; 8201 is the HA
+  # cluster port, not a client API. Pointing this at https:// would fail to connect, not harden
+  # anything. All seven VaultConnections in the estate share this address, the oldest from
+  # 2026-01-14. The real fix is giving Vault a serving certificate and flipping every connection
+  # together, which is tracked in HEL-474. skipTLSVerify stays false so that when TLS does arrive,
+  # a bad certificate fails closed instead of silently downgrading.
   address: http://vault.vault:8200
   skipTLSVerify: false
 ---
