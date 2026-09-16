@@ -11,14 +11,19 @@ metadata:
   name: default
   namespace: auditpatchx
 spec:
-  # http, not https, and that is not an oversight — see HEL-474. Vault's own listener is
-  # `tls_disable = 1` on BOTH clusters, so there is no TLS endpoint to address; 8201 is the HA
-  # cluster port, not a client API. Pointing this at https:// would fail to connect, not harden
-  # anything. All seven VaultConnections in the estate share this address, the oldest from
-  # 2026-01-14. The real fix is giving Vault a serving certificate and flipping every connection
-  # together, which is tracked in HEL-474. skipTLSVerify stays false so that when TLS does arrive,
-  # a bad certificate fails closed instead of silently downgrading.
-  address: http://vault.vault:8200
+  # HTTPS since 2026-09-12. Vault used to run `tls_disable = 1` on both clusters, which is why this
+  # said http:// when it was written; HEL-474 (prod) and HEL-502 (LAN) gave Vault a serving
+  # certificate on 8300 behind the Service `vault-tls`, and plaintext 8200 is now bound to loopback —
+  # so the old address no longer connects at all. The CA is a per-namespace Secret (Secrets are
+  # namespace-local, so `vault-ca` has to exist in EVERY consuming namespace) holding the public
+  # cert only. skipTLSVerify stays false: a bad certificate must fail closed.
+  #
+  # THE LIVE OBJECT IS OWNED BY ARGOCD, NOT BY THIS FILE — application `vault-clients` in hello-sre
+  # (`hello-vault/apps/vault-clients/manifests/auditpatchx-vaultconnection-default.yaml`) syncs it
+  # with selfHeal. This copy exists so a fresh cluster can be bootstrapped from this repo; keep the
+  # two in step, and change the hello-sre one if you want the live object to move.
+  address: https://vault-tls.vault.svc.cluster.local:8200
+  caCertSecretRef: vault-ca
   skipTLSVerify: false
 ---
 # VaultAuth: tells the Vault Secrets Operator how to authenticate
