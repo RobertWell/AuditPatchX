@@ -27,6 +27,11 @@ export default defineConfig({
         'src/types/**',
         'src/components/ui/**',
       ],
+      // The owner's bar: every metric at or above 90%. `vitest run --coverage`
+      // exits non-zero below it, and the CI job frontend-tests runs exactly that
+      // (`npm run test:coverage`), so a regression fails the pipeline, not just
+      // a local run.
+      thresholds: { lines: 90, statements: 90, branches: 90, functions: 90 },
     },
   },
 });
