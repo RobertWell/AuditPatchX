@@ -7,7 +7,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
  * replaced by thin prop-driven stubs so the tests drive App.tsx's OWN logic:
  * handleQuery (incl. 404→insert mode), the approve modal (reason gate →
  * update/insert), compare run, row approve (Modal.confirm) / reject, the SQL
- * review panel submit, swap & export.
+ * review panel submit, swap & export, theme persistence and the error paths.
  */
 const { api } = vi.hoisted(() => ({
   api: {
@@ -29,7 +29,10 @@ vi.mock('./services/exportSql', () => exportMocks);
 // ---- thin child stubs: expose the callback props as clickable buttons ----
 vi.mock('./components/TableSelector', () => ({
   TableSelector: ({ onQuery }: any) => (
-    <button onClick={() => onQuery('S', 'T', { ID: '1' })}>stub-query</button>
+    <div>
+      <button onClick={() => onQuery('S', 'T', { ID: '1' })}>stub-query</button>
+      <button onClick={() => onQuery('S', 'T', { id: '7' })}>stub-query-lower</button>
+    </div>
   ),
 }));
 vi.mock('./components/DataGrid', () => ({
@@ -56,26 +59,33 @@ vi.mock('./components/Sidebar', () => ({
       <button onClick={() => onNavigate('patches')}>nav-patches</button>
       <button onClick={() => onNavigate('compare')}>nav-compare</button>
       <button onClick={() => onNavigate('audit')}>nav-audit</button>
+      <button onClick={() => onNavigate('conflicts')}>nav-conflicts</button>
+      <button onClick={() => onNavigate('rules')}>nav-rules</button>
+      <button onClick={() => onNavigate('bogus')}>nav-bogus</button>
     </nav>
   ),
 }));
-const compareConfig = { tableOne: 'S.SRC', tableTwo: 'S.TGT', syncPk: ['ID'], ignoreColumns: [], limit: 100 };
 vi.mock('./components/CompareJob', () => ({
   CompareJob: ({ onStartReview, onConfigChange }: any) => (
     <div>
       <button onClick={() => onStartReview({ tableOne: 'S.SRC', tableTwo: 'S.TGT', syncPk: ['ID'], ignoreColumns: [], limit: 100 })}>stub-run-compare</button>
+      <button onClick={() => onStartReview({ tableOne: 'S.SRC', tableTwo: 'S.TGT', syncPk: ['ID'], ignoreColumns: ['UPDATED_AT'], limit: 100 })}>stub-run-compare-ignored</button>
       <button onClick={onConfigChange}>stub-config-change</button>
     </div>
   ),
 }));
 vi.mock('./components/DiffResult', () => ({
-  DiffResult: ({ data, onRowApprove, onRowReject, onOpenSqlReview, onBulkApproveSelected, onExportSql, onSwapDirection }: any) => (
+  DiffResult: ({ data, onRowApprove, onRowReject, onOpenSqlReview, onReviewSelected, onBulkApproveSelected, onExportSql, onSwapDirection, limitReached, scannedRows }: any) => (
     <div>
       <span>stub-result-{data.length}</span>
+      <span>stub-scanned-{scannedRows}</span>
+      {limitReached && <span>stub-limit-reached</span>}
       <button onClick={() => onRowApprove(data[0])}>stub-row-approve</button>
       <button onClick={() => onRowReject(data[0])}>stub-row-reject</button>
       <button onClick={() => onOpenSqlReview(data[0], 'NAME')}>stub-open-review</button>
+      <button onClick={() => onReviewSelected(data[0], 'NAME')}>stub-review-selected</button>
       <button onClick={() => onBulkApproveSelected(data)}>stub-bulk-approve</button>
+      <button onClick={() => onBulkApproveSelected([])}>stub-bulk-approve-none</button>
       <button onClick={onExportSql}>stub-export</button>
       <button onClick={onSwapDirection}>stub-swap</button>
     </div>
@@ -86,6 +96,7 @@ vi.mock('./components/SqlReviewPanel', () => ({
     <div>
       <span>stub-panel-{rowId}-{column}</span>
       <button onClick={() => onSubmitReview({ rowId, column, decision: 'approved', comment: 'ok' })}>stub-panel-approve</button>
+      <button onClick={() => onSubmitReview({ rowId, column, decision: 'rejected', comment: 'no' })}>stub-panel-reject</button>
       <button onClick={onClose}>stub-panel-close</button>
     </div>
   ),
@@ -102,6 +113,8 @@ beforeEach(() => {
   Object.values(api).forEach((f) => f.mockReset());
   exportMocks.generateExportSql.mockClear();
   exportMocks.downloadSqlFile.mockClear();
+  localStorage.clear();
+  document.documentElement.classList.remove('dark');
   api.getTableMetadata.mockResolvedValue({
     schema: 'S', table: 'T', pkColumns: ['ID'],
     columns: [{ name: 'ID', type: 'NUMBER', nullable: false }, { name: 'NAME', type: 'VARCHAR2', nullable: true }],
@@ -119,6 +132,8 @@ async function runQuery() {
   await screen.findByText('stub-diff-update');
 }
 
+const reasonBox = () => screen.findByPlaceholderText('Enter reason for this change (required)');
+
 describe('App — patch journey (query → edit → approve → update)', () => {
   it('loads a record and applies an update through the reason-gated modal', async () => {
     render(<App />);
@@ -127,7 +142,7 @@ describe('App — patch journey (query → edit → approve → update)', () => 
     // edit then approve → modal opens with the changed field listed
     fireEvent.click(screen.getByText('stub-edit'));
     fireEvent.click(screen.getByText('stub-approve'));
-    const reason = await screen.findByPlaceholderText('Enter reason for this change (required)');
+    const reason = await reasonBox();
 
     // OK is the modal's Approve button; disabled until a reason is entered
     fireEvent.change(reason, { target: { value: 'fixing NAME' } });
@@ -163,13 +178,16 @@ describe('App — patch journey (query → edit → approve → update)', () => 
     await screen.findByText('stub-diff-insert');
 
     fireEvent.click(screen.getByText('stub-approve'));
-    const reason = await screen.findByPlaceholderText('Enter reason for this change (required)');
+    const reason = await reasonBox();
     fireEvent.change(reason, { target: { value: 'seeding row' } });
     fireEvent.click(screen.getByRole('button', { name: 'Insert' }));
 
     await waitFor(() => expect(api.insert).toHaveBeenCalled());
     expect(api.insert.mock.calls[0][0]).toMatchObject({ schema: 'S', table: 'T', reason: 'seeding row' });
     expect(api.update).not.toHaveBeenCalled();
+    // a successful insert leaves insert mode and shows the stored row
+    await screen.findByText('stub-diff-update');
+    expect(screen.getByText('stub-grid-1')).toBeInTheDocument();
   });
 
   it('surfaces an update failure in the modal instead of closing it', async () => {
@@ -178,10 +196,139 @@ describe('App — patch journey (query → edit → approve → update)', () => 
     await runQuery();
     fireEvent.click(screen.getByText('stub-edit'));
     fireEvent.click(screen.getByText('stub-approve'));
-    const reason = await screen.findByPlaceholderText('Enter reason for this change (required)');
+    const reason = await reasonBox();
     fireEvent.change(reason, { target: { value: 'r' } });
     fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
     await screen.findByText('ORA-00001 unique violation');
+    // typing a new reason clears the stale error line
+    fireEvent.change(reason, { target: { value: 'second attempt' } });
+    expect(screen.queryByText('ORA-00001 unique violation')).toBeNull();
+  });
+});
+
+describe('App — patch journey, secondary paths', () => {
+  it('re-fetches a record when a grid row is clicked', async () => {
+    render(<App />);
+    await runQuery();
+    fireEvent.click(screen.getByText('stub-row-click'));
+    await waitFor(() => expect(api.getByPk).toHaveBeenCalledTimes(2));
+    expect(api.getByPk.mock.calls[1][0]).toEqual({ schema: 'S', table: 'T', pk: { ID: 1 } });
+  });
+
+  it('reports a failed row re-fetch with the transport error message', async () => {
+    render(<App />);
+    await runQuery();
+    api.getByPk.mockRejectedValueOnce(new Error('socket hang up'));
+    fireEvent.click(screen.getByText('stub-row-click'));
+    await screen.findByText('Failed to load record: socket hang up');
+  });
+
+  it('reports a metadata failure and never queries the row', async () => {
+    api.getTableMetadata.mockRejectedValue({ response: { data: { error: 'metadata denied' } } });
+    render(<App />);
+    fireEvent.click(screen.getByText('stub-query'));
+    await screen.findByText('Failed to load record: metadata denied');
+    expect(api.getByPk).not.toHaveBeenCalled();
+    expect(screen.queryByText('stub-diff-update')).toBeNull();
+  });
+
+  it('a non-404 fetch failure is surfaced, not treated as insert mode', async () => {
+    api.getByPk.mockRejectedValue({ response: { status: 500, data: { error: 'ORA-00942' } } });
+    render(<App />);
+    fireEvent.click(screen.getByText('stub-query'));
+    await screen.findByText('Failed to load record: ORA-00942');
+    expect(screen.queryByText('stub-diff-insert')).toBeNull();
+  });
+
+  it('a 404 without the ROW_NOT_FOUND code is a plain failure', async () => {
+    api.getByPk.mockRejectedValue({ response: { status: 404, data: { error: 'endpoint missing' } } });
+    render(<App />);
+    fireEvent.click(screen.getByText('stub-query'));
+    await screen.findByText('Failed to load record: endpoint missing');
+    expect(screen.queryByText('stub-diff-insert')).toBeNull();
+  });
+
+  it('insert mode seeds the PK from lower-cased pk keys and lists only filled values in the modal', async () => {
+    api.getByPk.mockRejectedValue({ response: { status: 404, data: { code: 'ROW_NOT_FOUND' } } });
+    render(<App />);
+    fireEvent.click(screen.getByText('stub-query-lower'));
+    await screen.findByText('stub-diff-insert');
+    fireEvent.click(screen.getByText('stub-approve'));
+    await screen.findByText('You are about to insert a new record with the following values:');
+    // NAME is blank and therefore not listed; ID came from the lower-cased key
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(['ID: 7']);
+  });
+
+  it('the update modal lists each changed field as before → after', async () => {
+    render(<App />);
+    await runQuery();
+    fireEvent.click(screen.getByText('stub-edit'));
+    fireEvent.click(screen.getByText('stub-approve'));
+    await screen.findByText('You are about to update the following fields:');
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(['NAME: orig → edited']);
+  });
+
+  it('Cancel closes the approve modal; re-opening starts with a blank reason', async () => {
+    render(<App />);
+    await runQuery();
+    fireEvent.click(screen.getByText('stub-edit'));
+    fireEvent.click(screen.getByText('stub-approve'));
+    const reason = await reasonBox();
+    fireEvent.change(reason, { target: { value: 'half typed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(api.update).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('stub-approve'));
+    await waitFor(() => expect(screen.getByPlaceholderText('Enter reason for this change (required)')).toHaveValue(''));
+  });
+
+  it('an update failure without a response body falls back to the error message', async () => {
+    api.update.mockRejectedValue(new Error('update offline'));
+    render(<App />);
+    await runQuery();
+    fireEvent.click(screen.getByText('stub-edit'));
+    fireEvent.click(screen.getByText('stub-approve'));
+    fireEvent.change(await reasonBox(), { target: { value: 'r' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    await screen.findByText('Update failed: update offline');
+    expect(screen.getByText('update offline')).toBeInTheDocument();
+  });
+
+  it('an insert failure keeps the modal open, in insert mode, with the error', async () => {
+    api.getByPk.mockRejectedValue({ response: { status: 404, data: { code: 'ROW_NOT_FOUND' } } });
+    api.insert.mockRejectedValue(new Error('insert offline'));
+    render(<App />);
+    fireEvent.click(screen.getByText('stub-query'));
+    await screen.findByText('stub-diff-insert');
+    fireEvent.click(screen.getByText('stub-approve'));
+    fireEvent.change(await reasonBox(), { target: { value: 'r' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Insert' }));
+    await screen.findByText('Insert failed: insert offline');
+    expect(screen.getByText('insert offline')).toBeInTheDocument();
+    expect(screen.getByText('stub-diff-insert')).toBeInTheDocument();
+  });
+});
+
+describe('App — theme', () => {
+  it('restores dark mode from localStorage and the switch toggles it back to light', async () => {
+    localStorage.setItem('auditpatchx.theme', 'dark');
+    render(<App />);
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    fireEvent.click(screen.getByRole('switch'));
+    await waitFor(() => expect(document.documentElement.classList.contains('dark')).toBe(false));
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(localStorage.getItem('auditpatchx.theme')).toBe('light');
+    // and back on again
+    fireEvent.click(screen.getByRole('switch'));
+    await waitFor(() => expect(document.documentElement.classList.contains('dark')).toBe(true));
+    expect(localStorage.getItem('auditpatchx.theme')).toBe('dark');
+  });
+
+  it('defaults to light when nothing is stored and persists the choice', () => {
+    render(<App />);
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+    expect(localStorage.getItem('auditpatchx.theme')).toBe('light');
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
   });
 });
 
@@ -262,6 +409,119 @@ describe('App — compare journey (run → review/approve/reject)', () => {
   });
 });
 
+describe('App — compare journey, secondary paths', () => {
+  async function runCompare(trigger = 'stub-run-compare', expected = 'stub-result-1') {
+    render(<App />);
+    fireEvent.click(screen.getByText('nav-compare'));
+    fireEvent.click(screen.getByText(trigger));
+    await screen.findByText(expected);
+  }
+  const rowWithPk = (pk: string) => ({ ...diffRow, pk, pkMap: { ID: pk } });
+
+  it('bulk approve confirms the direction and row count, then reports the approved rows', async () => {
+    api.compareJob.mockResolvedValue({ differences: [rowWithPk('1'), rowWithPk('2')], limitReached: false, scannedRows: 2 });
+    await runCompare('stub-run-compare', 'stub-result-2');
+    fireEvent.click(screen.getByText('stub-bulk-approve'));
+    await screen.findByText('This action will apply changes to 2 row(s).');
+    expect(screen.getByText('S.SRC -> S.TGT')).toBeInTheDocument();
+    expect(screen.getByText('Changed columns: 2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    await screen.findByText('Approved 2 row(s)');
+    expect(api.reviewCompareRow).toHaveBeenCalledTimes(2);
+    expect(api.reviewCompareRow.mock.calls.map((c) => c[0].pk).sort()).toEqual(['1', '2']);
+  });
+
+  it('bulk approve reports the rows that failed alongside the ones that succeeded', async () => {
+    api.compareJob.mockResolvedValue({
+      differences: ['1', '2', '3', '4'].map(rowWithPk), limitReached: false, scannedRows: 4,
+    });
+    api.reviewCompareRow.mockImplementation(async (req: any) => {
+      if (req.pk === '4') throw new Error('row locked');
+      return { pk: req.pk, status: 'APPROVED' };
+    });
+    await runCompare('stub-run-compare', 'stub-result-4');
+    fireEvent.click(screen.getByText('stub-bulk-approve'));
+    await screen.findByText('This action will apply changes to 4 row(s).');
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    await screen.findByText('1 row(s) failed to approve — check each row and retry');
+    expect(screen.getByText('Approved 3 row(s)')).toBeInTheDocument();
+    expect(api.reviewCompareRow).toHaveBeenCalledTimes(4);
+  });
+
+  it('bulk approve with an empty selection warns and never opens the dialog', async () => {
+    await runCompare();
+    fireEvent.click(screen.getByText('stub-bulk-approve-none'));
+    await screen.findByText('No rows selected');
+    expect(screen.queryByText('This action will apply changes to 0 row(s).')).toBeNull();
+    expect(api.reviewCompareRow).not.toHaveBeenCalled();
+  });
+
+  it('the confirm dialog notes ignored columns that will still be copied; Cancel writes nothing', async () => {
+    await runCompare('stub-run-compare-ignored');
+    fireEvent.click(screen.getByText('stub-row-approve'));
+    await screen.findByText(/Ignored columns are hidden from the diff but will still be copied: UPDATED_AT/);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(api.reviewCompareRow).not.toHaveBeenCalled();
+  });
+
+  it('a failed row reject is reported with the backend error', async () => {
+    api.reviewCompareRow.mockRejectedValue({ response: { data: { error: 'row is locked' } } });
+    await runCompare();
+    fireEvent.click(screen.getByText('stub-row-reject'));
+    await screen.findByText('Reject failed: row is locked');
+  });
+
+  it('Review Selected opens the SQL review panel for the chosen column; close dismisses it', async () => {
+    await runCompare();
+    fireEvent.click(screen.getByText('stub-review-selected'));
+    await screen.findByText('stub-panel-1-NAME');
+    fireEvent.click(screen.getByText('stub-panel-close'));
+    await waitFor(() => expect(screen.queryByText('stub-panel-1-NAME')).toBeNull());
+    expect(api.reviewCompareRow).not.toHaveBeenCalled();
+  });
+
+  it('a rejected SQL review posts REJECTED and closes the panel', async () => {
+    await runCompare();
+    fireEvent.click(screen.getByText('stub-open-review'));
+    await screen.findByText('stub-panel-1-NAME');
+    fireEvent.click(screen.getByText('stub-panel-reject'));
+    await waitFor(() => expect(api.reviewCompareRow).toHaveBeenCalled());
+    expect(api.reviewCompareRow.mock.calls[0][0]).toMatchObject({ pk: '1', status: 'REJECTED', pkMap: { ID: '1' } });
+    await screen.findByText('NAME review rejected');
+    await waitFor(() => expect(screen.queryByText('stub-panel-1-NAME')).toBeNull());
+  });
+
+  it('a failed SQL review submit keeps the panel open and reports the error', async () => {
+    api.reviewCompareRow.mockRejectedValue(new Error('review offline'));
+    await runCompare();
+    fireEvent.click(screen.getByText('stub-open-review'));
+    await screen.findByText('stub-panel-1-NAME');
+    fireEvent.click(screen.getByText('stub-panel-approve'));
+    await screen.findByText('Review submit failed: review offline');
+    expect(screen.getByText('stub-panel-1-NAME')).toBeInTheDocument();
+  });
+
+  it('shows a spinner while the comparison runs and passes the scan metadata to the results', async () => {
+    let resolve!: (value: unknown) => void;
+    api.compareJob.mockReturnValue(new Promise((r) => { resolve = r; }));
+    render(<App />);
+    fireEvent.click(screen.getByText('nav-compare'));
+    fireEvent.click(screen.getByText('stub-run-compare'));
+    await waitFor(() => expect(document.querySelector('.ant-spin-spinning')).not.toBeNull());
+    resolve({ differences: [diffRow], limitReached: true, scannedRows: 100 });
+    await screen.findByText('stub-limit-reached');
+    expect(screen.getByText('stub-scanned-100')).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector('.ant-spin-spinning')).toBeNull());
+  });
+
+  it('tolerates a compare response without scan metadata', async () => {
+    api.compareJob.mockResolvedValue({ differences: [diffRow] });
+    await runCompare();
+    expect(screen.getByText('stub-scanned-0')).toBeInTheDocument();
+    expect(screen.queryByText('stub-limit-reached')).toBeNull();
+  });
+});
+
 describe('App — navigation shell', () => {
   it('placeholder pages render for unbuilt sections', async () => {
     render(<App />);
@@ -269,5 +529,18 @@ describe('App — navigation shell', () => {
     await screen.findByText('Audit Review');
     fireEvent.click(screen.getByText('nav-patches'));
     await screen.findByText('Patch Management');
+  });
+
+  it('renders the remaining placeholders, an unknown-page fallback and the empty compare state', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText('nav-conflicts'));
+    await screen.findByText('Conflict Review');
+    fireEvent.click(screen.getByText('nav-rules'));
+    await screen.findByText('Ignore Rules');
+    fireEvent.click(screen.getByText('nav-bogus'));
+    await screen.findByText('Unknown Page');
+    fireEvent.click(screen.getByText('nav-compare'));
+    await screen.findByText('Run a comparison to view the differences here.');
+    expect(api.compareJob).not.toHaveBeenCalled();
   });
 });

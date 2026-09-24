@@ -33,4 +33,17 @@ describe('DataGrid', () => {
     expect(onRowClick).toHaveBeenCalled();
     expect(onRowClick.mock.calls[0][0].NAME).toBe('alpha');
   });
+
+  it('highlights the selected row in the light and dark palettes', () => {
+    // row keys are JSON(row) + index, so App's selectedRowKey must match exactly
+    const key = JSON.stringify(data[0]) + '0';
+    const { container, rerender } = render(<DataGrid data={data} columns={columns} selectedRowKey={key} />);
+    expect(container.querySelector('tr.bg-blue-50')).not.toBeNull();
+    expect(container.querySelectorAll('tr.cursor-pointer')).toHaveLength(1);
+
+    rerender(<DataGrid data={data} columns={columns} selectedRowKey={key} themeMode={ThemeMode.Dark} />);
+    expect(container.querySelector('tr.bg-blue-50')).toBeNull();
+    expect(container.querySelector('tr[class*="bg-blue-950/40"]')).not.toBeNull();
+    expect(container.querySelectorAll('tr.cursor-pointer')).toHaveLength(1);
+  });
 });

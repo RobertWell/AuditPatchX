@@ -72,4 +72,8 @@ describe('diffResultSelection', () => {
     expect(getReviewTargetColumn(sampleRows[0])).toBe('SQL_TEXT');
     expect(getReviewTargetColumn(sampleRows[1])).toBe('NOTE');
   });
+
+  it('returns null when the row has no changes to review', () => {
+    expect(getReviewTargetColumn({ ...sampleRows[1], changes: [] })).toBeNull();
+  });
 });

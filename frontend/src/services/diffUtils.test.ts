@@ -86,3 +86,29 @@ describe('computeDiff', () => {
     expect(diffs.map((d) => d.field)).toEqual(['B']);
   });
 });
+
+describe('computeDiff — edge cases', () => {
+  it('treats a type change (1 vs "1") as changed, without a text diff', () => {
+    const [d] = computeDiff({ A: 1 }, { A: '1' });
+    expect(d.changed).toBe(true);
+    expect(d.textDiff).toBeUndefined();
+  });
+
+  it('diffs an empty string against multi-line and single-line text, in both directions', () => {
+    const [linesAdded] = computeDiff({ A: '' }, { A: 'a\nb' });
+    expect(linesAdded.textDiffMode).toBe('lines');
+    expect(linesAdded.textDiff?.some((p) => p.added)).toBe(true);
+
+    const [linesRemoved] = computeDiff({ A: 'a\nb' }, { A: '' });
+    expect(linesRemoved.textDiffMode).toBe('lines');
+    expect(linesRemoved.textDiff?.some((p) => p.removed)).toBe(true);
+
+    const [wordsRemoved] = computeDiff({ A: 'x' }, { A: '' });
+    expect(wordsRemoved.textDiffMode).toBe('words');
+    expect(wordsRemoved.textDiff?.some((p) => p.removed)).toBe(true);
+
+    const [wordsAdded] = computeDiff({ A: '' }, { A: 'x' });
+    expect(wordsAdded.textDiffMode).toBe('words');
+    expect(wordsAdded.textDiff?.some((p) => p.added)).toBe(true);
+  });
+});
