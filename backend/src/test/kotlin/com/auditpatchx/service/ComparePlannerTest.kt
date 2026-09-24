@@ -5,6 +5,7 @@ import com.pkgrove.pkgrovekit.core.fold
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -79,6 +80,14 @@ class ComparePlannerTest {
         assertNull(ComparePlanner.pkValuesOrNull(mapOf("ID" to null, "NAME" to "x"), syncPk))
         assertEquals(mapOf("id" to 9L),
             ComparePlanner.pkValuesOrNull(mapOf("ID" to 9L), listOf("id")))
+    }
+
+    @Test
+    fun `diffRow refuses a source row with an incomplete pk`() {
+        val ex = assertThrows(IllegalArgumentException::class.java) {
+            ComparePlanner.diffRow(mapOf("ID" to null, "NAME" to "x"), null, syncPk, emptySet(), ::typeOf)
+        }
+        assertEquals("diffRow requires a complete PK (filter with pkValuesOrNull first)", ex.message)
     }
 
     @Test

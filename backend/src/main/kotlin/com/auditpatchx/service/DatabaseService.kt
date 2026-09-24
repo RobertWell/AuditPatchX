@@ -12,6 +12,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import org.jdbi.v3.core.Handle
 import org.jdbi.v3.core.Jdbi
 import org.jdbi.v3.core.kotlin.KotlinPlugin
+import org.jdbi.v3.core.mapper.RowMapper
 import org.slf4j.LoggerFactory
 import java.time.format.DateTimeFormatter
 import javax.sql.DataSource
@@ -506,11 +507,15 @@ class DatabaseService(
             )
                 .bind("owner", owner)
                 .bind("tableName", tableName)
-                .mapToMap()
+                // Read by JDBC label (case-insensitive). The previous mapToMap() +
+                // row["COLUMN_NAME"] read null for every row because Jdbi lower-cases
+                // map keys, so both tables collapsed to {"NULL": "NULL"} and a
+                // column-name/type mismatch could never be reported.
+                .map(RowMapper { rs, _ ->
+                    rs.getString("COLUMN_NAME").uppercase() to rs.getString("DATA_TYPE").uppercase()
+                })
                 .list()
-                .associate { row ->
-                    row["COLUMN_NAME"].toString().uppercase() to row["DATA_TYPE"].toString().uppercase()
-                }
+                .toMap()
         }
     }
 
@@ -698,9 +703,13 @@ class DatabaseService(
             if (isTemporalType) {
                 val parsed = parseTemporalString(value)
                 if (parsed != null) {
+                    // Oracle's JDBC TYPE_NAME carries the precision between the words,
+                    // e.g. "TIMESTAMP(6) WITH TIME ZONE", so match on the suffix: the
+                    // old "TIMESTAMP WITH TIME ZONE" test never hit a real column and
+                    // every time-zone value was bound with its offset dropped.
                     return when {
-                        typeUpper.contains("TIMESTAMP WITH TIME ZONE") -> parsed.offsetDateTime
-                        typeUpper.contains("TIMESTAMP WITH LOCAL TIME ZONE") -> parsed.offsetDateTime.toLocalDateTime()
+                        typeUpper.contains("WITH LOCAL TIME ZONE") -> parsed.offsetDateTime.toLocalDateTime()
+                        typeUpper.contains("WITH TIME ZONE") -> parsed.offsetDateTime
                         typeUpper.contains("TIMESTAMP") -> parsed.localDateTime
                         typeUpper == "DATE" -> java.sql.Timestamp.valueOf(parsed.localDateTime)
                         else -> value

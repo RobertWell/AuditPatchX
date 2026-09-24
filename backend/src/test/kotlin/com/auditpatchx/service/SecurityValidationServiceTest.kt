@@ -63,6 +63,17 @@ class SecurityValidationServiceTest {
         }
 
         @Test
+        @DisplayName("Should refuse an allowlisted table that does not exist in the database")
+        fun testAllowlistedButMissingTable() {
+            // PHANTOM_TABLE is allowlisted in the test application.yml but never created.
+            assertThatThrownBy {
+                securityService.validateAndGetColumns("TESTUSER", "PHANTOM_TABLE")
+            }
+                .isInstanceOf(SecurityException::class.java)
+                .hasMessageContaining("does not exist or has no accessible columns")
+        }
+
+        @Test
         @DisplayName("Should cache column metadata")
         fun testCachingColumnMetadata() {
             // First call - fetches from database
@@ -212,6 +223,16 @@ class SecurityValidationServiceTest {
         }
 
         @Test
+        @DisplayName("Should fail closed for a table that exists but is not configured")
+        fun testValidatePkOfUnconfiguredTable() {
+            assertThatThrownBy {
+                securityService.validatePkColumns("TESTUSER", "SPARSE_PK_SOURCE", setOf("ID"))
+            }
+                .isInstanceOf(SecurityException::class.java)
+                .hasMessageContaining("Table configuration not found")
+        }
+
+        @Test
         @DisplayName("Should throw for extra PK columns")
         fun testValidateExtraPkColumns() {
             val pkKeys = setOf("EMP_ID", "EXTRA_COLUMN")
@@ -261,6 +282,16 @@ class SecurityValidationServiceTest {
                 .isInstanceOf(SecurityException::class.java)
                 .hasMessageContaining("Cannot update PK columns")
                 .hasMessageContaining("START_DATE")
+        }
+
+        @Test
+        @DisplayName("Should fail closed for a table that exists but is not configured")
+        fun testValidateSetOfUnconfiguredTable() {
+            assertThatThrownBy {
+                securityService.validateSetColumnsNotPk("TESTUSER", "SPARSE_PK_SOURCE", setOf("VALUE"))
+            }
+                .isInstanceOf(SecurityException::class.java)
+                .hasMessageContaining("Table configuration not found")
         }
 
         @Test
@@ -324,6 +355,31 @@ class SecurityValidationServiceTest {
 
             assertThat(columns).isNotEmpty
             assertThat(columns.map { it.name }).contains("DEPT_ID", "DEPT_NAME", "LOCATION", "BUDGET")
+        }
+    }
+
+    @Nested
+    @DisplayName("GetColumnsFromDb Tests")
+    inner class GetColumnsFromDbTests {
+
+        @Test
+        @DisplayName("Should return columns of any existing table without consulting the allowlist, and cache them")
+        fun testColumnsOfNonAllowlistedTable() {
+            // SPARSE_PK_SOURCE exists in the schema but is NOT in the test allowlist.
+            val columns = securityService.getColumnsFromDb("TESTUSER", "SPARSE_PK_SOURCE")
+
+            assertThat(columns).containsExactlyInAnyOrder("ID", "VALUE")
+            assertThat(securityService.getColumnsFromDb("testuser", "sparse_pk_source")).isSameAs(columns)
+        }
+
+        @Test
+        @DisplayName("Should throw SecurityException for a table that does not exist")
+        fun testMissingTable() {
+            assertThatThrownBy {
+                securityService.getColumnsFromDb("TESTUSER", "NO_SUCH_TABLE")
+            }
+                .isInstanceOf(SecurityException::class.java)
+                .hasMessageContaining("does not exist")
         }
     }
 

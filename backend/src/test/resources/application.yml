@@ -116,6 +116,12 @@ allowlist:
       table: LIFECYCLE_TARGET
       pk-columns:
         - ID
+    # Config-drift fixture: allowlisted but never created in test-schema.sql.
+    # Every endpoint must answer 403 (not 500) for it.
+    - schema: TESTUSER
+      table: PHANTOM_TABLE
+      pk-columns:
+        - ID
 
 # sync-tables.pairs is intentionally absent from this YAML.
 # SRCFG00050 fires when YAML list entries can't be matched to a ConfigMapping

@@ -432,3 +432,44 @@ INSERT INTO TESTUSER.LIFECYCLE_TARGET VALUES (8, 80, 'patch-commit');
 INSERT INTO TESTUSER.LIFECYCLE_TARGET VALUES (9, 90, 'ownership');
 
 COMMIT;
+
+-- ============================================================
+-- Coverage fixtures (backend line-coverage gate, >= 90%)
+-- Rows / objects below are dedicated to the HTTP-level review,
+-- compare-filter and validation tests. Nothing above counts them.
+-- ============================================================
+
+-- ALLTYPE rows 30/31: reserved for the /api/compare/review HTTP tests
+-- (30 = APPROVED UPDATE over HTTP, 31 = APPROVED INSERT over HTTP).
+INSERT INTO TESTUSER.ALLTYPE_SOURCE (ID, INT_VAL, STR_VAL, CLOB_VAL)
+VALUES (30, 300, 'http review source 30', 'clob 30');
+INSERT INTO TESTUSER.ALLTYPE_TARGET (ID, INT_VAL, STR_VAL, CLOB_VAL)
+VALUES (30, 3, 'http review stale 30', 'stale clob 30');
+
+INSERT INTO TESTUSER.ALLTYPE_SOURCE (ID, INT_VAL, STR_VAL, CLOB_VAL)
+VALUES (31, 310, 'http review insert 31', 'clob 31');
+
+-- Sparse-PK compare tables: the source has NO PK constraint and carries a
+-- row whose sync-PK value is NULL. compareTables must skip that row
+-- (pinned behaviour) while still counting it as scanned. Not allowlisted:
+-- compare is read-only and validates against DB metadata.
+CREATE TABLE TESTUSER.SPARSE_PK_SOURCE (
+    ID    NUMBER(10),
+    VALUE VARCHAR2(100)
+);
+
+CREATE TABLE TESTUSER.SPARSE_PK_TARGET (
+    ID    NUMBER(10) PRIMARY KEY,
+    VALUE VARCHAR2(100)
+);
+
+INSERT INTO TESTUSER.SPARSE_PK_SOURCE VALUES (1, 'sparse source');
+INSERT INTO TESTUSER.SPARSE_PK_SOURCE VALUES (NULL, 'orphan without pk');
+INSERT INTO TESTUSER.SPARSE_PK_TARGET VALUES (1, 'sparse target');
+
+-- A VIEW is visible through JDBC DatabaseMetaData.getColumns but absent
+-- from ALL_TABLES: /api/compare/validate must reject it as "not a table".
+CREATE VIEW TESTUSER.EMPLOYEE_VIEW AS
+    SELECT EMP_ID, FIRST_NAME, LAST_NAME FROM TESTUSER.EMPLOYEE;
+
+COMMIT;
