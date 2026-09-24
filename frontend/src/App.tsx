@@ -311,7 +311,10 @@ function App() {
   };
 
   const handleRowClick = async (row: Record<string, any>) => {
-    setSelectedRowKey(JSON.stringify(row));
+    // DataGrid keys its rows as JSON.stringify(row) + index and compares record._rowKey, so the
+    // highlight only ever matched when this used the SAME key (it never did: JSON.stringify(row)
+    // alone left every clicked row unhighlighted — found by the 2026-09-24 coverage pass).
+    setSelectedRowKey(row._rowKey ?? JSON.stringify(row));
     const pkValues: Record<string, any> = {};
     pkColumns.forEach((col) => { pkValues[col] = row[col]; });
     setLoading(true);

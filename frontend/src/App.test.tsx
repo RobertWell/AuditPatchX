@@ -36,10 +36,12 @@ vi.mock('./components/TableSelector', () => ({
   ),
 }));
 vi.mock('./components/DataGrid', () => ({
-  DataGrid: ({ data, onRowClick }: any) => (
+  DataGrid: ({ data, onRowClick, selectedRowKey }: any) => (
     <div>
       <span>stub-grid-{data.length}</span>
-      <button onClick={() => onRowClick(data[0])}>stub-row-click</button>
+      <span data-testid="stub-selected">{selectedRowKey}</span>
+      {/* the real DataGrid hands back its keyed record (JSON(row)+index as _rowKey) */}
+      <button onClick={() => onRowClick({ ...data[0], _rowKey: 'row-key-0' })}>stub-row-click</button>
     </div>
   ),
 }));
@@ -213,6 +215,8 @@ describe('App — patch journey, secondary paths', () => {
     fireEvent.click(screen.getByText('stub-row-click'));
     await waitFor(() => expect(api.getByPk).toHaveBeenCalledTimes(2));
     expect(api.getByPk.mock.calls[1][0]).toEqual({ schema: 'S', table: 'T', pk: { ID: 1 } });
+    // the clicked row is highlighted: App must hand the grid back ITS key, not JSON.stringify(row)
+    expect(screen.getByTestId('stub-selected').textContent).toBe('row-key-0');
   });
 
   it('reports a failed row re-fetch with the transport error message', async () => {
