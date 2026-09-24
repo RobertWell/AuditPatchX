@@ -40,13 +40,37 @@ backend-tests:
     - cd backend
     - find $CI_PROJECT_DIR/.m2 -name "*.lastUpdated" -delete 2>/dev/null || true
   script:
-    - mvn test -B -s $CI_PROJECT_DIR/ci_settings.xml
+    # quarkus-jacoco is on by default once the extension is present (a raw
+    # jacoco agent under-reports @QuarkusTest, see backend/pom.xml HEL-174);
+    # the flag makes the gate's precondition explicit on the command line.
+    - mvn test -B -s $CI_PROJECT_DIR/ci_settings.xml -Dquarkus.jacoco.enabled=true
+    # Backend line-coverage gate: >= 90% over the whole main source set,
+    # computed from quarkus-jacoco's CSV (columns 8/9 = LINE_MISSED /
+    # LINE_COVERED). The "lines NN.N%" line feeds the `coverage:` regex below.
+    - |
+      csv=target/jacoco-report/jacoco.csv
+      if [ ! -f "$csv" ]; then
+        echo "coverage gate: $csv is missing - quarkus-jacoco produced no report"
+        exit 1
+      fi
+      awk -F, -v min=90 '
+        NR > 1 { missed += $8; covered += $9 }
+        END {
+          total = missed + covered
+          if (total == 0) { print "coverage gate: no lines analysed"; exit 1 }
+          pct = 100 * covered / total
+          printf "lines %.1f%% (%d/%d) - minimum %d%%\n", pct, covered, total, min
+          if (pct < min) { print "coverage gate: FAILED"; exit 1 }
+          print "coverage gate: passed"
+        }' "$csv"
+  coverage: '/lines\s+([\d.]+)%/'
   artifacts:
     when: always
     reports:
       junit: backend/target/surefire-reports/TEST-*.xml
     paths:
       - backend/target/surefire-reports/
+      - backend/target/jacoco-report/
     expire_in: 7 days
   timeout: 40 minutes
 
