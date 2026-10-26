@@ -106,6 +106,13 @@ build-image:
   tags:
     - privileged
   image: docker:24
+  # DOCKERHUB_USERNAME/DOCKERHUB_TOKEN are scoped to this environment (GitLab CI variable
+  # environment_scope=dockerhub, set 2026-10-26, HEL-718 review): only jobs that declare it
+  # receive them, so every other job and its service containers never see the push token.
+  # `action: prepare` records no deployment.
+  environment:
+    name: dockerhub
+    action: prepare
   services:
     - name: docker:24-dind
       variables:
