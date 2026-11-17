@@ -100,6 +100,48 @@ frontend-tests:
     expire_in: 1 day
   timeout: 10 minutes
 
+# ── Dependency scan (HEL-860 item 7) ──────────────────────────────────────────
+# trivy over backend/pom.xml and frontend/package-lock.json, judged by hello-sre's shared CVE policy (fixable
+# CRITICAL/HIGH block; unfixed are reported). Exit 2 = the scan could not run: never a pass. Same job shape as
+# mobile-app's: the backend tree is resolved into the repo-local .m2 first and scanned --offline-scan, because a
+# scan that resolves against Maven Central at job time is inconclusive whenever Central answers 429.
+dep-scan:
+  resource_group: lan-heavy-io   # one heavy-I/O job at a time (HEL-665)
+  stage: test
+  image: maven:3.9-eclipse-temurin-21
+  timeout: 45 minutes            # trivy binary + DBs ~140 MB on the runner link
+  variables:
+    GIT_DEPTH: "1"
+    # The scanner runs in THIS pipeline with its job token: pinned to a hello-sre commit and verified after the
+    # fetch, never a moving branch (HEL-507). Same pin as mobile-app and hello-stock; bump deliberately.
+    HELLO_SRE_REF: "f40ed27357effa10aaa05eab0ace189d18604b51"
+  cache:
+    - key: maven-$CI_COMMIT_REF_SLUG
+      paths:
+        - .m2/repository/
+      policy: pull-push
+    - key: trivy-db
+      paths:
+        - .trivycache/
+  script:
+    - |
+      set -e
+      command -v git >/dev/null && command -v curl >/dev/null || { apt-get update -qq >/dev/null && apt-get install -y -qq --no-install-recommends git curl >/dev/null; }
+      rm -rf hello-sre && git init -q hello-sre && cd hello-sre
+      # the job token reaches git through a credential helper from the environment, never on argv
+      git -c credential.helper='!f() { echo username=gitlab-ci-token; echo "password=$CI_JOB_TOKEN"; }; f' fetch -q --depth 1 http://gitlab.gitlab.svc.cluster.local/root/hello-sre.git "$HELLO_SRE_REF"
+      git checkout -q FETCH_HEAD; [ "$(git rev-parse HEAD)" = "$HELLO_SRE_REF" ] || { echo "ERROR: hello-sre did not resolve to the pinned $HELLO_SRE_REF"; exit 2; }
+      cd "$CI_PROJECT_DIR"
+      mvn -B -ntp -s "$CI_PROJECT_DIR/ci_settings.xml" -Dmaven.repo.local="$CI_PROJECT_DIR/.m2/repository" -f backend/pom.xml dependency:go-offline -DincludeScope=test > mvn-resolve.log 2>&1 \
+        || mvn -B -ntp -s "$CI_PROJECT_DIR/ci_settings.xml" -Dmaven.repo.local="$CI_PROJECT_DIR/.m2/repository" -f backend/pom.xml dependency:resolve > mvn-resolve.log 2>&1 \
+        || { echo "ERROR: could not resolve backend/pom.xml - the scan would be INCONCLUSIVE:"; tail -30 mvn-resolve.log; exit 2; }
+      HOME="$CI_PROJECT_DIR" TARGET="$CI_PROJECT_DIR" NAME=AuditPatchX DEP_SCAN_EXTRA="--offline-scan --skip-dirs hello-sre" CVE_OUT_DIR="$CI_PROJECT_DIR/cve" sh hello-sre/scripts/ci/dep-scan.sh
+  artifacts:
+    when: always
+    paths:
+      - cve/
+    expire_in: 90 days
+
 # ── Docker image build & push ─────────────────────────────────────────────────
 build-image:
   stage: build
@@ -123,6 +165,7 @@ build-image:
   needs:
     - backend-tests
     - frontend-tests
+    - dep-scan        # HEL-860: an image with a fixable CRITICAL/HIGH dependency is never built
   before_script:
     - |
       for i in $(seq 1 60); do

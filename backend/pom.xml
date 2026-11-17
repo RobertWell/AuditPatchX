@@ -9,11 +9,14 @@
     <version>1.0.0-SNAPSHOT</version>
 
     <properties>
-        <!-- HEL-227: must track the platform BOM (quarkus 3.38.1 manages
-             kotlin-stdlib 2.4.0); a stdlib newer than the compiler fails with
-             'compiled with an incompatible version of Kotlin' on every file. -->
-        <kotlin.version>2.4.0</kotlin.version>
-        <quarkus.version>3.38.1</quarkus.version>
+        <!-- HEL-227: must track the platform BOM (quarkus 3.40.1 manages
+             kotlin-stdlib 2.4.10); a stdlib newer than the compiler fails with
+             'compiled with an incompatible version of Kotlin' on every file.
+             HEL-860 (11-18): 3.38.1 -> 3.40.1 for the dep-scan: its BOM manages
+             jackson 2.21.7 (CVE-2026-89407/89425/68497/91776/91777) and netty
+             4.1.137.Final (CVE-2026-75595), the pair mobile-app runs. -->
+        <kotlin.version>2.4.10</kotlin.version>
+        <quarkus.version>3.40.1</quarkus.version>
         <jdbi.version>3.42.0</jdbi.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <!-- HEL-189: resolves from PUBLIC Maven Central under the verified
